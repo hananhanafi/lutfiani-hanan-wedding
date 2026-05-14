@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@theme {
+  --font-heading: var(--font-playfair), Georgia, serif;
+  --font-body: var(--font-lato), system-ui, sans-serif;
+  --font-wedding: var(--font-playfair), Georgia, serif;
+  --color-gold: #c9a96e;
+  --color-gold-light: #f0e0c0;
+  --color-gold-hover: #b8945a;
+  --color-cream: #fffbf5;
+  --color-cream-dark: #faedcd;
+  --color-blush: #e8c5b0;
+  --transition-duration-600: 600ms;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-cream-dark);
+  color: #3a3028;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+}
+
+/* ── Scroll Indicator ─────────────────────────────────────── */
+@keyframes scroll-dot {
+  0%, 100% { opacity: 0.2; transform: translateY(-4px); }
+  50%       { opacity: 1;   transform: translateY(4px); }
+}
+.animate-scroll-dot {
+  animation: scroll-dot 1.6s ease-in-out infinite;
+}
+
+/* ── Scroll Reveal ─────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.reveal-left {
+  transform: translateX(-32px);
+}
+.reveal.reveal-right {
+  transform: translateX(32px);
+}
+.reveal.reveal-scale {
+  transform: scale(0.95) translateY(16px);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Gold Shimmer Text ─────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    105deg,
+    #e8c97a 0%,
+    #fffbe6 28%,
+    #c9a96e 42%,
+    #fff7d4 50%,
+    #f0d080 58%,
+    #fffbe6 72%,
+    #c9a96e 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer 3.5s linear infinite;
+}
+
+/* ── Glassmorphism ─────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 251, 245, 0.60);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--color-gold) 30%, white);
+  box-shadow: 0 4px 24px rgba(58, 48, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Section backgrounds — use theme primary color for the blobs */
+.glass-bg {
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 30%, color-mix(in srgb, var(--color-gold) 30%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 80% 70%, color-mix(in srgb, var(--color-gold) 20%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 60% 20%, color-mix(in srgb, var(--color-gold) 15%, transparent) 0%, transparent 60%),
+    var(--color-cream-dark);
+}
+
+/* ── Confetti ──────────────────────────────────────────────── */
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) translateX(var(--drift, 60px)) rotate(720deg); opacity: 0; }
+}
+
+/* ── Floating Petals ───────────────────────────────────────── */
+@keyframes petal-fall {
+  0% {
+    transform: translateY(-60px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  90% { opacity: 0.6; }
+  100% {
+    transform: translateY(110vh) translateX(var(--drift, 60px)) rotate(var(--spin, 360deg));
+    opacity: 0;
+  }
+}
+
+@keyframes petal-sway {
+  0%, 100% { margin-left: 0; }
+  50%       { margin-left: var(--sway, 30px); }
+}
+
+.petal {
+  position: absolute;
+  top: -60px;
+  animation:
+    petal-fall var(--fall-dur, 8s) var(--fall-delay, 0s) linear infinite,
+    petal-sway var(--sway-dur, 4s) var(--fall-delay, 0s) ease-in-out infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+
