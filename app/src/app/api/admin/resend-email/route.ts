@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
-import QRCode from "qrcode";
 import { sendMail } from "@/lib/mailer";
+import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -22,15 +22,9 @@ export async function POST(req: NextRequest) {
   if (!guest.email) return NextResponse.json({ error: "Guest has no email address" }, { status: 400 });
   if (!guest.attending) return NextResponse.json({ error: "Guest is not attending" }, { status: 400 });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const qrUrl = `${appUrl}/pass?token=${guest.token}`;
-
-  const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-    width: 400,
-    margin: 2,
-    color: { dark: "#3a3028", light: "#fffbf5" },
-  });
-  const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, "");
+  const qrUrl = buildPassUrl(guest.token);
+  const qrDataUrl = await generatePassQrDataUrl(qrUrl);
+  const qrBase64 = dataUrlToBase64(qrDataUrl);
 
   try {
     await sendMail({

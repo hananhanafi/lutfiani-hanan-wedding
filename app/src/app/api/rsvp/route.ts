@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { v4 as uuidv4 } from "uuid";
-import QRCode from "qrcode";
 import { sendMail } from "@/lib/mailer";
+import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,18 +13,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name and attendance are required." }, { status: 400 });
     }
 
+    if (name.trim().length > 100) {
+      return NextResponse.json({ error: "Name must be 100 characters or fewer." }, { status: 400 });
+    }
+    if (email && email.trim().length > 254) {
+      return NextResponse.json({ error: "Email must be 254 characters or fewer." }, { status: 400 });
+    }
+    if (phone_number && phone_number.trim().length > 30) {
+      return NextResponse.json({ error: "Phone number must be 30 characters or fewer." }, { status: 400 });
+    }
+    if (plus_one_name && plus_one_name.trim().length > 100) {
+      return NextResponse.json({ error: "Plus one name must be 100 characters or fewer." }, { status: 400 });
+    }
+    if (group_name && group_name.trim().length > 100) {
+      return NextResponse.json({ error: "Group name must be 100 characters or fewer." }, { status: 400 });
+    }
+    if (message && message.trim().length > 500) {
+      return NextResponse.json({ error: "Message must be 500 characters or fewer." }, { status: 400 });
+    }
+
     const token = uuidv4();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const qrUrl = `${appUrl}/pass?token=${token}`;
+    const qrUrl = buildPassUrl(token);
 
     // Generate QR code as base64 data URL
-    const qrDataUrl = attending
-      ? await QRCode.toDataURL(qrUrl, {
-          width: 400,
-          margin: 2,
-          color: { dark: "#3a3028", light: "#fffbf5" },
-        })
-      : null;
+    const qrDataUrl = attending ? await generatePassQrDataUrl(qrUrl) : null;
 
     // Upsert: update existing record if email matches, otherwise insert new
     let isUpdate = false;
@@ -98,7 +110,7 @@ export async function POST(req: NextRequest) {
     // Send emails (non-blocking — RSVP succeeds even if email fails)
     try {
       if (attending && email && qrDataUrl) {
-        const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, "");
+        const qrBase64 = dataUrlToBase64(qrDataUrl);
         await sendMail({
           to: email,
           subject: isUpdate ? "Your Updated Wedding Entry Pass 💌" : "Your Wedding Entry Pass 💌",

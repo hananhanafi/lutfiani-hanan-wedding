@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name and message are required." }, { status: 400 });
   }
 
+  if (name.trim().length > 100) {
+    return NextResponse.json({ error: "Name must be 100 characters or fewer." }, { status: 400 });
+  }
+  if (message.trim().length > 1000) {
+    return NextResponse.json({ error: "Message must be 1000 characters or fewer." }, { status: 400 });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("wishes")
     .insert({ name: name.trim(), message: message.trim() })

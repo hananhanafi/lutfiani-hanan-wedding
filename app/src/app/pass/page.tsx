@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import Link from "next/link";
 import Image from "next/image";
-import QRCode from "qrcode";
+import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
 interface Props {
   searchParams: Promise<{ token?: string }>;
@@ -28,13 +28,8 @@ export default async function PassPage({ searchParams }: Props) {
     return <ErrorScreen message="This pass is for a guest who declined the invitation." />;
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const qrUrl = `${appUrl}/pass?token=${token}`;
-  const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-    width: 300,
-    margin: 2,
-    color: { dark: "#3a3028", light: "#fffbf5" },
-  });
+  const qrUrl = buildPassUrl(token);
+  const qrDataUrl = await generatePassQrDataUrl(qrUrl);
 
   return (
     <div className="min-h-screen bg-[#fffbf5] flex items-center justify-center px-4 py-10">

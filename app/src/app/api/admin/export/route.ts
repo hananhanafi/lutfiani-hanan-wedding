@@ -13,11 +13,12 @@ export async function GET(req: NextRequest) {
 
   if (!guests) return NextResponse.json({ error: "No data" }, { status: 500 });
 
-  const headers = ["Name", "Email", "Attending", "Plus One", "Group", "Side", "Message", "Submitted At", "Checked In", "Checked In At"];
+  const headers = ["Name", "Email", "Phone", "Attending", "Plus One", "Group", "Side", "Message", "Submitted At", "Checked In", "Checked In At"];
 
   const rows = guests.map((g) => [
     g.name,
     g.email ?? "",
+    g.phone_number ?? "",
     g.attending === true ? "Yes" : g.attending === false ? "No" : "Pending",
     g.plus_one_name ?? "",
     g.group_name ?? "",
