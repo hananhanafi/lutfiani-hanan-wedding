@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/utils/supabase/admin";
 import type { Guest } from "@/types";
 
 function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return new Date(dateStr).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default async function CheckinDashboard() {
@@ -18,9 +18,9 @@ export default async function CheckinDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-800 mb-2">Check-in Dashboard</h1>
+      <h1 className="text-2xl font-semibold text-gray-800 mb-2">Dasbor Check-in</h1>
       <p className="text-sm text-gray-500 mb-6">
-        {checkedIn.length} of {allGuests.length} guests have arrived
+        {checkedIn.length} dari {allGuests.length} tamu telah tiba
       </p>
 
       {/* Progress */}
@@ -32,8 +32,8 @@ export default async function CheckinDashboard() {
           />
         </div>
         <div className="flex justify-between text-xs text-gray-400 mt-2">
-          <span>✅ {checkedIn.length} arrived</span>
-          <span>⏳ {notArrived.length} not yet</span>
+          <span>✅ {checkedIn.length} sudah tiba</span>
+          <span>⏳ {notArrived.length} belum tiba</span>
         </div>
       </div>
 
@@ -41,11 +41,11 @@ export default async function CheckinDashboard() {
         {/* Checked In */}
         <div>
           <h2 className="text-sm font-semibold text-green-700 uppercase tracking-wider mb-3">
-            ✅ Arrived ({checkedIn.length})
+            ✅ Sudah Tiba ({checkedIn.length})
           </h2>
           <div className="space-y-2">
             {checkedIn.length === 0 && (
-              <p className="text-sm text-gray-400 bg-white rounded-xl p-4 shadow-sm">No guests checked in yet.</p>
+              <p className="text-sm text-gray-400 bg-white rounded-xl p-4 shadow-sm">Belum ada tamu yang check-in.</p>
             )}
             {checkedIn.map((g) => (
               <div key={g.id} className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between">
@@ -63,11 +63,11 @@ export default async function CheckinDashboard() {
         {/* Not Arrived */}
         <div>
           <h2 className="text-sm font-semibold text-yellow-600 uppercase tracking-wider mb-3">
-            ⏳ Not Yet Arrived ({notArrived.length})
+            ⏳ Belum Tiba ({notArrived.length})
           </h2>
           <div className="space-y-2">
             {notArrived.length === 0 && (
-              <p className="text-sm text-gray-400 bg-white rounded-xl p-4 shadow-sm">All guests have checked in! 🎉</p>
+              <p className="text-sm text-gray-400 bg-white rounded-xl p-4 shadow-sm">Semua tamu sudah check-in! 🎉</p>
             )}
             {notArrived.map((g) => (
               <div key={g.id} className="bg-white rounded-xl px-4 py-3 shadow-sm">

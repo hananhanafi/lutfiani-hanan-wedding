@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/guests", label: "Guests", icon: "👥" },
+  { href: "/admin", label: "Dasbor", icon: "📊" },
+  { href: "/admin/guests", label: "Tamu", icon: "👥" },
   { href: "/admin/checkin", label: "Check-in", icon: "✅" },
-  { href: "/admin/content", label: "Content", icon: "✏️" },
-  { href: "/admin/wishes", label: "Wishes", icon: "💌" },
+  { href: "/admin/content", label: "Konten", icon: "✏️" },
+  { href: "/admin/wishes", label: "Harapan", icon: "💌" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,18 +20,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Top nav */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold text-gray-800">Admin Panel</span>
+          <span className="text-lg font-semibold text-gray-800">Panel Admin</span>
           <span className="text-xs bg-[var(--color-cream-dark)] text-[var(--color-gold)] px-2 py-0.5 rounded-full">Wedding</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/" target="_blank" className="text-sm text-gray-500 hover:text-gray-800">
-            View Site ↗
+            Lihat Situs ↗
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
             className="text-sm text-red-500 hover:text-red-700"
           >
-            Logout
+            Keluar
           </button>
         </div>
       </header>

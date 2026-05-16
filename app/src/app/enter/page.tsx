@@ -49,10 +49,10 @@ export default function EnterPage() {
       if (data.unlocked) {
         router.replace(redirect);
       } else {
-        setError(data.error ?? "Incorrect password.");
+        setError(data.error ?? "Kata sandi salah.");
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setSubmitting(false);
     }
@@ -71,10 +71,10 @@ export default function EnterPage() {
       <div className="w-full max-w-sm text-center">
         <div className="text-4xl mb-4">💍</div>
         <h1 className="text-3xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-2">
-          {partnerNames || "You're Invited"}
+          {partnerNames || "Anda Diundang"}
         </h1>
         <p className="text-sm text-[#9a7d5a] mb-8 font-[family-name:var(--font-lato)]">
-          Enter the invitation password to continue
+          Masukkan kata sandi undangan untuk melanjutkan
         </p>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
@@ -82,7 +82,7 @@ export default function EnterPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder="Kata Sandi"
             className="w-full border border-[#e0d5c5] rounded-lg px-4 py-3 text-[#3a3028] text-center text-lg tracking-widest focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)]"
             autoFocus
             autoComplete="current-password"
@@ -93,7 +93,7 @@ export default function EnterPage() {
             disabled={submitting || !password}
             className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm tracking-widest uppercase hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 font-[family-name:var(--font-lato)]"
           >
-            {submitting ? "Checking…" : "Enter"}
+            {submitting ? "Memeriksa…" : "Masuk"}
           </button>
         </form>
       </div>

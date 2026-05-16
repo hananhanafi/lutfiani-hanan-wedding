@@ -32,6 +32,8 @@ export default function WelcomeModal({ partnerOneName, partnerTwoName, weddingDa
   const [miniPlayer, setMiniPlayer] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const [flash, setFlash] = useState(false);
 
   // Drag state
   const playerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +55,24 @@ export default function WelcomeModal({ partnerOneName, partnerTwoName, weddingDa
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (visible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible) {
+      const t = setTimeout(() => setEntered(true), 30);
+      return () => clearTimeout(t);
+    } else {
+      setEntered(false);
+    }
+  }, [visible]);
 
   // Initialize position to bottom-right corner
   useEffect(() => {
@@ -89,47 +109,153 @@ export default function WelcomeModal({ partnerOneName, partnerTwoName, weddingDa
       setMiniPlayer(true);
       sessionStorage.setItem("music_enabled", "1");
     }
-    setLeaving(true);
+    setFlash(true);
+    setTimeout(() => setLeaving(true), 200);
     setTimeout(() => {
       setVisible(false);
+      setFlash(false);
       sessionStorage.setItem("welcome_seen", "1");
-    }, 600);
+    }, 950);
   };
 
   return (
     <>
+      <style>{`
+        @keyframes wmBgZoom {
+          from { transform: scale(1); }
+          to   { transform: scale(1.07); }
+        }
+        @keyframes wmCardIn {
+          0%   { opacity: 0; transform: translateY(52px) scale(0.88); filter: blur(8px); }
+          70%  { filter: blur(0); }
+          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes wmCardOut {
+          0%   { opacity: 1; transform: scale(1); filter: blur(0); }
+          100% { opacity: 0; transform: scale(1.14); filter: blur(10px); }
+        }
+        @keyframes wmItemIn {
+          0%   { opacity: 0; transform: translateY(22px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes wmOrnamentIn {
+          0%   { opacity: 0; transform: scaleX(0.1); }
+          100% { opacity: 1; transform: scaleX(1); }
+        }
+        @keyframes wmFlash {
+          0%   { opacity: 0; }
+          25%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes wmBtnPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(193,158,103,0.7); }
+          70%  { box-shadow: 0 0 0 16px rgba(193,158,103,0); }
+          100% { box-shadow: 0 0 0 0 rgba(193,158,103,0); }
+        }
+        @keyframes wmShine {
+          from { left: -60%; }
+          to   { left: 160%; }
+        }
+        .wm-shine { position: relative; overflow: hidden; }
+        .wm-shine::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: -60%;
+          width: 35%; height: 200%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.38), transparent);
+          transform: skewX(-15deg);
+          animation: wmShine 2.6s ease-in-out 2.2s infinite;
+        }
+      `}</style>
+
       {/* Modal overlay */}
       {visible && (
         <div
-          className={`fixed inset-0 z-[100] flex items-center justify-center transition-opacity ${leaving ? "opacity-0" : "opacity-100"}`}
-          style={{ transitionDuration: "600ms" }}
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{
+            opacity: leaving ? 0 : 1,
+            transition: leaving ? "opacity 0.85s ease-in" : "opacity 0.5s ease-out",
+          }}
         >
+          {/* Background with slow Ken Burns zoom */}
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={coverPhotoUrl ? { backgroundImage: `url(${coverPhotoUrl})` } : { background: "linear-gradient(135deg, #3a2a1a, #6b4c2a)" }}
+            style={{
+              ...(coverPhotoUrl
+                ? { backgroundImage: `url(${coverPhotoUrl})` }
+                : { background: "linear-gradient(135deg, #3a2a1a, #6b4c2a)" }),
+              animation: "wmBgZoom 14s ease-out forwards",
+              transformOrigin: "center center",
+            }}
           />
-          <div className="absolute inset-0 bg-black/55" />
+          {/* Dimming overlay — warms to gold on exit */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: leaving ? "rgba(255,248,220,0.45)" : "rgba(0,0,0,0.55)",
+              transition: "background-color 0.85s ease-in",
+            }}
+          />
+
           <FloatingPetals count={25} />
 
+          {/* Radial light burst on exit */}
+          {flash && (
+            <div
+              className="absolute inset-0 z-20 pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse at center, rgba(255,253,235,0.97) 0%, rgba(255,248,220,0.6) 40%, transparent 70%)",
+                animation: "wmFlash 0.95s ease-out forwards",
+              }}
+            />
+          )}
+
           <div
-            className={`relative z-10 glass rounded-3xl px-10 py-12 max-w-sm w-full mx-4 text-center transition-all ${leaving ? "scale-95 opacity-0" : "scale-100 opacity-100"}`}
-            style={{ transitionDuration: "600ms" }}
+            className="relative z-10 glass rounded-3xl px-10 py-12 max-w-sm w-full mx-4 text-center"
+            style={
+              entered
+                ? leaving
+                  ? { animation: "wmCardOut 0.75s cubic-bezier(0.4,0,1,1) forwards" }
+                  : { animation: "wmCardIn 1s cubic-bezier(0.2,0,0,1) forwards" }
+                : { opacity: 0 }
+            }
           >
-            <div className="flex items-center justify-center gap-3 mb-6">
+            <div
+              className="flex items-center justify-center gap-3 mb-6"
+              style={entered ? { animation: "wmOrnamentIn 0.9s ease-out 0.2s both" } : { opacity: 0 }}
+            >
               <div className="h-px w-10 bg-[var(--color-gold)]" />
               <span className="text-[var(--color-gold)] text-lg">✦</span>
               <div className="h-px w-10 bg-[var(--color-gold)]" />
             </div>
 
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-4 font-[family-name:var(--font-lato)]">
+            <p
+              className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-4 font-[family-name:var(--font-lato)]"
+              style={entered ? { animation: "wmItemIn 0.7s ease-out 0.38s both" } : { opacity: 0 }}
+            >
               You are invited to
             </p>
-            <h1 className="text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] leading-tight mb-1">{partnerOneName}</h1>
-            <p className="text-xl font-[family-name:var(--font-wedding)] text-[#9a7d5a] mb-1">&amp;</p>
-            <h1 className="text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] leading-tight mb-6">{partnerTwoName}</h1>
-            <p className="text-sm text-[#3a3028]/60 font-[family-name:var(--font-wedding)] italic mb-1">Wedding Celebration</p>
+            <h1
+              className="text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] leading-tight mb-1"
+              style={entered ? { animation: "wmItemIn 0.7s ease-out 0.52s both" } : { opacity: 0 }}
+            >{partnerOneName}</h1>
+            <p
+              className="text-xl font-[family-name:var(--font-wedding)] text-[#9a7d5a] mb-1"
+              style={entered ? { animation: "wmItemIn 0.6s ease-out 0.66s both" } : { opacity: 0 }}
+            >&amp;</p>
+            <h1
+              className="text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] leading-tight mb-6"
+              style={entered ? { animation: "wmItemIn 0.7s ease-out 0.76s both" } : { opacity: 0 }}
+            >{partnerTwoName}</h1>
+            <p
+              className="text-sm text-[#3a3028]/60 font-[family-name:var(--font-wedding)] italic mb-1"
+              style={entered ? { animation: "wmItemIn 0.7s ease-out 0.88s both" } : { opacity: 0 }}
+            >Wedding Celebration</p>
             {weddingDate && (
-              <p className="text-xs text-[#9a7d5a] font-[family-name:var(--font-lato)] tracking-wide mb-6">{formatDate(weddingDate)}</p>
+              <p
+                className="text-xs text-[#9a7d5a] font-[family-name:var(--font-lato)] tracking-wide mb-6"
+                style={entered ? { animation: "wmItemIn 0.7s ease-out 0.98s both" } : { opacity: 0 }}
+              >{formatDate(weddingDate)}</p>
             )}
 
             {embedUrl && (
@@ -141,23 +267,30 @@ export default function WelcomeModal({ partnerOneName, partnerTwoName, weddingDa
                     ? "border-[var(--color-gold)] bg-[var(--color-gold)] text-white"
                     : "border-[#c9b99a] text-[#9a7d5a] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)]"
                 }`}
+                style={entered ? { animation: "wmItemIn 0.7s ease-out 1.08s both" } : { opacity: 0 }}
               >
                 🎵 {playMusic ? "Music will play" : "Play background music"}
               </button>
             )}
 
-            <div className="flex items-center justify-center gap-3 mb-6">
+            <div
+              className="flex items-center justify-center gap-3 mb-6"
+              style={entered ? { animation: "wmOrnamentIn 0.9s ease-out 1.14s both" } : { opacity: 0 }}
+            >
               <div className="h-px w-10 bg-[var(--color-gold)]" />
-              <span className="text-[var(--color-gold)] text-sm">✦</span>
+              <span className="text-[var(--color-gold)] text-sm">✶</span>
               <div className="h-px w-10 bg-[var(--color-gold)]" />
             </div>
 
-            <button
-              onClick={handleEnter}
-              className="w-full py-3 bg-[var(--color-gold)] text-white rounded-full text-sm tracking-widest uppercase hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)]"
-            >
-              Open Invitation
-            </button>
+            <div style={entered ? { animation: "wmItemIn 0.7s ease-out 1.22s both" } : { opacity: 0 }}>
+              <button
+                onClick={handleEnter}
+                className="wm-shine w-full py-3 bg-[var(--color-gold)] text-white rounded-full text-sm tracking-widest uppercase font-[family-name:var(--font-lato)] hover:bg-[var(--color-gold-hover)] transition-colors"
+                style={entered ? { animation: "wmBtnPulse 2s ease-out 1.8s infinite" } : {}}
+              >
+                Open Invitation
+              </button>
+            </div>
           </div>
         </div>
       )}

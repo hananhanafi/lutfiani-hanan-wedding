@@ -10,7 +10,7 @@ function formatYear(dateStr: string) {
 
 export default function Footer({ partnerOneName, partnerTwoName, weddingDate }: Props) {
   return (
-    <footer className="glass-bg py-12 px-4 text-center border-t border-[#e0d5c5]/60">
+    <footer className="bg-[var(--color-cream-dark)] py-12 px-4 text-center border-t border-[#e0d5c5]/60">
       <div className="max-w-xl mx-auto space-y-4">
         {/* Decorative divider */}
         <div className="flex items-center justify-center gap-3 mb-6">

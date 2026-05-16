@@ -28,7 +28,7 @@ export default function LoginPage() {
     if (res?.ok) {
       router.push(callbackUrl);
     } else {
-      setError("Invalid username or password.");
+      setError("Nama pengguna atau kata sandi salah.");
     }
   };
 
@@ -36,14 +36,14 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#fffbf5] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-[family-name:var(--font-wedding)] text-[#3a3028]">Admin Panel</h1>
-          <p className="text-sm text-[#9a7d5a] mt-1 font-[family-name:var(--font-lato)]">Wedding Invitation Management</p>
+          <h1 className="text-3xl font-[family-name:var(--font-wedding)] text-[#3a3028]">Panel Admin</h1>
+          <p className="text-sm text-[#9a7d5a] mt-1 font-[family-name:var(--font-lato)]">Manajemen Undangan Pernikahan</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Username
+              Nama Pengguna
             </label>
             <input
               type="text"
@@ -56,7 +56,7 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Password
+              Kata Sandi
             </label>
             <input
               type="password"
@@ -74,7 +74,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm tracking-widest uppercase hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Masuk..." : "Masuk"}
           </button>
         </form>
       </div>

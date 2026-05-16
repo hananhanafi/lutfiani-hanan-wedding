@@ -11,7 +11,7 @@ export default async function PassPage({ searchParams }: Props) {
   const { token } = await searchParams;
 
   if (!token) {
-    return <ErrorScreen message="No token provided." />;
+    return <ErrorScreen message="Token tidak ditemukan." />;
   }
 
   const { data: guest } = await supabaseAdmin
@@ -21,11 +21,11 @@ export default async function PassPage({ searchParams }: Props) {
     .single();
 
   if (!guest) {
-    return <ErrorScreen message="This QR code is not valid." />;
+    return <ErrorScreen message="QR code ini tidak valid." />;
   }
 
   if (!guest.attending) {
-    return <ErrorScreen message="This pass is for a guest who declined the invitation." />;
+    return <ErrorScreen message="Pass ini milik tamu yang tidak bisa hadir." />;
   }
 
   const qrUrl = buildPassUrl(token);
@@ -48,13 +48,13 @@ export default async function PassPage({ searchParams }: Props) {
             ? "bg-green-100 text-green-700"
             : "bg-[var(--color-cream-dark)] text-[var(--color-gold)]"
         }`}>
-          {guest.checked_in ? "✅ Already Checked In" : "Valid Entry Pass"}
+          {guest.checked_in ? "✅ Sudah Check-in" : "Pass Masuk Valid"}
         </div>
 
         {!guest.checked_in && (
           <div className="bg-white rounded-2xl p-5 shadow-sm mb-6">
             <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-              Show this at the entrance
+              Tunjukkan ini di pintu masuk
             </p>
             <Image
               src={qrDataUrl}
@@ -64,14 +64,14 @@ export default async function PassPage({ searchParams }: Props) {
               className="mx-auto rounded-xl"
             />
             <p className="text-xs text-[#9a7d5a] mt-3 font-[family-name:var(--font-lato)]">
-              Screenshot and save this pass
+              Screenshot dan simpan pass ini
             </p>
             <a
               href={qrDataUrl}
               download="my-wedding-pass.png"
               className="inline-block mt-4 px-6 py-2.5 bg-[var(--color-gold)] text-white rounded-xl text-sm hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)]"
             >
-              Download QR Code
+              Unduh QR Code
             </a>
           </div>
         )}
@@ -85,10 +85,10 @@ function ErrorScreen({ message }: { message: string }) {
     <div className="min-h-screen bg-[#fffbf5] flex items-center justify-center px-4">
       <div className="text-center">
         <div className="text-5xl mb-4">❌</div>
-        <h1 className="text-2xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-2">Invalid Pass</h1>
+        <h1 className="text-2xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-2">Pass Tidak Valid</h1>
         <p className="text-[#9a7d5a] font-[family-name:var(--font-lato)]">{message}</p>
         <Link href="/" className="inline-block mt-6 text-sm text-[var(--color-gold)] underline font-[family-name:var(--font-lato)]">
-          Go to Invitation
+          Ke Halaman Undangan
         </Link>
       </div>
     </div>
