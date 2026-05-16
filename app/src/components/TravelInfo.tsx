@@ -12,7 +12,7 @@ export default function TravelInfo({ travelInfo }: Props) {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-            Travel &amp; Stay
+            Perjalanan &amp; Menginap
           </p>
           <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028]">
             Getting Here

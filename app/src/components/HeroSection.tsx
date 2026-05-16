@@ -62,7 +62,7 @@ export default function HeroSection({ config, guestName }: Props) {
       <div className="relative z-10 text-white">
         {guestName && (
           <p className="text-sm sm:text-base opacity-80 mb-4 font-[family-name:var(--font-lato)] tracking-wide">
-            Dear <span className="font-semibold">{guestName}</span>,
+            Kepada <span className="font-semibold">{guestName}</span>,
           </p>
         )}
 
@@ -90,7 +90,7 @@ export default function HeroSection({ config, guestName }: Props) {
           href="#rsvp"
           className="inline-block mt-10 px-8 py-3 border border-white text-white rounded-full text-sm tracking-widest hover:bg-white hover:text-[#3a3028] transition-colors font-[family-name:var(--font-lato)] uppercase"
         >
-          RSVP Now
+          RSVP Sekarang
         </a>
       </div>
 

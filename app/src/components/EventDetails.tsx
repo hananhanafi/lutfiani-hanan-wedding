@@ -5,7 +5,7 @@ interface Props {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString("id-ID", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -63,7 +63,7 @@ export default function EventDetails({ config }: Props) {
     <section id="details" className="py-16 px-4 bg-[#fffbf5]">
       <div className="max-w-2xl mx-auto text-center">
       <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-        When &amp; Where
+        Waktu &amp; Tempat
       </p>
       <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
         Event Details
@@ -72,9 +72,9 @@ export default function EventDetails({ config }: Props) {
       <div className="grid sm:grid-cols-2 gap-8 text-left">
         {/* Date & Time */}
         <div className="glass rounded-2xl p-6">
-          <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Date &amp; Time</p>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Tanggal &amp; Waktu</p>
           <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-            {config.wedding_date ? formatDate(config.wedding_date) : "To be announced"}
+            {config.wedding_date ? formatDate(config.wedding_date) : "Akan diumumkan"}
           </p>
           {config.wedding_time && (
             <p className="text-[#9a7d5a] mt-1 font-[family-name:var(--font-lato)]">{config.wedding_time}</p>
@@ -85,7 +85,7 @@ export default function EventDetails({ config }: Props) {
         <div className="glass rounded-2xl p-6">
           <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Venue</p>
           <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-            {config.venue_name ?? "To be announced"}
+            {config.venue_name ?? "Akan diumumkan"}
           </p>
           {config.venue_address && (
             <p className="text-[#9a7d5a] mt-1 text-sm font-[family-name:var(--font-lato)]">{config.venue_address}</p>
@@ -95,7 +95,7 @@ export default function EventDetails({ config }: Props) {
         {/* Dress Code */}
         {config.dress_code && (
           <div className="glass rounded-2xl p-6">
-            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Dress Code</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Kode Pakaian</p>
             <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">{config.dress_code}</p>
           </div>
         )}
@@ -103,7 +103,7 @@ export default function EventDetails({ config }: Props) {
         {/* RSVP Deadline */}
         {config.rsvp_deadline && (
           <div className="glass rounded-2xl p-6">
-            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">RSVP By</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Konfirmasi Sebelum</p>
             <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
               {formatDate(config.rsvp_deadline)}
             </p>

@@ -13,19 +13,19 @@ export async function GET(req: NextRequest) {
 
   if (!guests) return NextResponse.json({ error: "No data" }, { status: 500 });
 
-  const headers = ["Name", "Email", "Phone", "Attending", "Plus One", "Group", "Side", "Message", "Submitted At", "Checked In", "Checked In At"];
+  const headers = ["Nama", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in"];
 
   const rows = guests.map((g) => [
     g.name,
     g.email ?? "",
     g.phone_number ?? "",
-    g.attending === true ? "Yes" : g.attending === false ? "No" : "Pending",
+    g.attending === true ? "Ya" : g.attending === false ? "Tidak" : "Menunggu",
     g.plus_one_name ?? "",
     g.group_name ?? "",
     g.side ?? "",
     (g.message ?? "").replace(/,/g, ";"),
     g.submitted_at,
-    g.checked_in ? "Yes" : "No",
+    g.checked_in ? "Ya" : "Tidak",
     g.checked_in_at ?? "",
   ]);
 
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="rsvp-list-${new Date().toISOString().split("T")[0]}.csv"`,
+      "Content-Disposition": `attachment; filename="daftar-tamu-${new Date().toISOString().split("T")[0]}.csv"`,
     },
   });
 }

@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 ## My Digital Wedding Invitation Website
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** May 16, 2026  
 **Status:** Live in Production  
 
@@ -77,17 +77,20 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | US-16 | As the couple, I want to give the welcomer/door staff a scanner page to verify guests at the entrance. | Must Have |
 | US-17 | As the couple, I want to see who has been checked in on the day of the wedding. | Must Have |
 | US-18 | As the couple, I want to manually add guests to the list directly from the admin dashboard. | Must Have |
+| US-19 | As the couple, I want to select specific guests and export only their data as CSV or QR cards. | Must Have |
+| US-20 | As the couple, I want to print physical QR card sheets (PDF-ready) for guests who need a physical invitation card. | Should Have |
+| US-21 | As the door staff, I want to register a walk-in guest on the spot and immediately mark them as checked in. | Must Have |
 
 ### Guests
 | ID | User Story | Priority |
 |---|---|---|
-| US-19 | As a guest, I want to view the invitation without signing up. | Must Have |
-| US-20 | As a guest, I want to RSVP easily (attending / not attending). | Must Have |
-| US-21 | As a guest, I want to receive a unique QR code after RSVPing as my entry pass. | Must Have |
-| US-22 | As a guest, I want to add the event to my calendar (Google / Apple). | Must Have |
-| US-23 | As a guest, I want to get directions to the venue via an embedded map. | Must Have |
-| US-24 | As a guest, I want to view the event schedule. | Must Have |
-| US-25 | As a guest, I want to leave a congratulatory message for the couple. | Could Have |
+| US-22 | As a guest, I want to view the invitation without signing up. | Must Have |
+| US-23 | As a guest, I want to RSVP easily (attending / not attending). | Must Have |
+| US-24 | As a guest, I want to receive a unique QR code after RSVPing as my entry pass. | Must Have |
+| US-25 | As a guest, I want to add the event to my calendar (Google / Apple). | Must Have |
+| US-26 | As a guest, I want to get directions to the venue via an embedded map. | Must Have |
+| US-27 | As a guest, I want to view the event schedule. | Must Have |
+| US-28 | As a guest, I want to leave a congratulatory message for the couple. | Could Have |
 
 ---
 
@@ -136,34 +139,38 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-27 | Edit Guest | Admin can update any guest field (name, email, phone, attendance, plus-one, group, side, message, check-in status) via inline editing | Must Have |
 | F-28 | Delete Guest | Admin can remove a guest from the list with a confirmation step | Must Have |
 | F-29 | RSVP Summary | Count of attending / not attending / pending | Must Have |
-| F-30 | Export RSVP Data | Download full guest list as CSV (includes name, email, phone, attendance, plus-one, group, side, message, check-in) | Must Have |
+| F-30 | Export RSVP Data | Download full guest list as CSV (includes name, email, phone, attendance, plus-one, group, side, message, check-in); supports **selective export** — admin can tick individual guests and export only those rows | Must Have |
 | F-31 | Resend Pass Email | Admin can resend the QR entry pass email to any attending guest who has an email address | Must Have |
 | F-32 | WhatsApp Pass Link | Admin can open a WhatsApp deep-link to send the pass URL to any attending guest who has a phone number | Must Have |
 | F-33 | Password Protection Toggle | Enable/disable a site password for guests; set/change the password | Must Have |
 | F-34 | Check-in Dashboard | View real-time check-in status for all guests on the wedding day | Must Have |
 | F-35 | Photo & File Upload | Upload cover photo and gallery images directly to Supabase Storage (max 10 MB, JPG/PNG/WebP/GIF) | Must Have |
+| F-36 | QR PDF Export | Generate a printable A4 HTML page with individual QR entry-pass cards (3-column grid, dashed borders, ornament + guest name + pass QR); supports exporting all guests or a selected subset via `?ids=` param | Should Have |
 
 ### 5.4 Guest Check-in (Scanner)
 
 | # | Feature | Description | Priority |
 |---|---|---|---|
-| F-36 | Scanner Page | A dedicated mobile-friendly page for the welcomer to scan guest QR codes | Must Have |
-| F-37 | QR Verification | Scan a guest's QR code and instantly show: guest name, plus-one, and attendance confirmation | Must Have |
-| F-38 | Confirmation Step | Preview the guest details before marking check-in — prevents accidental check-ins | Must Have |
-| F-39 | Check-in Status | Mark a guest as "Checked In" upon confirmation; prevent duplicate check-ins | Must Have |
-| F-40 | Invalid QR Handling | Show a clear error if the QR code is invalid, already used, or not found | Must Have |
-| F-41 | Scanner Access Control | Scanner page is protected by a separate simple PIN (different from admin panel) so the welcomer doesn't have full admin access | Must Have |
-| F-42 | Manual Name Lookup | If QR scan is not possible, welcomer can search by guest name to find and manually check in a guest | Should Have |
+| F-37 | Scanner Page | A dedicated mobile-friendly page for the welcomer to scan guest QR codes | Must Have |
+| F-38 | QR Verification | Scan a guest's QR code and instantly show: guest name, plus-one, and attendance confirmation | Must Have |
+| F-39 | Confirmation Step | Preview the guest details before marking check-in — prevents accidental check-ins | Must Have |
+| F-40 | Check-in Status | Mark a guest as "Checked In" upon confirmation; prevent duplicate check-ins | Must Have |
+| F-41 | Invalid QR Handling | Show a clear error if the QR code is invalid, already used, or not found | Must Have |
+| F-42 | Scanner Access Control | Scanner page is protected by a separate simple PIN (different from admin panel) so the welcomer doesn't have full admin access | Must Have |
+| F-43 | Manual Name Lookup | If QR scan is not possible, welcomer can search by guest name to find and manually check in a guest | Should Have |
+| F-44 | Walk-in Registration | Welcomer can add a brand-new guest (name, optional plus-one, group, side) directly from the scanner page and immediately mark them as checked in — no admin access needed | Must Have |
 
 ### 5.5 Design & Customization
 
 | # | Feature | Description | Priority |
 |---|---|---|---|
-| F-43 | Theme / Color Scheme | Choose a color palette matching the wedding theme | Must Have |
-| F-44 | Font Selection | Select from a curated set of elegant fonts | Must Have |
-| F-45 | Cover Photo Upload | Upload the main hero/background photo | Must Have |
-| F-46 | Gallery Upload | Upload multiple couple photos | Should Have |
-| F-47 | Mobile Responsive | All pages look great on mobile, tablet, and desktop | Must Have |
+| F-45 | Theme / Color Scheme | Choose a color palette matching the wedding theme | Must Have |
+| F-46 | Font Selection | Select from a curated set of elegant fonts | Must Have |
+| F-47 | Cover Photo Upload | Upload the main hero/background photo | Must Have |
+| F-48 | Gallery Upload | Upload multiple couple photos | Should Have |
+| F-49 | Mobile Responsive | All pages look great on mobile, tablet, and desktop | Must Have |
+| F-50 | Localization | All non-invitation pages (admin panel, scanner, entry, guest pass) use Bahasa Indonesia; the public invitation page is in Indonesian by default | Must Have |
+| F-51 | Welcome Modal Animations | First-visit welcome modal features Ken Burns background zoom, staggered content fade-in, button pulse/shine, and a radial gold-burst exit animation | Should Have |
 
 ---
 
@@ -193,7 +200,8 @@ Website
 │   ├── Guest Preview (name, plus-one)
 │   ├── Confirm Check-in
 │   ├── Check-in Confirmation / Error Screen
-│   └── Manual Name Lookup
+│   ├── Manual Name Lookup
+│   └── Walk-in Registration (add new guest + immediate check-in)
 └── Admin Panel (Private — NextAuth protected)
     ├── Login
     ├── Edit Content
@@ -203,7 +211,9 @@ Website
     │   ├── Delete Guest
     │   ├── Send Pass Email
     │   ├── WhatsApp Pass Link
-    │   └── Export CSV
+│   │   ├── Checkbox Selection (multi-select guests)
+│   │   ├── Export CSV (all or selected)
+│   │   └── Export QR PDF (all or selected — printable card sheet)
     ├── Check-in Dashboard
     └── Wishes Moderation
 ```
@@ -252,6 +262,10 @@ Website
 - **Site password gate** — Middleware enforces an HMAC-signed cookie (`site_unlocked`) on all non-exempt routes. Guests visit `/enter` to unlock.
 - **QR tokens** — Each guest has a unique UUID `token` stored in the DB, encoded into their pass URL (`/pass?token=…`). The scanner validates this token and marks check-in.
 - **Admin guest management** — Admin can add guests manually (name + phone required), edit any field via `PATCH /api/admin/guests/[id]`, or delete via `DELETE`.
+- **Selective export** — Guest table supports multi-checkbox selection; the unified "Ekspor" dropdown exports only selected guests as CSV or a printable QR PDF card sheet. The button is disabled when nothing is selected.
+- **QR PDF export** — `GET /api/admin/export-qr[?ids=…]` returns a self-contained printable HTML page with 3-column A4 QR cards (ornament, guest name, plus-one, group/side, 52 mm QR image). Supports full list or selected subset.
+- **Walk-in registration** — `POST /api/scanner/walkin` (PIN-protected) adds a new guest and immediately sets `attending:true, checked_in:true`.
+- **Localization** — All admin, scanner, entry, and pass pages are in Bahasa Indonesia.
 - **Input validation** — All public-facing text inputs are validated server-side for length limits.
 - The scanner page works entirely in the browser using the device camera — no special hardware needed.
 
@@ -311,6 +325,7 @@ Website
 | 8 | Extra sections — Our Story, gallery, gift registry, bank info, FAQ, Wishes Wall, Spotify player | ✅ Done |
 | 9 | Security & quality fixes — Input validation, shared QR helper, TLS fix, removed unused packages | ✅ Done |
 | 10 | Go live — Deployed to Vercel, environment variables configured | ✅ Done |
+| 11 | Feature & UX pass — Walk-in scanner registration, QR PDF export for print, selective guest CSV/QR export, unified export dropdown, mobile-friendly checkbox selection, Bahasa Indonesia localization, WelcomeModal entry/exit animations | ✅ Done |
 
 ---
 
@@ -323,10 +338,10 @@ Website
 5. ~~Do we want email notifications when a guest RSVPs?~~ **Decided: Yes — the couple receives an email notification via Gmail on each new RSVP.**
 6. ~~Should the QR code be delivered via email, shown on screen only, or both?~~ **Decided: Both — displayed on the confirmation screen AND sent via email.**
 7. How many welcomers/door staff will there be? *(each needs the scanner PIN — currently one shared PIN)*
-8. What languages should the site support? *(currently single language)*
+8. ~~What languages should the site support?~~ **Decided: Bahasa Indonesia — all admin, scanner, entry, and pass pages are fully localized in Indonesian.**
 9. ~~Should the Wishes Wall be public or private?~~ **Decided: Public — visible to all guests; couple can delete messages from admin panel.**
 
 ---
 
 *Owner: The Couple*  
-*Last Updated: May 16, 2026*
+*Last Updated: May 16, 2026 — v1.3*

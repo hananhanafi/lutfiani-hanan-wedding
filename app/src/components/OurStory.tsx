@@ -13,7 +13,7 @@ export default function OurStory({ storyText, partnerOneName, partnerTwoName }: 
     <section id="story" className="glass-bg py-20 px-4">
       <div className="max-w-2xl mx-auto text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-          Our Story
+          Kisah Kami
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           {partnerOneName} &amp; {partnerTwoName}

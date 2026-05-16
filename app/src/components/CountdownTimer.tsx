@@ -41,16 +41,16 @@ export default function CountdownTimer({ weddingDate }: Props) {
   if (!timeLeft) return null;
 
   const units = [
-    { label: "Days", value: timeLeft.days },
-    { label: "Hours", value: timeLeft.hours },
-    { label: "Minutes", value: timeLeft.minutes },
-    { label: "Seconds", value: timeLeft.seconds },
+    { label: "Hari", value: timeLeft.days },
+    { label: "Jam", value: timeLeft.hours },
+    { label: "Menit", value: timeLeft.minutes },
+    { label: "Detik", value: timeLeft.seconds },
   ];
 
   return (
     <section className="py-12 bg-[var(--color-cream-dark)]">
       <p className="text-center text-sm uppercase tracking-widest text-[var(--color-gold)] mb-6 font-[family-name:var(--font-lato)]">
-        Counting Down To Our Day
+        Menghitung Mundur Hari Istimewa Kita
       </p>
       <div className="flex justify-center gap-4 sm:gap-8">
         {units.map(({ label, value }) => (

@@ -11,7 +11,7 @@ export default function EventSchedule({ schedule }: Props) {
     <section id="schedule" className="py-16 px-4 bg-[var(--color-cream-dark)]">
       <div className="max-w-2xl mx-auto text-center">
         <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-          The Day
+          Hari Spesial
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
           Schedule

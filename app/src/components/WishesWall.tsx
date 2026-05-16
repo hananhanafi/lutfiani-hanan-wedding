@@ -19,7 +19,7 @@ interface Props {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString("id-ID", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -90,7 +90,7 @@ export default function WishesWall({ isAdmin = false }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!name.trim() || !message.trim()) return setError("Please fill in both fields.");
+    if (!name.trim() || !message.trim()) return setError("Harap isi kedua kolom.");
     setSubmitting(true);
     try {
       const res = await fetch("/api/wishes", {
@@ -98,21 +98,21 @@ export default function WishesWall({ isAdmin = false }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, message }),
       });
-      if (!res.ok) throw new Error("Failed to submit.");
+      if (!res.ok) throw new Error("Gagal mengirim.");
       setSubmitted(true);
       setName("");
       setMessage("");
       setPage(1);
       fetchWishes(1);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this wish?")) return;
+    if (!confirm("Hapus pesan ini?")) return;
     await fetch(`/api/admin/wishes/${id}`, { method: "DELETE" });
     const newTotal = total - 1;
     const newTotalPages = Math.max(1, Math.ceil(newTotal / PAGE_SIZE));
@@ -126,7 +126,7 @@ export default function WishesWall({ isAdmin = false }: Props) {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-            Wishes Wall
+            Doa &amp; Harapan
           </p>
           <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028]">
             Leave a Message
@@ -138,27 +138,27 @@ export default function WishesWall({ isAdmin = false }: Props) {
           <div className="glass rounded-2xl p-6 mb-10">
             {submitted ? (
               <p className="text-center text-[#9a7d5a] font-[family-name:var(--font-lato)]">
-                Thank you for your message!{" "}
+                Terima kasih atas pesanmu!{" "}
                 <button onClick={() => setSubmitted(false)} className="text-[var(--color-gold)] underline">
-                  Leave another
+                  Tulis lagi
                 </button>
               </p>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                   type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Nama Anda"
                   className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)] bg-white/70"
                 />
                 <textarea
                   value={message} onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write your congratulatory message" rows={3}
+                  placeholder="Tulis ucapan selamat Anda" rows={3}
                   className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)] bg-white/70 resize-none"
                 />
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button type="submit" disabled={submitting}
                   className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm tracking-widest uppercase hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)] disabled:opacity-50">
-                  {submitting ? "Sending" : "Send Message"}
+                  {submitting ? "Mengirim" : "Kirim Pesan"}
                 </button>
               </form>
             )}
@@ -167,7 +167,7 @@ export default function WishesWall({ isAdmin = false }: Props) {
 
         {wishes.length === 0 ? (
           <p className="text-center text-[#9a7d5a] font-[family-name:var(--font-lato)]">
-            No messages yet. Be the first to leave a wish!
+            Belum ada pesan. Jadilah yang pertama!
           </p>
         ) : (
           <>
@@ -205,7 +205,7 @@ export default function WishesWall({ isAdmin = false }: Props) {
                   {isAdmin && (
                     <button onClick={() => handleDelete(w.id)}
                       className="absolute top-3 right-3 text-xs text-red-400 hover:text-red-600 transition-colors">
-                      Delete
+                      Hapus
                     </button>
                   )}
                 </div>
@@ -216,19 +216,19 @@ export default function WishesWall({ isAdmin = false }: Props) {
               <div className="flex items-center justify-center gap-3 mt-8">
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
                   className="px-4 py-2 rounded-full border border-[var(--color-gold)] text-[var(--color-gold)] text-sm hover:bg-[var(--color-gold)] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-[family-name:var(--font-lato)]">
-                  Prev
+                  Sebelumnya
                 </button>
                 <span className="text-sm text-[#9a7d5a] font-[family-name:var(--font-lato)]">{page} / {totalPages}</span>
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                   className="px-4 py-2 rounded-full border border-[var(--color-gold)] text-[var(--color-gold)] text-sm hover:bg-[var(--color-gold)] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-[family-name:var(--font-lato)]">
-                  Next
+                  Berikutnya
                 </button>
               </div>
             )}
 
             {total > 0 && (
               <p className="text-center text-xs text-[#c9b99a] mt-3 font-[family-name:var(--font-lato)]">
-                {total} message{total !== 1 ? "s" : ""}
+                {total} pesan
               </p>
             )}
           </>

@@ -25,21 +25,21 @@ export default function GiftRegistry({ qrUrl, bankName, bankAccountNumber, bankA
     <section id="gift" className="py-20 px-4 bg-[#fffbf5]">
       <div className="max-w-xl mx-auto text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-          Wedding Gift
+          Hadiah Pernikahan
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           A Gift of Love
         </h2>
         <div className="w-12 h-px bg-[var(--color-gold)] mx-auto mb-6" />
         <p className="text-[#9a7d5a] font-[family-name:var(--font-lato)] mb-10 leading-relaxed">
-          Your presence at our wedding is the greatest gift of all. If you wish to honour us with a gift, you may send it via the details below.
+          Kehadiranmu di pernikahan kami adalah hadiah terbesar. Jika kamu ingin memberikan hadiah, kamu dapat mengirimkannya melalui detail di bawah ini.
         </p>
 
         <div className={`flex flex-col ${qrUrl && hasBankDetails ? "sm:flex-row" : ""} items-center justify-center gap-8`}>
           {/* QR Code */}
           {qrUrl && (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-xs uppercase tracking-widest text-[#9a7d5a] font-[family-name:var(--font-lato)]">Scan to Pay</p>
+              <p className="text-xs uppercase tracking-widest text-[#9a7d5a] font-[family-name:var(--font-lato)]">Scan untuk Bayar</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrUrl}
@@ -68,7 +68,7 @@ export default function GiftRegistry({ qrUrl, bankName, bankAccountNumber, bankA
           {/* Bank Transfer */}
           {hasBankDetails && (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-xs uppercase tracking-widest text-[#9a7d5a] font-[family-name:var(--font-lato)]">Bank Transfer</p>
+              <p className="text-xs uppercase tracking-widest text-[#9a7d5a] font-[family-name:var(--font-lato)]">Transfer Bank</p>
               <div className="glass rounded-2xl px-8 py-6 space-y-3 min-w-[200px]">
                 {bankName && (
                   <div>
@@ -78,7 +78,7 @@ export default function GiftRegistry({ qrUrl, bankName, bankAccountNumber, bankA
                 )}
                 {bankAccountNumber && (
                   <div>
-                    <p className="text-xs text-[#c9b99a] uppercase tracking-wider font-[family-name:var(--font-lato)]">Account Number</p>
+                    <p className="text-xs text-[#c9b99a] uppercase tracking-wider font-[family-name:var(--font-lato)]">Nomor Rekening</p>
                     <div className="flex items-center justify-center gap-2 mt-0.5">
                       <p className="text-[#3a3028] font-semibold font-[family-name:var(--font-lato)] text-lg tracking-widest">{bankAccountNumber}</p>
                       <button
@@ -99,12 +99,12 @@ export default function GiftRegistry({ qrUrl, bankName, bankAccountNumber, bankA
                         )}
                       </button>
                     </div>
-                    {copied && <p className="text-xs text-[var(--color-gold)] mt-0.5 font-[family-name:var(--font-lato)]">Copied!</p>}
+                    {copied && <p className="text-xs text-[var(--color-gold)] mt-0.5 font-[family-name:var(--font-lato)]">Tersalin!</p>}
                   </div>
                 )}
                 {bankAccountName && (
                   <div>
-                    <p className="text-xs text-[#c9b99a] uppercase tracking-wider font-[family-name:var(--font-lato)]">Account Name</p>
+                    <p className="text-xs text-[#c9b99a] uppercase tracking-wider font-[family-name:var(--font-lato)]">Nama Pemilik</p>
                     <p className="text-[#3a3028] font-semibold font-[family-name:var(--font-lato)]">{bankAccountName}</p>
                   </div>
                 )}

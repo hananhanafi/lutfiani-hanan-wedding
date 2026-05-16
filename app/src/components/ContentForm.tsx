@@ -92,12 +92,12 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     try {
       let schedule_json: ScheduleItem[] = [];
       let faq_json: FaqItem[] = [];
-      try { schedule_json = JSON.parse(form.schedule_json); } catch { throw new Error("Invalid JSON in Schedule."); }
-      try { faq_json = JSON.parse(form.faq_json); } catch { throw new Error("Invalid JSON in FAQ."); }
+      try { schedule_json = JSON.parse(form.schedule_json); } catch { throw new Error("JSON tidak valid pada Jadwal."); }
+      try { faq_json = JSON.parse(form.faq_json); } catch { throw new Error("JSON tidak valid pada FAQ."); }
 
       const passwordEnabled = form.site_password_enabled === "true";
       if (passwordEnabled && !form.site_password_plain && !hasExistingHash) {
-        throw new Error("Please set a password when enabling protection for the first time.");
+        throw new Error("Harap buat kata sandi saat mengaktifkan perlindungan untuk pertama kali.");
       }
 
       const res = await fetch("/api/admin/content", {
@@ -113,10 +113,10 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to save.");
-      setMessage({ type: "success", text: "Changes saved successfully!" });
+      if (!res.ok) throw new Error("Gagal menyimpan.");
+      setMessage({ type: "success", text: "Perubahan berhasil disimpan!" });
     } catch (err: unknown) {
-      setMessage({ type: "error", text: err instanceof Error ? err.message : "Error saving changes." });
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan." });
     } finally {
       setSaving(false);
     }
@@ -128,12 +128,12 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <h2 className="font-semibold text-gray-700">The Couple</h2>
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Partner 1 Name" value={form.partner_one_name} onChange={(v) => set("partner_one_name", v)} />
-          <Field label="Partner 2 Name" value={form.partner_two_name} onChange={(v) => set("partner_two_name", v)} />
+          <Field label="Nama Pasangan 1" value={form.partner_one_name} onChange={(v) => set("partner_one_name", v)} />
+          <Field label="Nama Pasangan 2" value={form.partner_two_name} onChange={(v) => set("partner_two_name", v)} />
         </div>
         {/* Cover Photo Upload */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Cover Photo</label>
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Foto Sampul</label>
           {form.cover_photo_url && (
             <div className="relative mb-2 rounded-lg overflow-hidden h-36 bg-gray-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -146,7 +146,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                 uploadingPhoto ? "opacity-50 pointer-events-none" : ""
               }`}
             >
-              {uploadingPhoto ? "Uploading…" : form.cover_photo_url ? "Change Photo" : "Upload Photo"}
+              {uploadingPhoto ? "Mengunggah…" : form.cover_photo_url ? "Ganti Foto" : "Unggah Foto"}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
@@ -165,7 +165,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                     if (!res.ok) throw new Error(data.error ?? "Upload failed");
                     set("cover_photo_url", data.url);
                   } catch (err: unknown) {
-                    setMessage({ type: "error", text: err instanceof Error ? err.message : "Upload failed" });
+                    setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
                   } finally {
                     setUploadingPhoto(false);
                     e.target.value = "";
@@ -179,11 +179,11 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                 onClick={() => set("cover_photo_url", "")}
                 className="text-xs text-gray-400 hover:text-red-500 transition-colors"
               >
-                Remove
+                Hapus
               </button>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · max 5 MB</p>
+          <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · maks 5 MB</p>
         </div>
       </section>
 
@@ -191,14 +191,14 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <h2 className="font-semibold text-gray-700">Event Details</h2>
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Wedding Date" value={form.wedding_date} onChange={(v) => set("wedding_date", v)} type="date" />
-          <Field label="Wedding Time" value={form.wedding_time} onChange={(v) => set("wedding_time", v)} placeholder="e.g. 4:00 PM" />
-          <Field label="RSVP Deadline" value={form.rsvp_deadline} onChange={(v) => set("rsvp_deadline", v)} type="date" />
-          <Field label="Dress Code" value={form.dress_code} onChange={(v) => set("dress_code", v)} placeholder="e.g. Semi-Formal" />
+          <Field label="Tanggal Pernikahan" value={form.wedding_date} onChange={(v) => set("wedding_date", v)} type="date" />
+          <Field label="Waktu Pernikahan" value={form.wedding_time} onChange={(v) => set("wedding_time", v)} placeholder="mis. 16:00 WIB" />
+          <Field label="Batas RSVP" value={form.rsvp_deadline} onChange={(v) => set("rsvp_deadline", v)} type="date" />
+          <Field label="Kode Pakaian" value={form.dress_code} onChange={(v) => set("dress_code", v)} placeholder="mis. Semi-Formal" />
         </div>
-        <Field label="Venue Name" value={form.venue_name} onChange={(v) => set("venue_name", v)} />
-        <Field label="Venue Address" value={form.venue_address} onChange={(v) => set("venue_address", v)} />
-        <Field label="Google Maps Embed URL" value={form.venue_maps_url} onChange={(v) => set("venue_maps_url", v)} placeholder="https://maps.google.com/maps?..." />
+        <Field label="Nama Venue" value={form.venue_name} onChange={(v) => set("venue_name", v)} />
+        <Field label="Alamat Venue" value={form.venue_address} onChange={(v) => set("venue_address", v)} />
+        <Field label="URL Google Maps Embed" value={form.venue_maps_url} onChange={(v) => set("venue_maps_url", v)} placeholder="https://maps.google.com/maps?..." />
       </section>
 
       {/* Schedule (JSON) */}
@@ -210,8 +210,8 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
       {/* Story & Extras */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <h2 className="font-semibold text-gray-700">Our Story &amp; Extras</h2>
-        <TextArea label="Our Story Text" value={form.story_text} onChange={(v) => set("story_text", v)} rows={5} placeholder="How we met..." />
-        <TextArea label="Travel &amp; Stay Info" value={form.travel_info} onChange={(v) => set("travel_info", v)} rows={3} placeholder="Nearby hotels..." />
+        <TextArea label="Teks Kisah Kami" value={form.story_text} onChange={(v) => set("story_text", v)} rows={5} placeholder="Bagaimana kami bertemu..." />
+        <TextArea label="Info Perjalanan &amp; Penginapan" value={form.travel_info} onChange={(v) => set("travel_info", v)} rows={3} placeholder="Hotel terdekat..." />
       </section>
 
       {/* Gift / Bank Transfer */}
@@ -220,7 +220,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
 
         {/* Payment QR Upload */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Payment QR Code</label>
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">QR Code Pembayaran</label>
           {form.gift_qr_url && (
             <div className="relative mb-2 rounded-lg overflow-hidden w-32 h-32 bg-gray-100 border border-gray-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -233,7 +233,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                 uploadingQr ? "opacity-50 pointer-events-none" : ""
               }`}
             >
-              {uploadingQr ? "Uploading…" : form.gift_qr_url ? "Change QR" : "Upload QR"}
+              {uploadingQr ? "Mengunggah…" : form.gift_qr_url ? "Ganti QR" : "Unggah QR"}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
@@ -253,7 +253,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                     if (!res.ok) throw new Error(data.error ?? "Upload failed");
                     set("gift_qr_url", data.url);
                   } catch (err: unknown) {
-                    setMessage({ type: "error", text: err instanceof Error ? err.message : "Upload failed" });
+                    setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
                   } finally {
                     setUploadingQr(false);
                     e.target.value = "";
@@ -262,28 +262,28 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
               />
             </label>
             {form.gift_qr_url && (
-              <button type="button" onClick={() => set("gift_qr_url", "")} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Remove</button>
+              <button type="button" onClick={() => set("gift_qr_url", "")} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Hapus</button>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-1">GoPay, OVO, Dana, etc. · JPG or PNG</p>
+          <p className="text-xs text-gray-400 mt-1">GoPay, OVO, Dana, dll. · JPG atau PNG</p>
         </div>
 
         {/* Bank Details */}
-        <Field label="Bank Name" value={form.bank_name} onChange={(v) => set("bank_name", v)} placeholder="e.g. BCA, Mandiri, BNI" />
-        <Field label="Account Number" value={form.bank_account_number} onChange={(v) => set("bank_account_number", v)} placeholder="e.g. 1234567890" />
-        <Field label="Account Name" value={form.bank_account_name} onChange={(v) => set("bank_account_name", v)} placeholder="e.g. Budi Santoso" />
+        <Field label="Nama Bank" value={form.bank_name} onChange={(v) => set("bank_name", v)} placeholder="mis. BCA, Mandiri, BNI" />
+        <Field label="Nomor Rekening" value={form.bank_account_number} onChange={(v) => set("bank_account_number", v)} placeholder="mis. 1234567890" />
+        <Field label="Nama Pemilik Rekening" value={form.bank_account_name} onChange={(v) => set("bank_account_name", v)} placeholder="mis. Budi Santoso" />
       </section>
 
       {/* Spotify Playlist */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <h2 className="font-semibold text-gray-700">Spotify Playlist</h2>
         <Field
-          label="Playlist URL"
+          label="URL Playlist"
           value={form.spotify_playlist_url}
           onChange={(v) => set("spotify_playlist_url", v)}
           placeholder="https://open.spotify.com/playlist/..."
         />
-        <p className="text-xs text-gray-400">Paste a Spotify playlist URL to embed a music player on the invitation page.</p>
+        <p className="text-xs text-gray-400">Tempel URL playlist Spotify untuk menampilkan pemutar musik di halaman undangan.</p>
       </section>
 
       {/* FAQ (JSON) */}
@@ -306,7 +306,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                   onClick={() => setGalleryUrls((prev) => prev.filter((_, idx) => idx !== i))}
                   className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium"
                 >
-                  Remove
+                  Hapus
                 </button>
               </div>
             ))}
@@ -318,7 +318,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
               uploadingGallery ? "opacity-50 pointer-events-none" : ""
             }`}
           >
-            {uploadingGallery ? "Uploading…" : "Add Photos"}
+            {uploadingGallery ? "Mengunggah…" : "Tambah Foto"}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
@@ -357,11 +357,11 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
               onClick={() => setGalleryUrls([])}
               className="text-xs text-gray-400 hover:text-red-500 transition-colors"
             >
-              Clear all
+              Hapus Semua
             </button>
           )}
         </div>
-        <p className="text-xs text-gray-400">JPG, PNG, WebP · max 10 MB each · select multiple files at once</p>
+        <p className="text-xs text-gray-400">JPG, PNG, WebP · maks 10 MB per file · pilih beberapa file sekaligus</p>
       </section>
 
       {/* Theme */}
@@ -369,14 +369,14 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         <h2 className="font-semibold text-gray-700">Theme</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Primary Color</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Warna Utama</label>
             <div className="flex items-center gap-2">
               <input type="color" value={form.theme_color_primary} onChange={(e) => set("theme_color_primary", e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0" />
               <span className="text-sm text-gray-500">{form.theme_color_primary}</span>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Secondary Color</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Warna Sekunder</label>
             <div className="flex items-center gap-2">
               <input type="color" value={form.theme_color_secondary} onChange={(e) => set("theme_color_secondary", e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0" />
               <span className="text-sm text-gray-500">{form.theme_color_secondary}</span>
@@ -384,7 +384,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Heading Font</label>
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Font Judul</label>
           <select
             value={form.theme_font}
             onChange={(e) => set("theme_font", e.target.value)}
@@ -407,21 +407,21 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
             onChange={(e) => set("site_password_enabled", e.target.checked ? "true" : "false")}
             className="w-4 h-4 accent-[var(--color-gold)]"
           />
-          <span className="text-sm text-gray-700">Require password for guests to view the invitation</span>
+          <span className="text-sm text-gray-700">Wajibkan kata sandi untuk tamu melihat undangan</span>
         </label>
         {form.site_password_enabled === "true" && (
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-              {hasExistingHash ? "New Password" : "Password"}
+              {hasExistingHash ? "Kata Sandi Baru" : "Kata Sandi"}
               {hasExistingHash && (
-                <span className="normal-case text-gray-400 ml-1">(leave blank to keep existing)</span>
+                <span className="normal-case text-gray-400 ml-1">(biarkan kosong untuk mempertahankan yang ada)</span>
               )}
             </label>
             <input
               type="password"
               value={form.site_password_plain}
               onChange={(e) => set("site_password_plain", e.target.value)}
-              placeholder={hasExistingHash ? "Enter new password to change" : "Set a password"}
+              placeholder={hasExistingHash ? "Masukkan kata sandi baru untuk mengubah" : "Buat kata sandi"}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
               autoComplete="new-password"
             />
@@ -440,7 +440,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         disabled={saving}
         className="px-6 py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50"
       >
-        {saving ? "Saving..." : "Save Changes"}
+        {saving ? "Menyimpan..." : "Simpan Perubahan"}
       </button>
     </form>
   );
