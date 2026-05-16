@@ -13,7 +13,7 @@ import TravelInfo from "@/components/TravelInfo";
 import FaqSection from "@/components/FaqSection";
 import WishesWall from "@/components/WishesWall";
 import Footer from "@/components/Footer";
-import WelcomeModal from "@/components/WelcomeModal";
+import EnvelopeModal from "@/components/EnvelopeModal";
 import ScrollReveal from "@/components/ScrollReveal";
 import FloatingPetals from "@/components/FloatingPetals";
 
@@ -49,7 +49,7 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <main className="relative">
-      <WelcomeModal
+      <EnvelopeModal
         partnerOneName={config.partner_one_name}
         partnerTwoName={config.partner_two_name}
         weddingDate={config.wedding_date}

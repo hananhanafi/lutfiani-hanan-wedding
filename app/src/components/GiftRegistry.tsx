@@ -39,7 +39,7 @@ export default function GiftRegistry({ qrUrl, bankName, bankAccountNumber, bankA
           {/* QR Code */}
           {qrUrl && (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-xs uppercase tracking-widest text-[#9a7d5a] font-[family-name:var(--font-lato)]">Scan untuk Bayar</p>
+              <p className="text-xs uppercase tracking-widest text-[#9a7d5a] font-[family-name:var(--font-lato)]">Scan untuk Mengirim Hadiah</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrUrl}

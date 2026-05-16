@@ -30,7 +30,7 @@ export default function Footer({ partnerOneName, partnerTwoName, weddingDate }: 
         )}
 
         <p className="text-xs text-[#c9b99a] font-[family-name:var(--font-lato)] italic mt-4">
-          Dibuat dengan cinta ♥
+          Made with love ♥
         </p>
       </div>
     </footer>
