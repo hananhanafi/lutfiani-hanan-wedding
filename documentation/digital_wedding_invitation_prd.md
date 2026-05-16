@@ -1,9 +1,9 @@
 # Product Requirements Document (PRD)
 ## My Digital Wedding Invitation Website
 
-**Version:** 1.1  
-**Date:** May 11, 2026  
-**Status:** Ready for Development  
+**Version:** 1.2  
+**Date:** May 16, 2026  
+**Status:** Live in Production  
 
 ---
 
@@ -64,10 +64,10 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | US-03 | As the couple, I want to add event details: date, time, venue name, and address. | Must Have |
 | US-04 | As the couple, I want to add a schedule for the ceremony, dinner, and after-party. | Must Have |
 | US-05 | As the couple, I want to manage our guest list and see who has RSVPed. | Must Have |
-| US-06 | As the couple, I want to collect dietary preferences and plus-one details via the RSVP form. | Must Have |
+| US-06 | As the couple, I want to collect plus-one details and a personal message via the RSVP form. | Must Have |
 | US-07 | As the couple, I want to share the invitation as a link (via WhatsApp, social, or email). | Must Have |
 | US-08 | As the couple, I want to set an RSVP deadline. | Must Have |
-| US-09 | As the couple, I want to export the RSVP list as a spreadsheet. | Must Have |
+| US-09 | As the couple, I want to export the RSVP list as a spreadsheet (including phone numbers). | Must Have |
 | US-10 | As the couple, I want to share our love story on the website. | Should Have |
 | US-11 | As the couple, I want to add a photo gallery section. | Should Have |
 | US-12 | As the couple, I want to add a gift registry link. | Should Have |
@@ -76,17 +76,18 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | US-15 | As the couple, I want each confirmed guest to receive a unique QR code after RSVPing. | Must Have |
 | US-16 | As the couple, I want to give the welcomer/door staff a scanner page to verify guests at the entrance. | Must Have |
 | US-17 | As the couple, I want to see who has been checked in on the day of the wedding. | Must Have |
+| US-18 | As the couple, I want to manually add guests to the list directly from the admin dashboard. | Must Have |
 
 ### Guests
 | ID | User Story | Priority |
 |---|---|---|
-| US-18 | As a guest, I want to view the invitation without signing up. | Must Have |
-| US-19 | As a guest, I want to RSVP easily (attending / not attending). | Must Have |
-| US-20 | As a guest, I want to receive a unique QR code after RSVPing as my entry pass. | Must Have |
-| US-21 | As a guest, I want to add the event to my calendar (Google / Apple). | Must Have |
-| US-22 | As a guest, I want to get directions to the venue via an embedded map. | Must Have |
-| US-23 | As a guest, I want to view the event schedule. | Must Have |
-| US-24 | As a guest, I want to leave a congratulatory message for the couple. | Could Have |
+| US-19 | As a guest, I want to view the invitation without signing up. | Must Have |
+| US-20 | As a guest, I want to RSVP easily (attending / not attending). | Must Have |
+| US-21 | As a guest, I want to receive a unique QR code after RSVPing as my entry pass. | Must Have |
+| US-22 | As a guest, I want to add the event to my calendar (Google / Apple). | Must Have |
+| US-23 | As a guest, I want to get directions to the venue via an embedded map. | Must Have |
+| US-24 | As a guest, I want to view the event schedule. | Must Have |
+| US-25 | As a guest, I want to leave a congratulatory message for the couple. | Could Have |
 
 ---
 
@@ -116,45 +117,53 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-13 | Guest Name Input | Guest enters their name to RSVP | Must Have |
 | F-14 | Attendance Choice | Attending / Not Attending | Must Have |
 | F-15 | Plus-One | Option to bring a plus-one (with their name) | Must Have |
-| F-16 | Dietary Preference | Dropdown or text field for dietary restrictions | Must Have |
-| F-17 | Custom Question | One optional extra question (e.g., song request) | Could Have |
+| F-16 | Phone Number | Guest's phone number (used for WhatsApp pass delivery) | Must Have |
+| F-17 | Personal Message | Optional congratulatory message from the guest | Could Have |
 | F-18 | RSVP Deadline Display | Show the RSVP deadline on the form | Must Have |
 | F-19 | Confirmation Message | Show a thank-you message after RSVP is submitted | Must Have |
 | F-20 | QR Code Generation | Automatically generate a unique QR code for each confirmed guest after RSVP | Must Have |
 | F-21 | QR Code Delivery | Display QR code on the confirmation screen (save/screenshot) AND send via email. A **"Share via WhatsApp"** button is also shown, using a `wa.me` deep link pre-filled with the guest's QR pass URL — the guest taps it to save to their own WhatsApp (Saved Messages) or forward to a family member. No WhatsApp API needed. | Must Have |
+| F-22 | Input Validation | All text inputs have server-side length limits (name ≤100, email ≤254, phone ≤30, message ≤500 chars) | Must Have |
 
 ### 5.3 Admin Panel (Private)
 
 | # | Feature | Description | Priority |
 |---|---|---|---|
-| F-22 | Secure Login | Single admin login (username + password) | Must Have |
-| F-23 | Edit Invitation Content | Update all sections: details, schedule, story, gallery | Must Have |
-| F-24 | Guest List View | See all guests, their RSVP status, dietary info, plus-one | Must Have |
-| F-25 | RSVP Summary | Count of attending / not attending / pending | Must Have |
-| F-26 | Export RSVP Data | Download guest list as CSV or Excel | Must Have |
-| F-27 | Password Protection Toggle | Enable/disable a site password for guests | Must Have |
-| F-28 | Check-in Dashboard | View real-time check-in status for all guests on the wedding day | Must Have |
+| F-23 | Secure Login | Single admin login (username + password) via NextAuth | Must Have |
+| F-24 | Edit Invitation Content | Update all sections: details, schedule, story, gallery, theme, bank/gift info, Spotify playlist | Must Have |
+| F-25 | Guest List View | See all guests, their RSVP status, phone, plus-one, group, side | Must Have |
+| F-26 | Add Guest Manually | Admin can add a new guest directly from the dashboard (name and phone required); guest receives a QR pass token automatically | Must Have |
+| F-27 | Edit Guest | Admin can update any guest field (name, email, phone, attendance, plus-one, group, side, message, check-in status) via inline editing | Must Have |
+| F-28 | Delete Guest | Admin can remove a guest from the list with a confirmation step | Must Have |
+| F-29 | RSVP Summary | Count of attending / not attending / pending | Must Have |
+| F-30 | Export RSVP Data | Download full guest list as CSV (includes name, email, phone, attendance, plus-one, group, side, message, check-in) | Must Have |
+| F-31 | Resend Pass Email | Admin can resend the QR entry pass email to any attending guest who has an email address | Must Have |
+| F-32 | WhatsApp Pass Link | Admin can open a WhatsApp deep-link to send the pass URL to any attending guest who has a phone number | Must Have |
+| F-33 | Password Protection Toggle | Enable/disable a site password for guests; set/change the password | Must Have |
+| F-34 | Check-in Dashboard | View real-time check-in status for all guests on the wedding day | Must Have |
+| F-35 | Photo & File Upload | Upload cover photo and gallery images directly to Supabase Storage (max 10 MB, JPG/PNG/WebP/GIF) | Must Have |
 
 ### 5.4 Guest Check-in (Scanner)
 
 | # | Feature | Description | Priority |
 |---|---|---|---|
-| F-29 | Scanner Page | A dedicated mobile-friendly page for the welcomer to scan guest QR codes | Must Have |
-| F-30 | QR Verification | Scan a guest's QR code and instantly show: guest name, plus-one, dietary info, and attendance confirmation | Must Have |
-| F-31 | Check-in Status | Mark a guest as "Checked In" upon successful scan; prevent duplicate check-ins | Must Have |
-| F-32 | Invalid QR Handling | Show a clear error if the QR code is invalid, already used, or not found | Must Have |
-| F-33 | Scanner Access Control | Scanner page is protected by a separate simple PIN (different from admin panel) so the welcomer doesn't have full admin access | Must Have |
-| F-34 | Offline Fallback | If internet is spotty at the venue, allow manual name lookup as a backup | Should Have |
+| F-36 | Scanner Page | A dedicated mobile-friendly page for the welcomer to scan guest QR codes | Must Have |
+| F-37 | QR Verification | Scan a guest's QR code and instantly show: guest name, plus-one, and attendance confirmation | Must Have |
+| F-38 | Confirmation Step | Preview the guest details before marking check-in — prevents accidental check-ins | Must Have |
+| F-39 | Check-in Status | Mark a guest as "Checked In" upon confirmation; prevent duplicate check-ins | Must Have |
+| F-40 | Invalid QR Handling | Show a clear error if the QR code is invalid, already used, or not found | Must Have |
+| F-41 | Scanner Access Control | Scanner page is protected by a separate simple PIN (different from admin panel) so the welcomer doesn't have full admin access | Must Have |
+| F-42 | Manual Name Lookup | If QR scan is not possible, welcomer can search by guest name to find and manually check in a guest | Should Have |
 
 ### 5.5 Design & Customization
 
 | # | Feature | Description | Priority |
 |---|---|---|---|
-| F-35 | Theme / Color Scheme | Choose a color palette matching the wedding theme | Must Have |
-| F-36 | Font Selection | Select from a curated set of elegant fonts | Must Have |
-| F-37 | Cover Photo Upload | Upload the main hero/background photo | Must Have |
-| F-38 | Gallery Upload | Upload multiple couple photos | Should Have |
-| F-39 | Mobile Responsive | All pages look great on mobile, tablet, and desktop | Must Have |
+| F-43 | Theme / Color Scheme | Choose a color palette matching the wedding theme | Must Have |
+| F-44 | Font Selection | Select from a curated set of elegant fonts | Must Have |
+| F-45 | Cover Photo Upload | Upload the main hero/background photo | Must Have |
+| F-46 | Gallery Upload | Upload multiple couple photos | Should Have |
+| F-47 | Mobile Responsive | All pages look great on mobile, tablet, and desktop | Must Have |
 
 ---
 
@@ -162,7 +171,7 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 
 ```
 Website
-├── Invitation Page (Public)
+├── Invitation Page (Public, site-password gated)
 │   ├── Hero (Names + Date + Cover Photo)
 │   ├── Countdown Timer
 │   ├── Event Details & Venue
@@ -172,20 +181,31 @@ Website
 │   │   └── Confirmation Screen + QR Code
 │   ├── Our Story
 │   ├── Photo Gallery
-│   ├── Gift Registry
+│   ├── Gift Registry & Bank Info
 │   ├── Travel & Stay
 │   ├── FAQ
-│   └── Wishes Wall
+│   ├── Wishes Wall
+│   └── Spotify Player
+├── Entry Page (/enter — site password unlock)
+├── Guest Pass (/pass?token=… — public, exempt from site lock)
 ├── Scanner Page (Welcomer — PIN protected)
 │   ├── QR Code Scanner
-│   ├── Guest Info Display (name, plus-one, dietary)
-│   └── Check-in Confirmation / Error Screen
-└── Admin Panel (Private)
+│   ├── Guest Preview (name, plus-one)
+│   ├── Confirm Check-in
+│   ├── Check-in Confirmation / Error Screen
+│   └── Manual Name Lookup
+└── Admin Panel (Private — NextAuth protected)
     ├── Login
     ├── Edit Content
     ├── Guest List & RSVP Tracker
+    │   ├── Add Guest (manual)
+    │   ├── Edit Guest
+    │   ├── Delete Guest
+    │   ├── Send Pass Email
+    │   ├── WhatsApp Pass Link
+    │   └── Export CSV
     ├── Check-in Dashboard
-    └── Export Data
+    └── Wishes Moderation
 ```
 
 ---
@@ -208,87 +228,105 @@ Website
 
 ## 8. Technical Requirements
 
-### Recommended Stack (Simple & Low-Cost)
+### Actual Stack (Implemented)
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js (React) + TailwindCSS |
-| Backend / API | Next.js API Routes (no separate backend needed) |
-| Database | Supabase (free tier — PostgreSQL, works on Vercel) |
-| File Storage | Cloudinary (free tier) |
-| Email Notifications | Resend (simple API, no SMTP server needed, Vercel-compatible) |
-| QR Code Generation | `qrcode` npm package (server-side, free) |
-| QR Code Scanning | `html5-qrcode` or `@zxing/browser` (browser-based camera scan, free) |
-| Maps | Google Maps Embed API (free) |
-| Authentication | NextAuth with credentials (admin panel) + PIN for scanner page |
+| Framework | Next.js 16 (App Router) + TypeScript |
+| Styling | Tailwind CSS v4 |
+| Database | Supabase (PostgreSQL, free tier) |
+| File Storage | Supabase Storage (public buckets: `covers`, `gallery`) |
+| Email | Nodemailer via Gmail SMTP (App Password) |
+| QR Code Generation | `qrcode` npm package (shared server-side helper in `src/lib/qrcode.ts`) |
+| QR Code Scanning | `html5-qrcode` (browser-based camera scan) |
+| Maps | Google Maps Embed (via venue URL in site config) |
+| Authentication | NextAuth.js v4 (credentials, JWT) for admin; HMAC-signed cookie for site lock; PIN for scanner |
 | Hosting | Vercel (free tier) |
 
 ### Key Technical Notes
-- No complex microservices — keep it simple and maintainable.
+- No complex microservices — simple and maintainable.
 - No multi-tenancy, no user accounts for guests.
-- **Database: Supabase** — PostgreSQL hosted on Supabase free tier. SQLite is excluded as it does not work reliably on Vercel's ephemeral filesystem.
-- **Email: Resend** — Used for QR code delivery and RSVP notifications. No SMTP server required.
-- **Admin content editing** — All editable content (couple names, dates, schedule, story, etc.) is managed through simple form fields in the admin panel, stored in the database. No rich text editor needed.
-- Data can be stored in a single database table for guests/RSVPs.
-- Content (text, dates, schedule) can be stored in a config file or the database.
-- The admin panel is a protected route, not a separate app.
-- Each guest gets a **unique UUID token** stored in the DB, encoded into their QR code URL (e.g., `/checkin?token=abc123`).
-- The scanner page calls an API route that validates the token, returns guest info, and marks them as checked in.
+- **Database: Supabase** — PostgreSQL hosted on Supabase free tier.
+- **Email: Nodemailer + Gmail SMTP** — QR code delivery (as embedded image attachment) and RSVP notifications to the couple. Requires a Gmail App Password (`GMAIL_APP_PASSWORD` env var).
+- **Admin content editing** — All editable content (couple names, dates, schedule, story, gallery, bank info, Spotify, etc.) is stored in a single `site_config` row in the database and edited via the admin panel.
+- **Site password gate** — Middleware enforces an HMAC-signed cookie (`site_unlocked`) on all non-exempt routes. Guests visit `/enter` to unlock.
+- **QR tokens** — Each guest has a unique UUID `token` stored in the DB, encoded into their pass URL (`/pass?token=…`). The scanner validates this token and marks check-in.
+- **Admin guest management** — Admin can add guests manually (name + phone required), edit any field via `PATCH /api/admin/guests/[id]`, or delete via `DELETE`.
+- **Input validation** — All public-facing text inputs are validated server-side for length limits.
 - The scanner page works entirely in the browser using the device camera — no special hardware needed.
-- The welcomer only needs a smartphone with a browser to scan.
 
 ### Data Model
 
-**Guest / RSVP**
-- `id`, `name`, `email` *(optional)*, `attending`, `plus_one_name`, `dietary`, `message`, `submitted_at`, `token` *(unique UUID for QR code)*, `checked_in`, `checked_in_at`
+**guests**
+- `id`, `name`, `email` *(optional)*, `phone_number` *(optional for public RSVP; required for admin-added guests)*, `attending`, `plus_one_name`, `group_name`, `side`, `message`, `submitted_at`, `token` *(unique UUID for QR code)*, `checked_in`, `checked_in_at`
 
-**Site Config** *(stored in a config file or DB)*
-- Couple names, wedding date, venue, address, RSVP deadline, theme colors, content sections
+**site_config** *(single row, id = 1)*
+- Couple names, wedding date/time, venue, address, maps URL, dress code, RSVP deadline, cover photo URL
+- Theme: primary color, secondary color, font
+- Content: story text, gift registry URL, gift QR URL, bank name/account, travel info, FAQ (JSONB), schedule (JSONB), gallery photos (JSONB)
+- Spotify playlist URL
+- Site password: enabled flag, hashed password (SHA-256)
 
----
+**wishes**
+- `id`, `name`, `message`, `created_at`, `reactions` (JSONB — emoji → count map)
 
-## 9. Hosting & Deployment
+### Required Environment Variables
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
+| `NEXTAUTH_SECRET` | Random secret for NextAuth JWT signing |
+| `NEXTAUTH_URL` | Full production URL (e.g. `https://your-domain.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Same as above — used in QR code URLs |
+| `ADMIN_USERNAME` | Admin login username |
+| `ADMIN_PASSWORD` | Admin login password |
+| `SCANNER_PIN` | Numeric PIN for the scanner/door staff page |
+| `GMAIL_USER` | Gmail address for outbound email |
+| `GMAIL_APP_PASSWORD` | Gmail App Password (16-char, not account password) |
 
 | Concern | Decision |
 |---|---|
-| Hosting | Vercel (free, easy deploys from GitHub) |
-| Domain | Custom domain (e.g., `our-wedding.com`) or Vercel subdomain |
+| Hosting | Vercel (free tier) — **deployed** |
+| Domain | Custom domain or Vercel subdomain |
 | SSL | Automatic via Vercel |
 | Cost | ~$10–15/year for domain only; everything else free |
 | Deployment | Push to GitHub → auto-deploy on Vercel |
+| Database | Supabase (free tier) — **provisioned** |
 
 ---
 
 ## 10. Milestones & Timeline
 
-| # | Milestone | Goal |
+| # | Milestone | Status |
 |---|---|---|
-| 1 | Project setup | Next.js app, TailwindCSS, Supabase project created, Resend account set up, deployed to Vercel |
-| 2 | Invitation page | Hero, event details, schedule, map, calendar button |
-| 3 | RSVP form | Form + database + confirmation message |
-| 4 | QR Code system | Generate unique QR per guest, display on confirmation screen, send via email |
-| 5 | Scanner page | Welcomer scanner page with camera QR scan, guest info display, check-in marking |
-| 6 | Admin panel | Login, guest list view, RSVP summary, check-in dashboard, CSV export |
-| 7 | Design polish | Final theme, fonts, cover photo, mobile tweaks |
-| 8 | Extra sections | Our Story, gallery, gift registry, FAQ |
-| 9 | Testing | Test QR flow end-to-end, test scanner on multiple phones, test on multiple browsers |
-| 10 | Go live | Share the link with all guests 🎉 |
+| 1 | Project setup — Next.js, Tailwind, Supabase, deployed to Vercel | ✅ Done |
+| 2 | Invitation page — Hero, event details, schedule, map, calendar button | ✅ Done |
+| 3 | RSVP form — Form + database + confirmation message | ✅ Done |
+| 4 | QR Code system — Generate unique QR per guest, display on confirmation, send via email | ✅ Done |
+| 5 | Scanner page — Camera QR scan, preview, confirm check-in, manual name lookup | ✅ Done |
+| 6 | Admin panel — Login, guest list, RSVP summary, check-in dashboard, CSV export, add/edit/delete guests | ✅ Done |
+| 7 | Design polish — Theme, fonts, cover photo, mobile tweaks, floating petals, scroll animations | ✅ Done |
+| 8 | Extra sections — Our Story, gallery, gift registry, bank info, FAQ, Wishes Wall, Spotify player | ✅ Done |
+| 9 | Security & quality fixes — Input validation, shared QR helper, TLS fix, removed unused packages | ✅ Done |
+| 10 | Go live — Deployed to Vercel, environment variables configured | ✅ Done |
 
 ---
 
 ## 11. Open Questions
 
-1. What is the wedding date and venue? *(needed to finalize content)*
-2. How many guests are expected? *(to ensure the free DB tier is sufficient)*
-3. ~~Do we want a password so only invited guests can view the site?~~ **Decided: Yes — site password protection will be implemented (F-27). Priority upgraded to Must Have.**
-4. ~~Should guests be able to edit their RSVP after submitting?~~ **Decided: Yes — guests can edit their RSVP once. The old QR token will be invalidated and a new one generated and re-sent.**
-5. ~~Do we want email notifications when a guest RSVPs?~~ **Decided: Yes — the couple will receive an email notification via Resend on each new RSVP.**
-6. ~~Should the QR code be delivered via email, shown on screen only, or both?~~ **Decided: Both — displayed on the confirmation screen (save/screenshot) AND sent via email for reliability.**
-7. How many welcomers/door staff will there be? *(each needs the scanner PIN)*
-8. What languages should the site support? *(one language or bilingual?)*
-9. ~~Should the Wishes Wall be public or private?~~ **Decided: Public — visible to all guests, but the couple can delete messages from the admin panel.**
+1. ~~What is the wedding date and venue?~~ **Configured in admin panel.**
+2. How many guests are expected? *(Supabase free tier supports up to 50,000 rows — sufficient for any wedding)*
+3. ~~Do we want a password so only invited guests can view the site?~~ **Decided: Yes — implemented (F-33). Enabled via admin panel.**
+4. ~~Should guests be able to edit their RSVP after submitting?~~ **Decided: Yes — guests can re-submit with the same email; the old QR token is invalidated and a new one generated and re-sent.**
+5. ~~Do we want email notifications when a guest RSVPs?~~ **Decided: Yes — the couple receives an email notification via Gmail on each new RSVP.**
+6. ~~Should the QR code be delivered via email, shown on screen only, or both?~~ **Decided: Both — displayed on the confirmation screen AND sent via email.**
+7. How many welcomers/door staff will there be? *(each needs the scanner PIN — currently one shared PIN)*
+8. What languages should the site support? *(currently single language)*
+9. ~~Should the Wishes Wall be public or private?~~ **Decided: Public — visible to all guests; couple can delete messages from admin panel.**
 
 ---
 
 *Owner: The Couple*  
-*Last Updated: May 11, 2026*
+*Last Updated: May 16, 2026*
