@@ -1,11 +1,14 @@
+"use client";
+
+import { useLanguage } from "@/components/LanguageProvider";
 import type { SiteConfig } from "@/types";
 
 interface Props {
   config: SiteConfig;
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("id-ID", {
+function formatDate(dateStr: string, lang: "id" | "en") {
+  return new Date(dateStr).toLocaleDateString(lang === "en" ? "en-US" : "id-ID", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -59,11 +62,12 @@ function CalendarLinks({ config }: { config: SiteConfig }) {
 }
 
 export default function EventDetails({ config }: Props) {
+  const { t, lang } = useLanguage();
   return (
     <section id="details" className="py-16 px-4 bg-[#fffbf5]">
       <div className="max-w-2xl mx-auto text-center">
       <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-        Waktu &amp; Tempat
+        {t("details_eyebrow")}
       </p>
       <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
         Event Details
@@ -72,9 +76,9 @@ export default function EventDetails({ config }: Props) {
       <div className="grid sm:grid-cols-2 gap-8 text-left">
         {/* Date & Time */}
         <div className="glass rounded-2xl p-6">
-          <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Tanggal &amp; Waktu</p>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">{t("details_datetime")}</p>
           <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-            {config.wedding_date ? formatDate(config.wedding_date) : "Akan diumumkan"}
+            {config.wedding_date ? formatDate(config.wedding_date, lang) : t("details_tba")}
           </p>
           {config.wedding_time && (
             <p className="text-[#9a7d5a] mt-1 font-[family-name:var(--font-lato)]">{config.wedding_time}</p>
@@ -83,9 +87,9 @@ export default function EventDetails({ config }: Props) {
 
         {/* Venue */}
         <div className="glass rounded-2xl p-6">
-          <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Venue</p>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">{t("details_venue")}</p>
           <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-            {config.venue_name ?? "Akan diumumkan"}
+            {config.venue_name ?? t("details_tba")}
           </p>
           {config.venue_address && (
             <p className="text-[#9a7d5a] mt-1 text-sm font-[family-name:var(--font-lato)]">{config.venue_address}</p>
@@ -95,7 +99,7 @@ export default function EventDetails({ config }: Props) {
         {/* Dress Code */}
         {config.dress_code && (
           <div className="glass rounded-2xl p-6">
-            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Kode Pakaian</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">{t("details_dress")}</p>
             <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">{config.dress_code}</p>
           </div>
         )}
@@ -103,9 +107,9 @@ export default function EventDetails({ config }: Props) {
         {/* RSVP Deadline */}
         {config.rsvp_deadline && (
           <div className="glass rounded-2xl p-6">
-            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">Konfirmasi Sebelum</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">{t("details_deadline")}</p>
             <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-              {formatDate(config.rsvp_deadline)}
+              {formatDate(config.rsvp_deadline, lang)}
             </p>
           </div>
         )}

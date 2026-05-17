@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import ParallaxLayer from "@/components/ParallaxLayer";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const EMOJIS = ["\u2764\uFE0F", "\uD83C\uDF89", "\uD83E\uDD42", "\uD83D\uDE0D", "\uD83D\uDE4F"];
 const REACTIONS_KEY = "wish_reactions";
@@ -34,6 +36,7 @@ function saveMyReactions(r: Record<string, boolean>) {
 }
 
 export default function WishesWall({ isAdmin = false }: Props) {
+  const { t } = useLanguage();
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -90,7 +93,7 @@ export default function WishesWall({ isAdmin = false }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!name.trim() || !message.trim()) return setError("Harap isi kedua kolom.");
+    if (!name.trim() || !message.trim()) return setError(t("wishes_required"));
     setSubmitting(true);
     try {
       const res = await fetch("/api/wishes", {
@@ -98,14 +101,14 @@ export default function WishesWall({ isAdmin = false }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, message }),
       });
-      if (!res.ok) throw new Error("Gagal mengirim.");
+      if (!res.ok) throw new Error("failed");
       setSubmitted(true);
       setName("");
       setMessage("");
       setPage(1);
       fetchWishes(1);
     } catch {
-      setError("Terjadi kesalahan. Coba lagi.");
+      setError(t("wishes_error"));
     } finally {
       setSubmitting(false);
     }
@@ -122,11 +125,12 @@ export default function WishesWall({ isAdmin = false }: Props) {
   };
 
   return (
-    <section id="wishes" className="glass-bg py-20 px-4">
-      <div className="max-w-2xl mx-auto">
+    <section id="wishes" className="relative overflow-hidden py-20 px-4">
+      <ParallaxLayer speed={0.2} className="glass-bg" />
+      <div className="relative z-10 max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-            Doa &amp; Harapan
+            {t("wishes_eyebrow")}
           </p>
           <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028]">
             Leave a Message
@@ -138,27 +142,27 @@ export default function WishesWall({ isAdmin = false }: Props) {
           <div className="glass rounded-2xl p-6 mb-10">
             {submitted ? (
               <p className="text-center text-[#9a7d5a] font-[family-name:var(--font-lato)]">
-                Terima kasih atas pesanmu!{" "}
+                {t("wishes_thanks")}{" "}
                 <button onClick={() => setSubmitted(false)} className="text-[var(--color-gold)] underline">
-                  Tulis lagi
+                  {t("wishes_write_again")}
                 </button>
               </p>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                   type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  placeholder="Nama Anda"
+                  placeholder={t("wishes_name_ph")}
                   className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)] bg-white/70"
                 />
                 <textarea
                   value={message} onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Tulis ucapan selamat Anda" rows={3}
+                  placeholder={t("wishes_msg_ph")} rows={3}
                   className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)] bg-white/70 resize-none"
                 />
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button type="submit" disabled={submitting}
                   className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm tracking-widest uppercase hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)] disabled:opacity-50">
-                  {submitting ? "Mengirim" : "Kirim Pesan"}
+                  {submitting ? t("wishes_submitting") : t("wishes_submit")}
                 </button>
               </form>
             )}
@@ -205,7 +209,7 @@ export default function WishesWall({ isAdmin = false }: Props) {
                   {isAdmin && (
                     <button onClick={() => handleDelete(w.id)}
                       className="absolute top-3 right-3 text-xs text-red-400 hover:text-red-600 transition-colors">
-                      Hapus
+                      {t("wishes_delete")}
                     </button>
                   )}
                 </div>
@@ -216,12 +220,12 @@ export default function WishesWall({ isAdmin = false }: Props) {
               <div className="flex items-center justify-center gap-3 mt-8">
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
                   className="px-4 py-2 rounded-full border border-[var(--color-gold)] text-[var(--color-gold)] text-sm hover:bg-[var(--color-gold)] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-[family-name:var(--font-lato)]">
-                  Sebelumnya
+                  {t("wishes_prev")}
                 </button>
                 <span className="text-sm text-[#9a7d5a] font-[family-name:var(--font-lato)]">{page} / {totalPages}</span>
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                   className="px-4 py-2 rounded-full border border-[var(--color-gold)] text-[var(--color-gold)] text-sm hover:bg-[var(--color-gold)] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-[family-name:var(--font-lato)]">
-                  Berikutnya
+                  {t("wishes_next")}
                 </button>
               </div>
             )}

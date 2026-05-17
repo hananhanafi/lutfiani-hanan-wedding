@@ -17,12 +17,16 @@ export interface Guest {
 export interface ScheduleItem {
   time: string;
   title: string;
+  title_en?: string;
   description?: string;
+  description_en?: string;
 }
 
 export interface FaqItem {
   question: string;
+  question_en?: string;
   answer: string;
+  answer_en?: string;
 }
 
 export interface SiteConfig {
@@ -41,12 +45,14 @@ export interface SiteConfig {
   theme_color_secondary: string;
   theme_font: string;
   story_text?: string;
+  story_text_en?: string;
   gift_registry_url?: string;
   gift_qr_url?: string;
   bank_name?: string;
   bank_account_number?: string;
   bank_account_name?: string;
   travel_info?: string;
+  travel_info_en?: string;
   faq_json: FaqItem[];
   schedule_json: ScheduleItem[];
   gallery_photos_json: string[];

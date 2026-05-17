@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Props {
   weddingDate: string; // ISO date string e.g. "2026-08-07"
@@ -14,6 +15,7 @@ interface TimeLeft {
 }
 
 export default function CountdownTimer({ weddingDate }: Props) {
+  const { t } = useLanguage();
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
@@ -41,16 +43,16 @@ export default function CountdownTimer({ weddingDate }: Props) {
   if (!timeLeft) return null;
 
   const units = [
-    { label: "Hari", value: timeLeft.days },
-    { label: "Jam", value: timeLeft.hours },
-    { label: "Menit", value: timeLeft.minutes },
-    { label: "Detik", value: timeLeft.seconds },
+    { label: t("countdown_days"),    value: timeLeft.days },
+    { label: t("countdown_hours"),   value: timeLeft.hours },
+    { label: t("countdown_minutes"), value: timeLeft.minutes },
+    { label: t("countdown_seconds"), value: timeLeft.seconds },
   ];
 
   return (
     <section className="py-12 bg-[var(--color-cream-dark)]">
       <p className="text-center text-sm uppercase tracking-widest text-[var(--color-gold)] mb-6 font-[family-name:var(--font-lato)]">
-        Menghitung Mundur Hari Istimewa Kita
+        {t("countdown_title")}
       </p>
       <div className="flex justify-center gap-4 sm:gap-8">
         {units.map(({ label, value }) => (

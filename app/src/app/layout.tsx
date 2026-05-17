@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Playfair_Display, Lato, Cormorant_Garamond, Cinzel } from "next/font/google";
 import "./globals.css";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import ThemeToggle from "@/components/ThemeToggle";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import LanguageToggle from "@/components/LanguageToggle";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -79,6 +83,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${playfair.variable} ${lato.variable} ${cormorant.variable} ${cinzel.variable} h-full antialiased`}
       style={{
         "--color-gold": primaryColor,
@@ -87,7 +92,23 @@ export default async function RootLayout({
         "--font-wedding": fontFamily,
       } as React.CSSProperties}
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
+      <head>
+        {/* Anti-flash: apply saved theme before first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}`,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <ThemeProvider>
+          <LanguageProvider>
+            {children}
+            <ThemeToggle />
+            <LanguageToggle />
+          </LanguageProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

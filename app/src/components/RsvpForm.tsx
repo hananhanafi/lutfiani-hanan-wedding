@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Props {
   rsvpDeadline?: string;
@@ -26,6 +27,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
+  const { t } = useLanguage();
   const [step, setStep] = useState<"form" | "success">("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,9 +51,9 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
     e.preventDefault();
     setError("");
 
-    if (!form.name.trim()) return setError("Harap masukkan nama Anda.");
-    if (!form.phone_number.trim()) return setError("Harap masukkan nomor WhatsApp Anda.");
-    if (form.attending === "") return setError("Harap pilih kehadiran Anda.");
+    if (!form.name.trim()) return setError(t("rsvp_name") + " wajib diisi.");
+    if (!form.phone_number.trim()) return setError(t("rsvp_phone") + " wajib diisi.");
+    if (form.attending === "") return setError(t("rsvp_attend_q"));
 
     setLoading(true);
     try {
@@ -64,7 +66,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Terjadi kesalahan.");
+      if (!res.ok) throw new Error(data.error ?? "error");
 
       setResult({
         name: form.name,
@@ -90,14 +92,14 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
     <section id="rsvp" className="bg-[#fffbf5] py-16 px-4">
       <div className="max-w-xl mx-auto">
         <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 text-center font-[family-name:var(--font-lato)]">
-          Konfirmasi Kehadiran
+          {t("rsvp_eyebrow")}
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-2 text-center">
           RSVP
         </h2>
         {rsvpDeadline && (
           <p className="text-center text-sm text-[#9a7d5a] mb-8 font-[family-name:var(--font-lato)]">
-            Harap konfirmasi sebelum <strong>{formatDate(rsvpDeadline)}</strong>
+            {t("rsvp_deadline_pre")} <strong>{formatDate(rsvpDeadline)}</strong>
           </p>
         )}
 
@@ -105,7 +107,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Name */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Nama Lengkap *
+              {t("rsvp_name")} *
             </label>
             <input
               type="text"
@@ -122,7 +124,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Email */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Email <span className="normal-case text-[var(--color-gold)]">(untuk menerima pass QR Anda)</span>
+              {t("rsvp_email_label")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_email_hint")})</span>
             </label>
             <input
               type="email"
@@ -136,7 +138,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Phone Number */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Nomor WhatsApp <span className="normal-case text-red-400">*</span>
+              {t("rsvp_phone")} <span className="normal-case text-red-400">*</span>
             </label>
             <input
               type="tel"
@@ -150,12 +152,12 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Attendance */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-2 font-[family-name:var(--font-lato)]">
-              Apakah Anda hadir? *
+              {t("rsvp_attend_q")} *
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "yes", label: "Dengan Senang Hati" },
-                { value: "no", label: "Dengan Menyesal Tidak Bisa" },
+                { value: "yes", label: t("rsvp_yes") },
+                { value: "no", label: t("rsvp_no") },
               ].map(({ value, label }) => (
                 <button
                   key={value}
@@ -177,13 +179,13 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {form.attending === "yes" && (
             <div>
               <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-                Nama Plus One <span className="normal-case text-[var(--color-gold)]">(opsional)</span>
+                {t("rsvp_plus_one")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_optional")})</span>
               </label>
               <input
                 type="text"
                 value={form.plus_one_name}
                 onChange={(e) => set("plus_one_name", e.target.value)}
-                placeholder="Nama lengkap tamu"
+                placeholder={t("rsvp_plus_one_ph")}
                 className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)]"
               />
             </div>
@@ -192,13 +194,13 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Group Name */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Dari mana / Nama Grup <span className="normal-case text-[var(--color-gold)]">(opsional)</span>
+              {t("rsvp_group")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_optional")})</span>
             </label>
             <input
               type="text"
               value={form.group_name}
               onChange={(e) => set("group_name", e.target.value)}
-              placeholder="mis. Keluarga Jakarta, Teman Kuliah"
+              placeholder={t("rsvp_group_ph")}
               className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)]"
             />
           </div>
@@ -206,12 +208,12 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Side */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-2 font-[family-name:var(--font-lato)]">
-              Tamu dari *
+              {t("rsvp_side")} *
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: "bride", label: "Mempelai Wanita" },
-                { value: "groom", label: "Mempelai Pria" },
+                { value: "bride", label: t("rsvp_bride") },
+                { value: "groom", label: t("rsvp_groom") },
               ].map(({ value, label }) => (
                 <button
                   key={value}
@@ -232,12 +234,12 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Message */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              Tinggalkan Pesan <span className="normal-case text-[var(--color-gold)]">(opsional)</span>
+              {t("rsvp_message")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_optional")})</span>
             </label>
             <textarea
               value={form.message}
               onChange={(e) => set("message", e.target.value)}
-              placeholder="Ucapan selamat untuk pasangan..."
+              placeholder={t("rsvp_message_ph")}
               rows={3}
               className="w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] resize-none font-[family-name:var(--font-lato)]"
             />
@@ -252,7 +254,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
             disabled={loading}
             className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm tracking-widest uppercase hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 font-[family-name:var(--font-lato)]"
           >
-            {loading ? "Mengirim..." : "Kirim RSVP"}
+            {loading ? t("rsvp_submitting") : t("rsvp_submit")}
           </button>
         </form>
       </div>
@@ -261,21 +263,22 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
 }
 
 function SuccessScreen({ result }: { result: RsvpResult }) {
+  const { t } = useLanguage();
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (result.attending) {
       setShowConfetti(true);
-      const t = setTimeout(() => setShowConfetti(false), 4000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setShowConfetti(false), 4000);
+      return () => clearTimeout(timer);
     }
   }, [result.attending]);
 
   const phone = result.phone_number?.replace(/\D/g, "") ?? "";
   const whatsappUrl = result.qrUrl && phone
-    ? `https://wa.me/${phone}?text=${encodeURIComponent(`Halo! Pass masuk pernikahanmu sudah siap: ${result.qrUrl}`)}`
+    ? `https://wa.me/${phone}?text=${encodeURIComponent(t("rsvp_wa_msg") + result.qrUrl)}`
     : result.qrUrl
-    ? `https://wa.me/?text=${encodeURIComponent(`Pass masuk pernikahanku: ${result.qrUrl}`)}`
+    ? `https://wa.me/?text=${encodeURIComponent(t("rsvp_wa_msg_self") + result.qrUrl)}`
     : null;
 
 
@@ -286,20 +289,20 @@ function SuccessScreen({ result }: { result: RsvpResult }) {
       <div className="max-w-md mx-auto text-center">
         <div className="text-4xl mb-4">{result.attending ? "🎉" : "💌"}</div>
         <h2 className="text-3xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-3">
-          {result.attending ? (result.updated ? "RSVP Diperbarui!" : "Sampai jumpa di sana!") : "Kami akan merindukanmu!"}
+          {result.attending ? (result.updated ? t("rsvp_success_updated") : t("rsvp_success_see_you")) : t("rsvp_success_miss")}
         </h2>
         <p className="text-[#9a7d5a] mb-8 font-[family-name:var(--font-lato)]">
           {result.attending
             ? result.updated
-              ? `RSVP kamu telah diperbarui, ${result.name}. Pass masuk QR baru telah dikirim ke emailmu.`
-              : `Terima kasih, ${result.name}! RSVP kamu sudah dikonfirmasi. Simpan pass masuk QR kamu di bawah ini.`
-            : `Terima kasih sudah memberi tahu kami, ${result.name}. Semoga kita segera bertemu!`}
+              ? t("rsvp_success_msg_updated").replace("{name}", result.name)
+              : t("rsvp_success_msg_attend").replace("{name}", result.name)
+            : t("rsvp_success_msg_decline").replace("{name}", result.name)}
         </p>
 
         {result.attending && result.qrDataUrl && (
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
             <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-4 font-[family-name:var(--font-lato)]">
-              Pass Masuk Anda
+              {t("rsvp_pass_label")}
             </p>
             <Image
               src={result.qrDataUrl}
@@ -309,7 +312,7 @@ function SuccessScreen({ result }: { result: RsvpResult }) {
               className="mx-auto rounded-xl"
             />
             <p className="text-xs text-[#9a7d5a] mt-3 font-[family-name:var(--font-lato)]">
-              Screenshot ini atau cek emailmu
+              {t("rsvp_screenshot")}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-5">
@@ -319,7 +322,7 @@ function SuccessScreen({ result }: { result: RsvpResult }) {
                 download="my-wedding-pass.png"
                 className="flex-1 py-2.5 border border-[var(--color-gold)] text-[var(--color-gold)] rounded-xl text-sm hover:bg-[var(--color-gold)] hover:text-white transition-colors font-[family-name:var(--font-lato)]"
               >
-                Simpan QR Code
+                {t("rsvp_save_qr")}
               </a>
 
               {/* WhatsApp */}
@@ -330,7 +333,7 @@ function SuccessScreen({ result }: { result: RsvpResult }) {
                   rel="noopener noreferrer"
                   className="flex-1 py-2.5 bg-[#25d366] text-white rounded-xl text-sm hover:bg-[#1ebe5d] transition-colors font-[family-name:var(--font-lato)]"
                 >
-                  Bagikan via WhatsApp
+                  {t("rsvp_share_wa")}
                 </a>
               )}
             </div>

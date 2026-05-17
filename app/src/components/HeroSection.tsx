@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import type { SiteConfig } from "@/types";
 import FloatingPetals from "@/components/FloatingPetals";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Props {
   config: SiteConfig;
-  guestName?: string;
 }
 
 function formatWeddingDate(dateStr: string) {
@@ -18,13 +18,14 @@ function formatWeddingDate(dateStr: string) {
   });
 }
 
-export default function HeroSection({ config, guestName }: Props) {
+export default function HeroSection({ config }: Props) {
+  const { t } = useLanguage();
   const bgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       if (!bgRef.current) return;
-      bgRef.current.style.transform = `translateY(${window.scrollY * 0.15}px)`;
+      bgRef.current.style.transform = `translateY(${window.scrollY * 0.35}px)`;
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -38,7 +39,7 @@ export default function HeroSection({ config, guestName }: Props) {
       {/* Parallax image wrapper — 30% taller than section to allow movement room */}
       <div
         ref={bgRef}
-        className="absolute inset-x-0 -top-[15%] -bottom-[15%] will-change-transform"
+        className="absolute inset-x-0 -top-[20%] -bottom-[20%] will-change-transform"
       >
         {config.cover_photo_url ? (
           <Image
@@ -60,12 +61,6 @@ export default function HeroSection({ config, guestName }: Props) {
       <FloatingPetals count={40} />
 
       <div className="relative z-10 text-white">
-        {guestName && (
-          <p className="text-sm sm:text-base opacity-80 mb-4 font-[family-name:var(--font-lato)] tracking-wide">
-            Kepada <span className="font-semibold">{guestName}</span>,
-          </p>
-        )}
-
         <h1 className="text-5xl sm:text-7xl font-[family-name:var(--font-wedding)] leading-tight mb-6">
           <span className="shimmer-text">{config.partner_one_name}</span>
           <span className="block text-3xl sm:text-4xl my-3 font-light opacity-80">&amp;</span>
@@ -90,7 +85,7 @@ export default function HeroSection({ config, guestName }: Props) {
           href="#rsvp"
           className="inline-block mt-10 px-8 py-3 border border-white text-white rounded-full text-sm tracking-widest hover:bg-white hover:text-[#3a3028] transition-colors font-[family-name:var(--font-lato)] uppercase"
         >
-          RSVP Sekarang
+          {t("hero_rsvp")}
         </a>
       </div>
 

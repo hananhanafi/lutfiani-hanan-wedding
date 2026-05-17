@@ -1,3 +1,6 @@
+"use client";
+
+import { useLanguage } from "@/components/LanguageProvider";
 import type { ScheduleItem } from "@/types";
 
 interface Props {
@@ -5,13 +8,14 @@ interface Props {
 }
 
 export default function EventSchedule({ schedule }: Props) {
+  const { t, lang } = useLanguage();
   if (!schedule || schedule.length === 0) return null;
 
   return (
     <section id="schedule" className="py-16 px-4 bg-[var(--color-cream-dark)]">
       <div className="max-w-2xl mx-auto text-center">
         <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-          Hari Spesial
+          {t("schedule_eyebrow")}
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
           Schedule
@@ -27,11 +31,11 @@ export default function EventSchedule({ schedule }: Props) {
                 {item.time}
               </p>
               <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-                {item.title}
+                {(lang === "en" && item.title_en) ? item.title_en : item.title}
               </p>
-              {item.description && (
+              {(item.description || item.description_en) && (
                 <p className="text-sm text-[#9a7d5a] mt-1 font-[family-name:var(--font-lato)]">
-                  {item.description}
+                  {(lang === "en" && item.description_en) ? item.description_en : item.description}
                 </p>
               )}
             </li>

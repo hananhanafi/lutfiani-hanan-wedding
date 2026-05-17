@@ -1,19 +1,28 @@
+"use client";
+
+import ParallaxLayer from "@/components/ParallaxLayer";
+import { useLanguage } from "@/components/LanguageProvider";
+
 interface Props {
   storyText: string;
+  storyTextEn?: string;
   partnerOneName: string;
   partnerTwoName: string;
 }
 
-export default function OurStory({ storyText, partnerOneName, partnerTwoName }: Props) {
+export default function OurStory({ storyText, storyTextEn, partnerOneName, partnerTwoName }: Props) {
+  const { t, lang } = useLanguage();
   if (!storyText) return null;
 
-  const paragraphs = storyText.split("\n").filter((p) => p.trim());
+  const activeText = (lang === "en" && storyTextEn) ? storyTextEn : storyText;
+  const paragraphs = activeText.split("\n").filter((p) => p.trim());
 
   return (
-    <section id="story" className="glass-bg py-20 px-4">
-      <div className="max-w-2xl mx-auto text-center">
+    <section id="story" className="relative overflow-hidden py-20 px-4">
+      <ParallaxLayer speed={0.25} className="glass-bg" />
+      <div className="relative z-10 max-w-2xl mx-auto text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-          Kisah Kami
+          {t("story_eyebrow")}
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           {partnerOneName} &amp; {partnerTwoName}

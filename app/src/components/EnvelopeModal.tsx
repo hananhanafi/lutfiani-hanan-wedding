@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import confetti from "canvas-confetti";
 import FloatingPetals from "@/components/FloatingPetals";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Props {
   partnerOneName: string;
@@ -9,6 +11,7 @@ interface Props {
   weddingDate?: string;
   coverPhotoUrl?: string;
   spotifyPlaylistUrl?: string;
+  guestName?: string;
 }
 
 type Stage = "sealed" | "cracking" | "opening" | "revealed" | "leaving";
@@ -26,7 +29,9 @@ export default function EnvelopeModal({
   partnerTwoName,
   weddingDate,
   spotifyPlaylistUrl,
+  guestName,
 }: Props) {
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
   const [stage, setStage] = useState<Stage>("sealed");
   const [miniPlayer, setMiniPlayer] = useState(false);
@@ -90,6 +95,12 @@ export default function EnvelopeModal({
   };
 
   const handleEnter = () => {
+    // Fire wedding-themed confetti burst from both sides
+    const colors = ["#c9a96e", "#f0e0c0", "#e8c5b0", "#d4a574", "#fffbe6", "#ffffff"];
+    const shared = { spread: 70, colors, gravity: 0.9, scalar: 0.95 };
+    confetti({ ...shared, particleCount: 90, origin: { x: 0.25, y: 0.65 }, angle: 60 });
+    confetti({ ...shared, particleCount: 90, origin: { x: 0.75, y: 0.65 }, angle: 120 });
+
     setStage("leaving");
     sessionStorage.setItem("welcome_seen", "1");
     if (embedUrl) setMiniPlayer(true);
@@ -213,7 +224,7 @@ export default function EnvelopeModal({
               animation: "envContentIn 1s ease 0.3s both",
             }}
           >
-            Anda Diundang
+            {t("env_invited")}
           </p>
 
           {/* Envelope + letter wrapper */}
@@ -238,8 +249,13 @@ export default function EnvelopeModal({
             >
               {stage === "revealed" && (
                 <div className="env-content" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  {guestName && (
+                    <p style={{ fontSize: "0.62rem", color: "#9a7d5a", fontFamily: "var(--font-lato)", fontStyle: "italic", letterSpacing: "0.04em" }}>
+                      {t("env_dear")} {guestName},
+                    </p>
+                  )}
                   <p style={{ fontSize: "0.6rem", letterSpacing: "0.35em", textTransform: "uppercase", color: "#c9a96e", fontFamily: "var(--font-lato)" }}>
-                    Undangan Pernikahan
+                    {t("env_invitation")}
                   </p>
                   <div style={{ width: 32, height: 1, background: "#c9a96e", margin: "2px 0" }} />
                   <p style={{ fontFamily: "var(--font-wedding)", fontSize: "1.55rem", color: "#3a3028", lineHeight: 1.2 }}>
@@ -272,7 +288,7 @@ export default function EnvelopeModal({
                     onMouseEnter={(e) => ((e.target as HTMLElement).style.background = "#b8945a")}
                     onMouseLeave={(e) => ((e.target as HTMLElement).style.background = "#c9a96e")}
                   >
-                    Buka Undangan
+                    {t("env_open")}
                   </button>
                 </div>
               )}
@@ -320,24 +336,6 @@ export default function EnvelopeModal({
                   background: "linear-gradient(0deg, #e8cf90 0%, #f0ddb0 100%)",
                   clipPath: "polygon(0 100%, 50% 0%, 100% 100%)",
                 }} />
-
-                {/* Monogram in body center — visible before opening */}
-                {stage === "sealed" && (
-                  <div style={{
-                    position: "absolute", inset: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    paddingTop: 16,
-                  }}>
-                    <p style={{
-                      fontFamily: "var(--font-wedding)",
-                      fontSize: "1.8rem",
-                      color: "rgba(160,120,60,0.35)",
-                      letterSpacing: "0.05em",
-                    }}>
-                      {(partnerOneName[0] ?? "")}&amp;{(partnerTwoName[0] ?? "")}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Flap (top triangle — rotates open) */}
@@ -386,6 +384,45 @@ export default function EnvelopeModal({
                   ♥
                 </button>
               )}
+
+              {/* Addressee — below the seal, above the fold layers */}
+              {stage === "sealed" && (
+                <div style={{
+                  position: "absolute",
+                  top: "60%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 3,
+                  textAlign: "center",
+                  pointerEvents: "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 4,
+                }}>
+                  <p style={{
+                    fontFamily: "var(--font-wedding)",
+                    fontSize: "1.4rem",
+                    color: "rgba(100,70,20,0.45)",
+                    letterSpacing: "0.05em",
+                    lineHeight: 1,
+                  }}>
+                    {(partnerOneName[0] ?? "")}&amp;{(partnerTwoName[0] ?? "")}
+                  </p>
+                  {guestName && (
+                    <p style={{
+                      fontSize: "0.58rem",
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      color: "rgba(100,70,20,0.65)",
+                      fontFamily: "var(--font-lato)",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {t("env_to")}: {guestName}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -402,7 +439,7 @@ export default function EnvelopeModal({
                 fontFamily: "var(--font-lato)",
               }}
             >
-              Ketuk segel untuk membuka
+              {t("env_hint")}
             </p>
           )}
         </div>

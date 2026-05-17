@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS wishes (
 
 -- Migration: run these if tables already exist
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS gallery_photos_json JSONB DEFAULT '[]';
+-- Bilingual content (EN translations — optional, falls back to primary language if empty)
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS story_text_en TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS travel_info_en TEXT;
 
 -- ── Seed default site config row ────────────────────────────
 INSERT INTO site_config (id) VALUES (1)

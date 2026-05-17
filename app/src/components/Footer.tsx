@@ -1,3 +1,7 @@
+"use client";
+
+import { useLanguage } from "@/components/LanguageProvider";
+
 interface Props {
   partnerOneName: string;
   partnerTwoName: string;
@@ -9,6 +13,7 @@ function formatYear(dateStr: string) {
 }
 
 export default function Footer({ partnerOneName, partnerTwoName, weddingDate }: Props) {
+  const { t } = useLanguage();
   return (
     <footer className="bg-[var(--color-cream-dark)] py-12 px-4 text-center border-t border-[#e0d5c5]/60">
       <div className="max-w-xl mx-auto space-y-4">
@@ -30,7 +35,7 @@ export default function Footer({ partnerOneName, partnerTwoName, weddingDate }: 
         )}
 
         <p className="text-xs text-[#c9b99a] font-[family-name:var(--font-lato)] italic mt-4">
-          Made with love ♥
+          {t("footer_made")}
         </p>
       </div>
     </footer>

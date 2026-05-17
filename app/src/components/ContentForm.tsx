@@ -56,16 +56,16 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     rsvp_deadline: config.rsvp_deadline ?? "",
     cover_photo_url: config.cover_photo_url ?? "",
     story_text: config.story_text ?? "",
+    story_text_en: config.story_text_en ?? "",
     gift_qr_url: config.gift_qr_url ?? "",
     bank_name: config.bank_name ?? "",
     bank_account_number: config.bank_account_number ?? "",
     bank_account_name: config.bank_account_name ?? "",
     travel_info: config.travel_info ?? "",
+    travel_info_en: config.travel_info_en ?? "",
     theme_color_primary: config.theme_color_primary ?? "#c9a96e",
     theme_color_secondary: config.theme_color_secondary ?? "#faedcd",
     theme_font: config.theme_font ?? "Playfair Display",
-    schedule_json: JSON.stringify(config.schedule_json ?? [], null, 2),
-    faq_json: JSON.stringify(config.faq_json ?? [], null, 2),
     gallery_photos_json: JSON.stringify(config.gallery_photos_json ?? [], null, 2),
     site_password_enabled: config.site_password_enabled ? "true" : "false",
     site_password_plain: "",
@@ -75,6 +75,19 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
   const [galleryUrls, setGalleryUrls] = useState<string[]>(() => {
     try { return JSON.parse(config.gallery_photos_json as unknown as string ?? "[]"); } catch { return []; }
   });
+
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(() => config.schedule_json ?? []);
+  const [faqItems, setFaqItems] = useState<FaqItem[]>(() => config.faq_json ?? []);
+
+  const addScheduleItem = () => setScheduleItems((prev) => [...prev, { time: "", title: "", title_en: "", description: "", description_en: "" }]);
+  const removeScheduleItem = (i: number) => setScheduleItems((prev) => prev.filter((_, idx) => idx !== i));
+  const setScheduleField = (i: number, field: keyof ScheduleItem, value: string) =>
+    setScheduleItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+
+  const addFaqItem = () => setFaqItems((prev) => [...prev, { question: "", question_en: "", answer: "", answer_en: "" }]);
+  const removeFaqItem = (i: number) => setFaqItems((prev) => prev.filter((_, idx) => idx !== i));
+  const setFaqField = (i: number, field: keyof FaqItem, value: string) =>
+    setFaqItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
@@ -90,15 +103,25 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     setMessage(null);
 
     try {
-      let schedule_json: ScheduleItem[] = [];
-      let faq_json: FaqItem[] = [];
-      try { schedule_json = JSON.parse(form.schedule_json); } catch { throw new Error("JSON tidak valid pada Jadwal."); }
-      try { faq_json = JSON.parse(form.faq_json); } catch { throw new Error("JSON tidak valid pada FAQ."); }
-
       const passwordEnabled = form.site_password_enabled === "true";
       if (passwordEnabled && !form.site_password_plain && !hasExistingHash) {
         throw new Error("Harap buat kata sandi saat mengaktifkan perlindungan untuk pertama kali.");
       }
+
+      // Clean empty string fields from JSON items
+      const schedule_json = scheduleItems.map((item) => ({
+        time: item.time,
+        title: item.title,
+        ...(item.title_en?.trim() && { title_en: item.title_en }),
+        ...(item.description?.trim() && { description: item.description }),
+        ...(item.description_en?.trim() && { description_en: item.description_en }),
+      }));
+      const faq_json = faqItems.map((item) => ({
+        question: item.question,
+        ...(item.question_en?.trim() && { question_en: item.question_en }),
+        answer: item.answer,
+        ...(item.answer_en?.trim() && { answer_en: item.answer_en }),
+      }));
 
       const res = await fetch("/api/admin/content", {
         method: "POST",
@@ -110,6 +133,8 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           gallery_photos_json: galleryUrls,
           site_password_enabled: passwordEnabled,
           site_password_plain: form.site_password_plain || undefined,
+          story_text_en: form.story_text_en || undefined,
+          travel_info_en: form.travel_info_en || undefined,
         }),
       });
 
@@ -201,17 +226,46 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         <Field label="URL Google Maps Embed" value={form.venue_maps_url} onChange={(v) => set("venue_maps_url", v)} placeholder="https://maps.google.com/maps?..." />
       </section>
 
-      {/* Schedule (JSON) */}
+      {/* Schedule */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Schedule <span className="text-xs text-gray-400 font-normal">(JSON array)</span></h2>
-        <TextArea label='Format: [{"time":"4:00 PM","title":"Ceremony","description":"..."}]' value={form.schedule_json} onChange={(v) => set("schedule_json", v)} rows={8} />
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-gray-700">Schedule</h2>
+          <button type="button" onClick={addScheduleItem}
+            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors">
+            + Add Item
+          </button>
+        </div>
+        {scheduleItems.length === 0 && (
+          <p className="text-xs text-gray-400 italic">No schedule items yet. Click &ldquo;+ Add Item&rdquo; to add one.</p>
+        )}
+        <div className="space-y-4">
+          {scheduleItems.map((item, i) => (
+            <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3 relative bg-gray-50">
+              <button type="button" onClick={() => removeScheduleItem(i)}
+                className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500 transition-colors">✕</button>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Time" value={item.time} onChange={(v) => setScheduleField(i, "time", v)} placeholder="mis. 10:00 WIB" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Title (Indonesia)" value={item.title} onChange={(v) => setScheduleField(i, "title", v)} placeholder="mis. Akad Nikah" />
+                <Field label="Title (English — optional)" value={item.title_en ?? ""} onChange={(v) => setScheduleField(i, "title_en", v)} placeholder="e.g. Wedding Ceremony" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Description (Indonesia — optional)" value={item.description ?? ""} onChange={(v) => setScheduleField(i, "description", v)} placeholder="mis. Prosesi ijab kabul" />
+                <Field label="Description (English — optional)" value={item.description_en ?? ""} onChange={(v) => setScheduleField(i, "description_en", v)} placeholder="e.g. The vow exchange" />
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Story & Extras */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <h2 className="font-semibold text-gray-700">Our Story &amp; Extras</h2>
-        <TextArea label="Teks Kisah Kami" value={form.story_text} onChange={(v) => set("story_text", v)} rows={5} placeholder="Bagaimana kami bertemu..." />
-        <TextArea label="Info Perjalanan &amp; Penginapan" value={form.travel_info} onChange={(v) => set("travel_info", v)} rows={3} placeholder="Hotel terdekat..." />
+        <TextArea label="Teks Kisah Kami (Indonesia)" value={form.story_text} onChange={(v) => set("story_text", v)} rows={5} placeholder="Bagaimana kami bertemu..." />
+        <TextArea label="Our Story Text (English — optional)" value={form.story_text_en} onChange={(v) => set("story_text_en", v)} rows={5} placeholder="How we met..." />
+        <TextArea label="Info Perjalanan &amp; Penginapan (Indonesia)" value={form.travel_info} onChange={(v) => set("travel_info", v)} rows={3} placeholder="Hotel terdekat..." />
+        <TextArea label="Travel &amp; Stay Info (English — optional)" value={form.travel_info_en} onChange={(v) => set("travel_info_en", v)} rows={3} placeholder="Nearest hotels..." />
       </section>
 
       {/* Gift / Bank Transfer */}
@@ -286,10 +340,44 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         <p className="text-xs text-gray-400">Tempel URL playlist Spotify untuk menampilkan pemutar musik di halaman undangan.</p>
       </section>
 
-      {/* FAQ (JSON) */}
+      {/* FAQ */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">FAQ <span className="text-xs text-gray-400 font-normal">(JSON array)</span></h2>
-        <TextArea label='Format: [{"question":"...","answer":"..."}]' value={form.faq_json} onChange={(v) => set("faq_json", v)} rows={5} />
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-gray-700">FAQ</h2>
+          <button type="button" onClick={addFaqItem}
+            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors">
+            + Add Item
+          </button>
+        </div>
+        {faqItems.length === 0 && (
+          <p className="text-xs text-gray-400 italic">No FAQ items yet. Click &ldquo;+ Add Item&rdquo; to add one.</p>
+        )}
+        <div className="space-y-4">
+          {faqItems.map((item, i) => (
+            <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3 relative bg-gray-50">
+              <button type="button" onClick={() => removeFaqItem(i)}
+                className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500 transition-colors">✕</button>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Question (Indonesia)" value={item.question} onChange={(v) => setFaqField(i, "question", v)} placeholder="mis. Apakah ada dress code?" />
+                <Field label="Question (English — optional)" value={item.question_en ?? ""} onChange={(v) => setFaqField(i, "question_en", v)} placeholder="e.g. Is there a dress code?" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Answer (Indonesia)</label>
+                  <textarea value={item.answer} onChange={(e) => setFaqField(i, "answer", e.target.value)}
+                    placeholder="mis. Ya, semi-formal..." rows={3}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] resize-y" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Answer (English — optional)</label>
+                  <textarea value={item.answer_en ?? ""} onChange={(e) => setFaqField(i, "answer_en", e.target.value)}
+                    placeholder="e.g. Yes, semi-formal..." rows={3}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] resize-y" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Gallery Photos */}

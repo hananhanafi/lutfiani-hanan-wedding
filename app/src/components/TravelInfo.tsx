@@ -1,18 +1,25 @@
+"use client";
+
+import { useLanguage } from "@/components/LanguageProvider";
+
 interface Props {
   travelInfo: string;
+  travelInfoEn?: string;
 }
 
-export default function TravelInfo({ travelInfo }: Props) {
+export default function TravelInfo({ travelInfo, travelInfoEn }: Props) {
+  const { t, lang } = useLanguage();
   if (!travelInfo) return null;
 
-  const paragraphs = travelInfo.split("\n").filter((p) => p.trim());
+  const activeText = (lang === "en" && travelInfoEn) ? travelInfoEn : travelInfo;
+  const paragraphs = activeText.split("\n").filter((p) => p.trim());
 
   return (
     <section id="travel" className="py-20 px-4 bg-white">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
-            Perjalanan &amp; Menginap
+            {t("travel_eyebrow")}
           </p>
           <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028]">
             Getting Here
