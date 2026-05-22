@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   if (!guests) return NextResponse.json({ error: "No data" }, { status: 500 });
 
-  const headers = ["Nama", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in"];
+  const headers = ["Nama", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in", "Email Terkirim", "WA Terkirim"];
 
   const rows = guests.map((g) => [
     g.name,
@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
     g.submitted_at,
     g.checked_in ? "Ya" : "Tidak",
     g.checked_in_at ?? "",
+    g.email_sent ? "Ya" : "Tidak",
+    g.whatsapp_status ?? "Belum",
   ]);
 
   const csv = [headers, ...rows].map((row) => row.map((v) => `"${v}"`).join(",")).join("\n");

@@ -328,8 +328,10 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function SendEmailButton({ guest }: { guest: Guest }) {
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Guest) => void }) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    guest.email_sent ? "sent" : "idle"
+  );
 
   if (!guest.email || !guest.attending) return <span className="text-gray-300 text-xs">—</span>;
 
@@ -341,7 +343,12 @@ function SendEmailButton({ guest }: { guest: Guest }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ guestId: guest.id }),
       });
-      setStatus(res.ok ? "sent" : "error");
+      if (res.ok) {
+        setStatus("sent");
+        onSent?.({ ...guest, email_sent: true });
+      } else {
+        setStatus("error");
+      }
     } catch {
       setStatus("error");
     }
@@ -361,24 +368,54 @@ function SendEmailButton({ guest }: { guest: Guest }) {
   );
 }
 
-function WhatsAppButton({ guest }: { guest: Guest }) {
-  if (!guest.attending || !guest.phone_number) return <span className="text-gray-300 text-xs">—</span>;
+function WhatsAppButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Guest) => void }) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    guest.whatsapp_status === "sent" || guest.whatsapp_status === "delivered" || guest.whatsapp_status === "read"
+      ? "sent"
+      : guest.whatsapp_status === "failed"
+        ? "error"
+        : "idle"
+  );
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const passUrl = `${appUrl}/pass?token=${guest.token}`;
-  const text = encodeURIComponent(`Halo ${guest.name.split(" ")[0]}! Ini adalah pass masuk pernikahanmu: ${passUrl}`);
-  const phone = guest.phone_number.replace(/\D/g, "");
-  const waUrl = `https://wa.me/${phone}?text=${text}`;
+  if (!guest.phone_number) return <span className="text-gray-300 text-xs">—</span>;
+
+  if (status === "sent") return <span className="text-green-600 text-xs font-medium">✅ Terkirim</span>;
+  if (status === "error") {
+    // Allow retry on failure
+  }
+
+  const handleSend = async () => {
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/admin/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestId: guest.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.sent > 0) {
+        setStatus("sent");
+        onSent?.({ ...guest, whatsapp_status: "sent" });
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  };
 
   return (
-    <a
-      href={waUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-xs px-2 py-1 rounded bg-[#25d366] text-white hover:bg-[#1da851] transition-colors whitespace-nowrap inline-block"
+    <button
+      onClick={handleSend}
+      disabled={status === "sending"}
+      className={`text-xs px-2 py-1 rounded text-white transition-colors whitespace-nowrap ${
+        status === "error"
+          ? "bg-red-500 hover:bg-red-600"
+          : "bg-[#25d366] hover:bg-[#1da851]"
+      } disabled:opacity-50`}
     >
-      WhatsApp
-    </a>
+      {status === "sending" ? "Mengirim…" : status === "error" ? "Retry WA" : "Kirim WA"}
+    </button>
   );
 }
 
@@ -543,194 +580,130 @@ function CsvImportModal({
 }
 
 /* ── WhatsApp Batch Modal ──────────────────────────────────── */
-const DEFAULT_TEMPLATE =
-  "Assalamualaikum Warahmatullahi Wabarakatuh 🤍\n\nTanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *{name}* untuk hadir dalam acara pernikahan kami.\n\nBerikut link undangan kami, untuk informasi lengkap mengenai acara dapat diakses melalui:\n{link}\n\nMerupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i *{name}* berkenan untuk hadir dan memberikan doa restu kepada kedua mempelai 🙏\n\nTerima kasih banyak atas perhatian dan doanya ✨\n\nWassalamualaikum Warahmatullahi Wabarakatuh\n\nHormat kami,\n[Nama Mempelai]";
-
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("0")) return "62" + digits.slice(1);
-  if (digits.startsWith("62")) return digits;
-  return digits;
-}
-
 function WhatsAppBatchModal({
   guests,
   onClose,
+  onSentAll,
 }: {
   guests: Guest[];
   onClose: () => void;
+  onSentAll?: (results: { guestId: string; success: boolean }[]) => void;
 }) {
   const eligible = guests.filter((g) => g.phone_number?.trim());
   const skipped  = guests.filter((g) => !g.phone_number?.trim());
+  const alreadySent = eligible.filter((g) => g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read");
+  const toSend = eligible.filter((g) => g.whatsapp_status !== "sent" && g.whatsapp_status !== "delivered" && g.whatsapp_status !== "read");
 
-  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
-  const [step, setStep]         = useState<"compose" | "send">("compose");
-  const [current, setCurrent]   = useState(0);
-  const [sent, setSent]         = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent: number; failed: number; results: { guestId: string; success: boolean; error?: string }[] } | null>(null);
 
-  const base = typeof window !== "undefined" ? window.location.origin : "";
+  const handleSendAll = async () => {
+    setSending(true);
+    try {
+      const res = await fetch("/api/admin/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestIds: toSend.map((g) => g.id) }),
+      });
+      const data = await res.json();
+      setResult(data);
+      onSentAll?.(data.results ?? []);
+    } catch {
+      setResult({ sent: 0, failed: toSend.length, results: [] });
+    } finally {
+      setSending(false);
+    }
+  };
 
-  function buildMessage(guest: Guest) {
-    const link = `${base}/?token=${guest.token}`;
-    return template
-      .replace(/\{name\}/gi, guest.name)
-      .replace(/\{link\}/gi, link);
-  }
-
-  function openWa(guest: Guest) {
-    const phone = formatPhone(guest.phone_number!);
-    const text  = encodeURIComponent(buildMessage(guest));
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank", "noopener");
-    setSent((prev) => new Set(prev).add(guest.id));
-  }
-
-  function next() {
-    if (current < eligible.length - 1) setCurrent((c) => c + 1);
-    else onClose();
-  }
-
-  if (step === "send") {
-    const guest   = eligible[current];
-    const preview = buildMessage(guest);
-    const isDone  = current >= eligible.length;
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-          <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800">Kirim WhatsApp</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{current + 1} / {eligible.length} tamu</p>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-          </div>
-
-          {/* Progress bar */}
-          <div className="h-1 bg-gray-100">
-            <div
-              className="h-1 bg-[var(--color-gold)] transition-all"
-              style={{ width: `${((current) / eligible.length) * 100}%` }}
-            />
-          </div>
-
-          <div className="px-6 py-5 space-y-4">
-            {/* Guest info */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--color-cream-dark)] flex items-center justify-center text-[var(--color-gold)] font-semibold text-sm shrink-0">
-                {guest.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="font-medium text-gray-800 text-sm">{guest.name}</p>
-                <p className="text-xs text-gray-400">{guest.phone_number}</p>
-              </div>
-              {sent.has(guest.id) && (
-                <span className="ml-auto text-xs text-green-600 font-medium">✓ Terbuka</span>
-              )}
-            </div>
-
-            {/* Message preview */}
-            <div className="bg-[#dcf8c6] rounded-xl rounded-bl-none px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed shadow-sm">
-              {preview}
-            </div>
-
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <button
-                type="button"
-                onClick={next}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {current < eligible.length - 1 ? "Lewati →" : "Selesai"}
-              </button>
-              <div className="flex gap-2">
-                {sent.has(guest.id) ? (
-                  <button
-                    type="button"
-                    onClick={next}
-                    className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors"
-                  >
-                    {current < eligible.length - 1 ? "Lanjut →" : "Selesai ✓"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => openWa(guest)}
-                    className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] transition-colors flex items-center gap-2"
-                  >
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-                    Buka WhatsApp
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Compose step
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-gray-800">Kirim WhatsApp Massal</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{eligible.length} tamu dengan nomor HP</p>
+            <p className="text-xs text-gray-400 mt-0.5">via WhatsApp Business API</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
 
         <div className="px-6 py-5 space-y-4 overflow-y-auto">
-          {/* Placeholder guide */}
-          <div className="flex gap-3 text-xs text-gray-400">
-            <span className="bg-gray-100 rounded px-2 py-1 font-mono"><code>{"{name}"}</code> — nama tamu</span>
-            <span className="bg-gray-100 rounded px-2 py-1 font-mono"><code>{"{link}"}</code> — link undangan</span>
-          </div>
-
-          {/* Template editor */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Template Pesan</label>
-            <textarea
-              value={template}
-              onChange={(e) => setTemplate(e.target.value)}
-              rows={7}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-gold)] resize-none font-mono leading-relaxed"
-            />
-          </div>
-
-          {/* Guest list */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Daftar Tamu ({eligible.length})
-            </label>
-            <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
-              {eligible.map((g) => (
-                <div key={g.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                  <span className="font-medium text-gray-700 flex-1 truncate">{g.name}</span>
-                  <span className="text-gray-400 text-xs shrink-0">{g.phone_number}</span>
-                </div>
-              ))}
+          {/* Summary */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Akan dikirim</span>
+              <span className="font-medium text-gray-800">{toSend.length} tamu</span>
             </div>
+            {alreadySent.length > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Sudah terkirim (dilewati)</span>
+                <span className="text-green-600 font-medium">{alreadySent.length} tamu</span>
+              </div>
+            )}
+            {skipped.length > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Tanpa nomor HP (dilewati)</span>
+                <span className="text-amber-500 font-medium">{skipped.length} tamu</span>
+              </div>
+            )}
           </div>
 
-          {skipped.length > 0 && (
-            <p className="text-xs text-amber-500">{skipped.length} tamu dilewati (tidak ada nomor HP).</p>
+          {/* Guest list preview */}
+          {toSend.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                Akan menerima pesan ({toSend.length})
+              </label>
+              <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
+                {toSend.map((g) => (
+                  <div key={g.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                    <span className="font-medium text-gray-700 flex-1 truncate">{g.name}</span>
+                    <span className="text-gray-400 text-xs shrink-0">{g.phone_number}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Info about templates */}
+          <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
+            <p className="font-medium">ℹ️ Pesan menggunakan template yang sudah disetujui Meta.</p>
+            <p>Parameter: nama tamu + link undangan</p>
+            <p>Status pengiriman akan diperbarui otomatis via webhook.</p>
+          </div>
+
+          {/* Result */}
+          {result && (
+            <div className={`rounded-lg border px-4 py-3 text-sm space-y-1 ${result.sent > 0 ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+              {result.sent > 0 && <p className="font-medium text-green-700">✓ {result.sent} pesan berhasil dikirim</p>}
+              {result.failed > 0 && (
+                <details className="text-xs text-red-600">
+                  <summary className="cursor-pointer font-medium">{result.failed} gagal</summary>
+                  <ul className="mt-1 ml-3 list-disc space-y-0.5">
+                    {result.results.filter((r) => !r.success).map((r) => (
+                      <li key={r.guestId}>{r.guestId.slice(0, 8)}…: {r.error}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
           )}
         </div>
 
         <div className="px-6 pb-5 flex items-center justify-between gap-3 shrink-0 border-t border-gray-100 pt-4">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-            Batal
+            {result ? "Tutup" : "Batal"}
           </button>
-          <button
-            type="button"
-            disabled={eligible.length === 0}
-            onClick={() => { setCurrent(0); setStep("send"); }}
-            className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 transition-colors flex items-center gap-2"
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-            Mulai Kirim ({eligible.length})
-          </button>
+          {!result && (
+            <button
+              type="button"
+              disabled={toSend.length === 0 || sending}
+              onClick={handleSendAll}
+              className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 transition-colors flex items-center gap-2"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+              {sending ? "Mengirim…" : `Kirim ke ${toSend.length} Tamu`}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -765,7 +738,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
 
   const handleExportSelected = () => {
     const toExport = guests.filter((g) => selectedIds.has(g.id));
-    const headers = ["Nama", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in"];
+    const headers = ["Nama", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in", "Email Terkirim", "WA Terkirim"];
     const rows = toExport.map((g) => [
       g.name,
       g.email ?? "",
@@ -778,6 +751,8 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
       g.submitted_at,
       g.checked_in ? "Ya" : "Tidak",
       g.checked_in_at ?? "",
+      g.email_sent ? "Ya" : "Tidak",
+      g.whatsapp_status ?? "Belum",
     ]);
     const csv = [headers, ...rows].map((row) => row.map((v) => `"${String(v)}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -828,6 +803,14 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
         <WhatsAppBatchModal
           guests={guests.filter((g) => selectedIds.has(g.id))}
           onClose={() => setShowWaModal(false)}
+          onSentAll={(results) => {
+            setGuests((prev) => prev.map((g) => {
+              const r = results.find((r) => r.guestId === g.id);
+              if (r?.success) return { ...g, whatsapp_status: "sent" as const };
+              if (r && !r.success) return { ...g, whatsapp_status: "failed" as const };
+              return g;
+            }));
+          }}
         />
       )}
       {editingGuest && (
@@ -947,6 +930,11 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
               {g.side && <p className="text-xs text-gray-500 capitalize">Pihak: {g.side}</p>}
               {g.email && <p className="text-xs text-gray-400">{g.email}</p>}
               {g.phone_number && <p className="text-xs text-gray-400">{g.phone_number}</p>}
+              <div className="flex items-center gap-2 flex-wrap">
+                {g.email_sent && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">📧 Terkirim</span>}
+                {g.whatsapp_status && g.whatsapp_status !== "failed" && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">💬 {g.whatsapp_status}</span>}
+                {g.whatsapp_status === "failed" && <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">💬 Gagal</span>}
+              </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-gray-400">{formatDate(g.submitted_at)}</span>
                 <div className="flex items-center gap-2">
@@ -956,8 +944,8 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                   >
                     Edit
                   </button>
-                  <SendEmailButton guest={g} />
-                  <WhatsAppButton guest={g} />
+                  <SendEmailButton guest={g} onSent={handleUpdated} />
+                  <WhatsAppButton guest={g} onSent={handleUpdated} />
                   <DeleteButton guestId={g.id} guestName={g.name} onDeleted={handleDeleted} />
                 </div>
               </div>
@@ -980,7 +968,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Pass", "WhatsApp", ""].map((h) => (
+                {["Nama", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Sent", "WA Sent", "Pass", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -1013,10 +1001,23 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <SendEmailButton guest={g} />
+                    {g.email_sent ? (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Terkirim</span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Belum</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <WhatsAppButton guest={g} />
+                    {g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read" ? (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs capitalize">{g.whatsapp_status}</span>
+                    ) : g.whatsapp_status === "failed" ? (
+                      <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">Gagal</span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Belum</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <SendEmailButton guest={g} onSent={handleUpdated} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">

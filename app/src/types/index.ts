@@ -12,6 +12,9 @@ export interface Guest {
   token: string;
   checked_in: boolean;
   checked_in_at?: string;
+  email_sent: boolean;
+  whatsapp_status?: 'sent' | 'delivered' | 'read' | 'failed' | null;
+  whatsapp_message_id?: string;
 }
 
 export interface ScheduleItem {

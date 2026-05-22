@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS guests (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name             TEXT NOT NULL,
   email            TEXT,
+  phone_number     TEXT,
   attending        BOOLEAN,                          -- true = attending, false = not attending, null = pending
   plus_one_name    TEXT,
   group_name       TEXT,                             -- where are you from / group name
@@ -16,7 +17,10 @@ CREATE TABLE IF NOT EXISTS guests (
   submitted_at     TIMESTAMPTZ DEFAULT NOW(),
   token            UUID UNIQUE DEFAULT gen_random_uuid(), -- unique QR code token
   checked_in       BOOLEAN NOT NULL DEFAULT FALSE,
-  checked_in_at    TIMESTAMPTZ
+  checked_in_at    TIMESTAMPTZ,
+  email_sent           BOOLEAN NOT NULL DEFAULT FALSE,
+  whatsapp_status      TEXT,                           -- null, 'sent', 'delivered', 'read', 'failed'
+  whatsapp_message_id  TEXT                            -- WA Cloud API message ID for webhook correlation
 );
 
 -- Migration: run this if the table already exists
@@ -42,8 +46,15 @@ CREATE TABLE IF NOT EXISTS site_config (
   theme_font           TEXT DEFAULT 'Playfair Display',
   -- Content sections
   story_text           TEXT,
+  story_text_en        TEXT,
   gift_registry_url    TEXT,
+  gift_qr_url          TEXT,
+  bank_name            TEXT,
+  bank_account_number  TEXT,
+  bank_account_name    TEXT,
   travel_info          TEXT,
+  travel_info_en       TEXT,
+  spotify_playlist_url TEXT,
   faq_json             JSONB DEFAULT '[]',           -- array of {question, answer}
   schedule_json        JSONB DEFAULT '[]',           -- array of {time, title, description}
   gallery_photos_json  JSONB DEFAULT '[]',           -- array of photo URLs
@@ -60,14 +71,25 @@ CREATE TABLE IF NOT EXISTS wishes (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   message     TEXT NOT NULL,
+  reactions   JSONB DEFAULT '{}',
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Migration: run these if tables already exist
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS phone_number TEXT;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS email_sent BOOLEAN NOT NULL DEFAULT FALSE;
+-- ALTER TABLE guests DROP COLUMN IF EXISTS whatsapp_sent;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_status TEXT;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_message_id TEXT;
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS gallery_photos_json JSONB DEFAULT '[]';
--- Bilingual content (EN translations — optional, falls back to primary language if empty)
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS story_text_en TEXT;
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS travel_info_en TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS gift_qr_url TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS bank_name TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS bank_account_number TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS bank_account_name TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS spotify_playlist_url TEXT;
+-- ALTER TABLE wishes ADD COLUMN IF NOT EXISTS reactions JSONB DEFAULT '{}';
 
 -- ── Seed default site config row ────────────────────────────
 INSERT INTO site_config (id) VALUES (1)

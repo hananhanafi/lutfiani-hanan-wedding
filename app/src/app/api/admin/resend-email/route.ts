@@ -52,5 +52,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to send email", detail: String(emailErr) }, { status: 500 });
   }
 
+  // Mark email as sent
+  await supabaseAdmin
+    .from("guests")
+    .update({ email_sent: true })
+    .eq("id", guestId);
+
   return NextResponse.json({ success: true });
 }
