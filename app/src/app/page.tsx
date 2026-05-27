@@ -80,15 +80,15 @@ export default async function Home({ searchParams }: Props) {
 
       <HeroSection config={config} />
 
-      <ScrollReveal direction="scale">
-        <QuranVerse />
-      </ScrollReveal>
-
       {config.wedding_date && (
         <ScrollReveal direction="scale">
           <CountdownTimer weddingDate={config.wedding_date} />
         </ScrollReveal>
       )}
+
+      <ScrollReveal direction="scale">
+        <QuranVerse />
+      </ScrollReveal>
 
       {config.story_text && (
         <ScrollReveal direction="up">

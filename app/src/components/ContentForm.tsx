@@ -66,14 +66,20 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     theme_color_primary: config.theme_color_primary ?? "#c9a96e",
     theme_color_secondary: config.theme_color_secondary ?? "#faedcd",
     theme_font: config.theme_font ?? "Playfair Display",
-    gallery_photos_json: JSON.stringify(config.gallery_photos_json ?? [], null, 2),
+    gallery_photos_json: (() => {
+      const raw = config.gallery_photos_json;
+      if (Array.isArray(raw)) return JSON.stringify(raw, null, 2);
+      try { return JSON.stringify(JSON.parse(raw as unknown as string ?? "[]"), null, 2); } catch { return "[]"; }
+    })(),
     site_password_enabled: config.site_password_enabled ? "true" : "false",
     site_password_plain: "",
     spotify_playlist_url: config.spotify_playlist_url ?? "",
   });
 
   const [galleryUrls, setGalleryUrls] = useState<string[]>(() => {
-    try { return JSON.parse(config.gallery_photos_json as unknown as string ?? "[]"); } catch { return []; }
+    const raw = config.gallery_photos_json;
+    if (Array.isArray(raw)) return raw as string[];
+    try { return JSON.parse(raw as unknown as string ?? "[]"); } catch { return []; }
   });
 
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(() => config.schedule_json ?? []);
@@ -160,7 +166,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         <div>
           <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Foto Sampul</label>
           {form.cover_photo_url && (
-            <div className="relative mb-2 rounded-lg overflow-hidden h-36 bg-gray-100">
+            <div className="relative mb-2 rounded-lg overflow-hidden h-100 bg-gray-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={form.cover_photo_url} alt="Cover preview" className="w-full h-full object-cover" />
             </div>

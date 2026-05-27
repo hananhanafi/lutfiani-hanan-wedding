@@ -1,34 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import sharp from "sharp";
+import Busboy from "busboy";
+import { PassThrough } from "stream";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 
-const MAX_SIZE = 10 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10 MB — compress if over this
+const HARD_LIMIT = 50 * 1024 * 1024;          // 50 MB — reject unconditionally
+const ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
+const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"]);
+
+/** Parse multipart/form-data from a raw Buffer via busboy */
+interface ParsedUpload {
+  fileBuffer: Buffer;
+  fileName: string;
+  mimeType: string;
+  bucketName: string;
+}
+
+function parseMultipart(req: NextRequest, body: Buffer): Promise<ParsedUpload> {
+  return new Promise((resolve, reject) => {
+    const contentType = req.headers.get("content-type") ?? "";
+    const bb = Busboy({ headers: { "content-type": contentType }, limits: { fileSize: HARD_LIMIT } });
+
+    let fileBuffer: Buffer | null = null;
+    let fileName = "upload";
+    let mimeType = "";
+    let bucketName = "covers";
+    let truncated = false;
+
+    bb.on("file", (_field, file, info) => {
+      fileName = info.filename || "upload";
+      mimeType = info.mimeType || "";
+      const chunks: Buffer[] = [];
+      file.on("data", (chunk: Buffer) => chunks.push(chunk));
+      file.on("limit", () => { truncated = true; });
+      file.on("close", () => { if (!truncated) fileBuffer = Buffer.concat(chunks); });
+    });
+
+    bb.on("field", (name, value) => { if (name === "bucket") bucketName = value; });
+
+    bb.on("close", () => {
+      if (truncated) return reject(new Error(`File exceeds ${HARD_LIMIT / 1024 / 1024} MB limit`));
+      if (!fileBuffer) return reject(new Error("No file found in request"));
+      resolve({ fileBuffer, fileName, mimeType, bucketName });
+    });
+
+    bb.on("error", (err) => reject(err));
+
+    // Feed the pre-read buffer through a PassThrough into busboy
+    const pt = new PassThrough();
+    pt.pipe(bb);
+    pt.end(body);
+  });
+}
+
+/** Compress an image buffer to WebP, targeting under COMPRESS_THRESHOLD */
+async function compressImage(input: Buffer): Promise<{ buffer: Buffer; contentType: string; ext: string }> {
+  let quality = 82;
+  let output = await sharp(input).webp({ quality }).toBuffer();
+  while (output.length > COMPRESS_THRESHOLD && quality > 40) {
+    quality -= 10;
+    output = await sharp(input).webp({ quality }).toBuffer();
+  }
+  return { buffer: output, contentType: "image/webp", ext: "webp" };
+}
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let formData: FormData;
+  // Read full body as Buffer — App Router route handlers have no default body size limit
+  let bodyBuffer: Buffer;
   try {
-    formData = await req.formData();
-  } catch {
-    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+    bodyBuffer = Buffer.from(await req.arrayBuffer());
+  } catch (e) {
+    return NextResponse.json({ error: "Failed to read request body" }, { status: 400 });
   }
 
-  const file = formData.get("file") as File | null;
-  const bucketName = (formData.get("bucket") as string | null) ?? "covers";
-  if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: "Only JPG, PNG, WebP, and GIF images are allowed" }, { status: 400 });
+  let parsed: ParsedUpload;
+  try {
+    parsed = await parseMultipart(req, bodyBuffer);
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Invalid form data" }, { status: 400 });
   }
 
-  if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "File size must be under 10 MB" }, { status: 400 });
+  const { fileName, mimeType, bucketName } = parsed;
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  const mimeOk = ALLOWED_TYPES.has(mimeType) || (mimeType === "" && ALLOWED_EXTS.has(ext));
+  if (!mimeOk) {
+    return NextResponse.json({ error: `File type "${mimeType || ext}" is not allowed. Use JPG, PNG, WebP, or GIF.` }, { status: 400 });
   }
 
-  // Ensure bucket exists (creates it on first upload)
+  // Ensure bucket exists
   const { data: buckets } = await supabaseAdmin.storage.listBuckets();
   if (!buckets?.find((b) => b.name === bucketName)) {
     const { error: bucketError } = await supabaseAdmin.storage.createBucket(bucketName, { public: true });
@@ -38,13 +110,28 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const filename = `${bucketName === "gallery" ? "photo" : "cover"}-${Date.now()}.${ext}`;
+  let buffer = parsed.fileBuffer;
+  let uploadContentType = mimeType || "image/jpeg";
+  let fileExt = ext || "jpg";
+
+  // Compress if over 10 MB
+  if (buffer.length > COMPRESS_THRESHOLD) {
+    try {
+      const compressed = await compressImage(buffer);
+      buffer = compressed.buffer;
+      uploadContentType = compressed.contentType;
+      fileExt = compressed.ext;
+    } catch (err) {
+      console.error("Compression error:", err);
+      return NextResponse.json({ error: "Failed to compress image" }, { status: 500 });
+    }
+  }
+
+  const filename = `${bucketName === "gallery" ? "photo" : "cover"}-${Date.now()}.${fileExt}`;
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(bucketName)
-    .upload(filename, buffer, { contentType: file.type, upsert: true });
+    .upload(filename, buffer, { contentType: uploadContentType, upsert: true });
 
   if (uploadError) {
     console.error("Storage upload error:", uploadError);

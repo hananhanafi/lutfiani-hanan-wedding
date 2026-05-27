@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useTheme } from "./ThemeProvider";
+import { useLanguage } from "./LanguageProvider";
 
 const navItems = [
   { href: "/admin", label: "Dasbor", icon: "📊" },
@@ -14,6 +16,8 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { theme, toggle: toggleTheme } = useTheme();
+  const { lang, toggle: toggleLang } = useLanguage();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -23,7 +27,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="text-lg font-semibold text-gray-800">Panel Admin</span>
           <span className="text-xs bg-[var(--color-cream-dark)] text-[var(--color-gold)] px-2 py-0.5 rounded-full">Wedding</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleLang}
+            title={lang === "id" ? "Switch to English" : "Ganti ke Bahasa Indonesia"}
+            className="text-xs font-bold tracking-widest uppercase px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
+          >
+            {lang === "id" ? "EN" : "ID"}
+          </button>
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Mode Terang" : "Mode Gelap"}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-base hover:border-[var(--color-gold)] transition-colors"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           <Link href="/" target="_blank" className="text-sm text-gray-500 hover:text-gray-800">
             Lihat Situs ↗
           </Link>

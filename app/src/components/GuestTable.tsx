@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Guest } from "@/types";
 
 const EMPTY_FORM = {
@@ -12,6 +12,7 @@ const EMPTY_FORM = {
   group_name: "",
   side: "" as "" | "bride" | "groom",
   message: "",
+  is_vip: false,
 };
 
 function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (guest: Guest) => void }) {
@@ -164,6 +165,20 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
             />
           </div>
 
+          {/* VIP Guest */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_vip}
+                onChange={(e) => setForm((prev) => ({ ...prev, is_vip: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
+              />
+              <span className="text-sm font-medium text-gray-700">VIP Guest</span>
+              <span className="text-xs text-gray-400">(undangan khusus)</span>
+            </label>
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex items-center justify-end gap-3 pt-1">
@@ -198,6 +213,7 @@ function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: 
     group_name: guest.group_name ?? "",
     side: (guest.side ?? "") as "" | "bride" | "groom",
     message: guest.message ?? "",
+    is_vip: guest.is_vip ?? false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -299,6 +315,20 @@ function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: 
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Catatan / Pesan</label>
             <textarea value={form.message} onChange={set("message")} maxLength={500} rows={2} placeholder="Catatan opsional untuk tamu ini"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] resize-none" />
+          </div>
+
+          {/* VIP Guest */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_vip}
+                onChange={(e) => setForm((prev) => ({ ...prev, is_vip: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
+              />
+              <span className="text-sm font-medium text-gray-700">VIP Guest</span>
+              <span className="text-xs text-gray-400">(undangan khusus)</span>
+            </label>
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -415,6 +445,36 @@ function WhatsAppButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gues
       } disabled:opacity-50`}
     >
       {status === "sending" ? "Mengirim…" : status === "error" ? "Retry WA" : "Kirim WA"}
+    </button>
+  );
+}
+
+function CopyLinkButton({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const url = `${window.location.origin}/pass?token=${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — open in new tab as fallback
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={copied ? "Copied!" : "Copy invitation link"}
+      className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap ${
+        copied
+          ? "border-green-300 text-green-600 bg-green-50"
+          : "border-blue-200 text-blue-500 hover:bg-blue-50 hover:text-blue-700"
+      }`}
+    >
+      {copied ? "✓ Copied" : "🔗 Link"}
     </button>
   );
 }
@@ -719,6 +779,21 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterAttending, setFilterAttending] = useState("");
+  const [filterSide, setFilterSide] = useState("");
+  const [filterCheckin, setFilterCheckin] = useState("");
+  const [filterVip, setFilterVip] = useState("");
+  const [filterEmail, setFilterEmail] = useState("");
+  const [filterWa, setFilterWa] = useState("");
+
+  // Draft state — only committed when Terapkan is clicked
+  const [draft, setDraft] = useState({ attending: "", side: "", checkin: "", vip: "", email: "", wa: "" });
+  useEffect(() => {
+    if (showFilterModal) {
+      setDraft({ attending: filterAttending, side: filterSide, checkin: filterCheckin, vip: filterVip, email: filterEmail, wa: filterWa });
+    }
+  }, [showFilterModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleted = (id: string) =>
     setGuests((prev) => prev.filter((g) => g.id !== id));
@@ -738,9 +813,10 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
 
   const handleExportSelected = () => {
     const toExport = guests.filter((g) => selectedIds.has(g.id));
-    const headers = ["Nama", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in", "Email Terkirim", "WA Terkirim"];
+    const headers = ["Nama", "VIP", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in", "Email Terkirim", "WA Terkirim"];
     const rows = toExport.map((g) => [
       g.name,
+      g.is_vip ? "Ya" : "Tidak",
       g.email ?? "",
       g.phone_number ?? "",
       g.attending === true ? "Ya" : g.attending === false ? "Tidak" : "Menunggu",
@@ -766,13 +842,37 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
 
   const filtered = guests.filter((g) => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch =
       g.name.toLowerCase().includes(q) ||
       (g.email ?? "").toLowerCase().includes(q) ||
       (g.group_name ?? "").toLowerCase().includes(q) ||
-      (g.side ?? "").toLowerCase().includes(q)
-    );
+      (g.side ?? "").toLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (filterAttending === "true" && g.attending !== true) return false;
+    if (filterAttending === "false" && g.attending !== false) return false;
+    if (filterAttending === "null" && g.attending != null) return false;
+    if (filterSide && g.side !== filterSide) return false;
+    if (filterCheckin === "true" && !g.checked_in) return false;
+    if (filterCheckin === "false" && g.checked_in) return false;
+    if (filterVip === "true" && !g.is_vip) return false;
+    if (filterEmail === "true" && !g.email_sent) return false;
+    if (filterEmail === "false" && g.email_sent) return false;
+    if (filterWa === "sent" && !(g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read")) return false;
+    if (filterWa === "failed" && g.whatsapp_status !== "failed") return false;
+    if (filterWa === "none" && !!g.whatsapp_status) return false;
+    return true;
   });
+
+  const hasActiveFilters = !!(filterAttending || filterSide || filterCheckin || filterVip || filterEmail || filterWa);
+  const activeFilterCount = [filterAttending, filterSide, filterCheckin, filterVip, filterEmail, filterWa].filter(Boolean).length;
+  const resetFilters = () => {
+    setFilterAttending("");
+    setFilterSide("");
+    setFilterCheckin("");
+    setFilterVip("");
+    setFilterEmail("");
+    setFilterWa("");
+  };
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((g) => selectedIds.has(g.id));
   const toggleAll = () => {
@@ -818,65 +918,192 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
       )}
 
       {/* Search + Add */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Mobile: row 1 = search+filter | row 2 = 2-col button grid
+          Desktop: single flex-wrap row via sm:contents */}
+      <div className="grid grid-cols-[1fr_auto] gap-2 sm:flex sm:flex-wrap sm:items-center">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari nama, email, grup, atau pihak…"
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-gold)] bg-white shadow-sm"
+          className="col-span-1 sm:flex-1 sm:min-w-0 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-gold)] bg-white shadow-sm"
         />
-        <div className="relative shrink-0">
+        <button
+          onClick={() => setShowFilterModal(true)}
+          className={`shrink-0 px-4 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap shadow-sm ${
+            hasActiveFilters
+              ? "bg-[var(--color-gold)] text-white hover:bg-[var(--color-gold-hover)]"
+              : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          ♥ Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+        </button>
+
+        {/* Action buttons: 2-col grid on mobile, inline flex on desktop */}
+        <div className="col-span-2 grid grid-cols-2 gap-2 sm:contents">
           <button
-            onClick={() => setShowExportMenu((v) => !v)}
-            disabled={selectedIds.size === 0}
-            className="px-4 py-2.5 border border-[var(--color-gold)] text-[var(--color-gold)] rounded-lg text-sm hover:bg-[var(--color-cream-dark)] transition-colors whitespace-nowrap shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            onClick={() => setShowImportModal(true)}
+            className="w-full sm:w-auto sm:shrink-0 px-4 py-2.5 border border-[var(--color-gold)] text-[var(--color-gold)] rounded-lg text-sm hover:bg-[var(--color-cream-dark)] transition-colors whitespace-nowrap shadow-sm"
           >
-            Ekspor{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""} ↓
+            Import CSV ↑
           </button>
-          {showExportMenu && selectedIds.size > 0 && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
-              <div className="absolute right-0 mt-1 z-20 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[140px]">
-                <button
-                  onClick={() => { handleExportSelected(); setShowExportMenu(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  CSV ↓
-                </button>
-                <a
-                  href={`/api/admin/export-qr?ids=${Array.from(selectedIds).join(",")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowExportMenu(false)}
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  QR PDF 📷
-                </a>
+          <div className="relative w-full sm:w-auto sm:shrink-0">
+            <button
+              onClick={() => setShowExportMenu((v) => !v)}
+              disabled={selectedIds.size === 0}
+              className="w-full px-4 py-2.5 border border-[var(--color-gold)] text-[var(--color-gold)] rounded-lg text-sm hover:bg-[var(--color-cream-dark)] transition-colors whitespace-nowrap shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              Ekspor{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""} ↓
+            </button>
+            {showExportMenu && selectedIds.size > 0 && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 mt-1 z-20 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[140px]">
+                  <button
+                    onClick={() => { handleExportSelected(); setShowExportMenu(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    CSV ↓
+                  </button>
+                  <a
+                    href={`/api/admin/export-qr?ids=${Array.from(selectedIds).join(",")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowExportMenu(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    QR PDF 📷
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => setShowWaModal(true)}
+            disabled={selectedIds.size === 0}
+            className="w-full sm:w-auto sm:shrink-0 px-4 py-2.5 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap shadow-sm"
+          >
+            WA{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""} 💬
+          </button>
+          
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-full sm:w-auto sm:shrink-0 px-4 py-2.5 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors whitespace-nowrap shadow-sm"
+          >
+            + Tambah Tamu
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800">Filter Tamu</h2>
+              <button onClick={() => setShowFilterModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Status Kehadiran</label>
+                <select value={draft.attending} onChange={(e) => setDraft((p) => ({ ...p, attending: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua</option>
+                  <option value="true">Hadir ✓</option>
+                  <option value="false">Tidak Hadir</option>
+                  <option value="null">Menunggu</option>
+                </select>
               </div>
-            </>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pihak</label>
+                <select value={draft.side} onChange={(e) => setDraft((p) => ({ ...p, side: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua</option>
+                  <option value="bride">Mempelai Wanita</option>
+                  <option value="groom">Mempelai Pria</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">VIP</label>
+                <select value={draft.vip} onChange={(e) => setDraft((p) => ({ ...p, vip: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua Tamu</option>
+                  <option value="true">⭐ VIP Saja</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Check-in</label>
+                <select value={draft.checkin} onChange={(e) => setDraft((p) => ({ ...p, checkin: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua</option>
+                  <option value="true">Sudah Check-in</option>
+                  <option value="false">Belum Check-in</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Email</label>
+                <select value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua</option>
+                  <option value="true">Email Terkirim</option>
+                  <option value="false">Email Belum Kirim</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">WhatsApp</label>
+                <select value={draft.wa} onChange={(e) => setDraft((p) => ({ ...p, wa: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua</option>
+                  <option value="sent">WA Terkirim</option>
+                  <option value="failed">WA Gagal</option>
+                  <option value="none">WA Belum Kirim</option>
+                </select>
+              </div>
+            </div>
+            <div className="px-6 pb-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+              <button
+                onClick={() => {
+                  setDraft({ attending: "", side: "", checkin: "", vip: "", email: "", wa: "" });
+                  resetFilters();
+                  setShowFilterModal(false);
+                }}
+                disabled={!Object.values(draft).some(Boolean)}
+                className="text-sm text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Reset Semua
+              </button>
+              <button
+                onClick={() => {
+                  setFilterAttending(draft.attending);
+                  setFilterSide(draft.side);
+                  setFilterCheckin(draft.checkin);
+                  setFilterVip(draft.vip);
+                  setFilterEmail(draft.email);
+                  setFilterWa(draft.wa);
+                  setShowFilterModal(false);
+                }}
+                className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors"
+              >
+                Terapkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results count */}
+      {(hasActiveFilters || search) && (
+        <div className="flex items-center justify-between text-xs text-gray-400 px-0.5">
+          <span>
+            Menampilkan <span className="font-medium text-gray-600">{filtered.length}</span> dari {guests.length} tamu
+          </span>
+          {hasActiveFilters && (
+            <button onClick={resetFilters} className="text-red-400 hover:text-red-600 transition-colors">
+              Hapus filter ×
+            </button>
           )}
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="shrink-0 px-4 py-2.5 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors whitespace-nowrap shadow-sm"
-        >
-          + Tambah Tamu
-        </button>
-        <button
-          onClick={() => setShowImportModal(true)}
-          className="shrink-0 px-4 py-2.5 border border-[var(--color-gold)] text-[var(--color-gold)] rounded-lg text-sm hover:bg-[var(--color-cream-dark)] transition-colors whitespace-nowrap shadow-sm"
-        >
-          Import CSV ↑
-        </button>
-        <button
-          onClick={() => setShowWaModal(true)}
-          disabled={selectedIds.size === 0}
-          className="shrink-0 px-4 py-2.5 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap shadow-sm"
-        >
-          WA{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""} 💬
-        </button>
-      </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {guests.length === 0 ? (
@@ -922,6 +1149,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     />
                   </label>
                   <span className="font-medium text-gray-800">{g.name}</span>
+                  {g.is_vip && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">⭐ VIP</span>}
                 </div>
                 {statusBadge(g.attending)}
               </div>
@@ -944,6 +1172,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                   >
                     Edit
                   </button>
+                  <CopyLinkButton token={g.token} />
                   <SendEmailButton guest={g} onSent={handleUpdated} />
                   <WhatsAppButton guest={g} onSent={handleUpdated} />
                   <DeleteButton guestId={g.id} guestName={g.name} onDeleted={handleDeleted} />
@@ -968,7 +1197,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Sent", "WA Sent", "Pass", ""].map((h) => (
+                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Sent", "WA Sent", "Pass", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -985,6 +1214,13 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     />
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-800">{g.name}</td>
+                  <td className="px-4 py-3">
+                    {g.is_vip ? (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">⭐ VIP</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-500">{g.email ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">{g.phone_number ?? "—"}</td>
                   <td className="px-4 py-3">{statusBadge(g.attending)}</td>
@@ -1027,6 +1263,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                       >
                         Edit
                       </button>
+                      <CopyLinkButton token={g.token} />
                       <DeleteButton guestId={g.id} guestName={g.name} onDeleted={handleDeleted} />
                     </div>
                   </td>

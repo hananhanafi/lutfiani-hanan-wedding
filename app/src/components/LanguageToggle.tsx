@@ -1,9 +1,13 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useLanguage } from "./LanguageProvider";
 
 export default function LanguageToggle() {
   const { lang, toggle } = useLanguage();
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/admin") || pathname.startsWith("/scanner")) return null;
 
   return (
     <button

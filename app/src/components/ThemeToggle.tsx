@@ -1,9 +1,13 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useTheme } from "./ThemeProvider";
 
 export default function ThemeToggle() {
   const { theme, toggle } = useTheme();
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/admin") || pathname.startsWith("/scanner")) return null;
 
   return (
     <button

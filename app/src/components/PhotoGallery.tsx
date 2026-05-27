@@ -50,9 +50,7 @@ export default function PhotoGallery({ photos }: Props) {
               <button
                 key={i}
                 onClick={() => setLightboxIndex(i)}
-                className={`overflow-hidden rounded-2xl aspect-square focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] group ${
-                  i === 0 ? "col-span-2 sm:col-span-1 sm:row-span-2 aspect-auto" : ""
-                }`}
+                className={`overflow-hidden rounded-2xl aspect-square focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] group`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img

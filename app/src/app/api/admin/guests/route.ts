@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, email, phone_number, attending, plus_one_name, group_name, side, message } = body;
+  const { name, email, phone_number, attending, plus_one_name, group_name, side, message, is_vip } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       group_name: group_name?.trim() || null,
       side: side?.trim() || null,
       message: message?.trim() || null,
+      is_vip: is_vip === true,
       token: uuidv4(),
     })
     .select()

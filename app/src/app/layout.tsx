@@ -99,6 +99,7 @@ export default async function RootLayout({
             __html: `try{var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}`,
           }}
         />
+        <meta name="facebook-domain-verification" content="ixd2nuvhf3nhulxsw9j1hry6v8i9rj" />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>

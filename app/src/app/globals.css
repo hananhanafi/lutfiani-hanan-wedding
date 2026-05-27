@@ -23,6 +23,10 @@ body {
   color: #3a3028;
 }
 
+button, [role="button"], select, label[for] {
+  cursor: pointer;
+}
+
 h1, h2, h3, h4 {
   font-family: var(--font-heading);
 }
@@ -142,77 +146,144 @@ body, .glass, .glass-bg, section, footer, input, textarea, select {
 }
 
 [data-theme="dark"] body {
-  background-color: #1a1208;
-  color: #f5e9cb;
-  /* Redeclare here so descendants see the dark value even though html has it as an inline style */
-  --color-cream-dark: #1a1208;
+  background-color: #090805;
+  color: #f0ddb0;
+  --color-cream-dark: #090805;
+  --color-gold: #d4a84b;
+  --color-gold-light: #f5d98a;
+  --color-gold-hover: #bf9438;
 }
 
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3,
 [data-theme="dark"] h4 {
-  color: #f5e9cb;
+  color: #e8c87a;
 }
 
 /* Glass cards */
 [data-theme="dark"] .glass {
-  background: rgba(30, 20, 10, 0.70);
-  border-color: rgba(193, 166, 103, 0.18);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  background: rgba(12, 9, 4, 0.82);
+  border-color: rgba(212, 168, 75, 0.30);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(212,168,75,0.07);
 }
 
 /* Blob section backgrounds */
 [data-theme="dark"] .glass-bg {
   background:
-    radial-gradient(ellipse 60% 50% at 20% 30%, color-mix(in srgb, var(--color-gold) 12%, transparent) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 60% at 80% 70%, color-mix(in srgb, var(--color-gold) 8%, transparent) 0%, transparent 70%),
-    #150f07;
+    radial-gradient(ellipse 60% 50% at 20% 30%, color-mix(in srgb, var(--color-gold) 18%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 80% 70%, color-mix(in srgb, var(--color-gold) 12%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 60% 20%, color-mix(in srgb, var(--color-gold) 8%, transparent) 0%, transparent 60%),
+    #090805;
 }
 
 /* White section / card backgrounds */
-[data-theme="dark"] .bg-white { background-color: #201610 !important; }
+[data-theme="dark"] .bg-white { background-color: #110d06 !important; }
 
 /* White section backgrounds */
-[data-theme="dark"] .bg-\[\#fffbf5\] { background-color: #201610; }
-[data-theme="dark"] .bg-\[var\(--color-cream-dark\)\] { background-color: #1a1208; }
-[data-theme="dark"] footer { background-color: #1a1208 !important; border-color: rgba(58,46,32,0.5) !important; }
+[data-theme="dark"] .bg-\[\#fffbf5\] { background-color: #110d06; }
+[data-theme="dark"] .bg-\[var\(--color-cream-dark\)\] { background-color: #090805; }
+[data-theme="dark"] footer { background-color: #090805 !important; border-color: rgba(212,168,75,0.15) !important; }
 
 /* Primary text */
-[data-theme="dark"] .text-\[\#3a3028\]       { color: #f5e9cb; }
-[data-theme="dark"] .text-\[\#3a3028\]\/80   { color: rgba(245,233,203,0.8); }
-[data-theme="dark"] .text-\[\#3a3028\]\/70   { color: rgba(245,233,203,0.7); }
-[data-theme="dark"] .text-\[\#3a3028\]\/60   { color: rgba(245,233,203,0.6); }
+[data-theme="dark"] .text-\[\#3a3028\]       { color: #f0ddb0; }
+[data-theme="dark"] .text-\[\#3a3028\]\/80   { color: rgba(240,221,176,0.8); }
+[data-theme="dark"] .text-\[\#3a3028\]\/70   { color: rgba(240,221,176,0.7); }
+[data-theme="dark"] .text-\[\#3a3028\]\/60   { color: rgba(240,221,176,0.6); }
 
 /* Secondary / muted text */
-[data-theme="dark"] .text-\[\#9a7d5a\]  { color: #c9a96e; }
-[data-theme="dark"] .text-\[\#c9b99a\]  { color: #9a7d5a; }
+[data-theme="dark"] .text-\[\#9a7d5a\]  { color: #d4a84b; }
+[data-theme="dark"] .text-\[\#c9b99a\]  { color: #a07c3a; }
 
 /* Input borders */
-[data-theme="dark"] .border-\[\#e0d5c5\]     { border-color: #3a2e20; }
-[data-theme="dark"] .border-t               { border-top-color: rgba(58,46,32,0.5); }
+[data-theme="dark"] .border-\[\#e0d5c5\]     { border-color: #2e2410; }
+[data-theme="dark"] .border-t               { border-top-color: rgba(212,168,75,0.12); }
 
 /* Form inputs & textareas */
 [data-theme="dark"] input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=reset]),
 [data-theme="dark"] textarea,
 [data-theme="dark"] select {
-  background-color: rgba(255,255,255,0.06) !important;
-  color: #f5e9cb !important;
-  border-color: #3a2e20 !important;
+  background-color: rgba(255,255,255,0.05) !important;
+  color: #f0ddb0 !important;
+  border-color: #2e2410 !important;
 }
 [data-theme="dark"] input::placeholder,
-[data-theme="dark"] textarea::placeholder { color: rgba(245,233,203,0.35) !important; }
+[data-theme="dark"] textarea::placeholder { color: rgba(240,221,176,0.30) !important; }
 
 /* Input disabled state */
-[data-theme="dark"] .bg-\[\#f5f0ea\]  { background-color: #2a1e12 !important; }
+[data-theme="dark"] .bg-\[\#f5f0ea\]  { background-color: #1a1208 !important; }
 
 /* Glassmorphism input bg override */
-[data-theme="dark"] .bg-white\/70 { background-color: rgba(255,255,255,0.05) !important; }
-[data-theme="dark"] .bg-white\/60 { background-color: rgba(255,255,255,0.04) !important; }
+[data-theme="dark"] .bg-white\/70 { background-color: rgba(12,9,4,0.75) !important; }
+[data-theme="dark"] .bg-white\/60 { background-color: rgba(12,9,4,0.60) !important; }
 
 /* FAQ accordion hover */
-[data-theme="dark"] .hover\:bg-\[\#fffbf5\]:hover { background-color: #2a1c0e; }
+[data-theme="dark"] .hover\:bg-\[\#fffbf5\]:hover { background-color: #1a1208; }
 
 /* Wishes like-button hover */
-[data-theme="dark"] .hover\:bg-\[\#f5efe6\]:hover { background-color: #2a1c0e; }
+[data-theme="dark"] .hover\:bg-\[\#f5efe6\]:hover { background-color: #1a1208; }
 
+/* ── Admin Dashboard Dark Mode ─────────────────────────────── */
+
+/* Backgrounds */
+[data-theme="dark"] .bg-gray-50  { background-color: #0e0b06; }
+[data-theme="dark"] .bg-gray-100 { background-color: #161209; }
+[data-theme="dark"] .bg-gray-200 { background-color: #201808; }
+
+/* Borders */
+[data-theme="dark"] .border-gray-100 { border-color: #1e1508; }
+[data-theme="dark"] .border-gray-200 { border-color: #2a2010; }
+[data-theme="dark"] .border-gray-300 { border-color: #3a2e18; }
+
+/* Dividers */
+[data-theme="dark"] .divide-gray-50  > * + * { border-color: #161209; }
+[data-theme="dark"] .divide-gray-100 > * + * { border-color: #1e1508; }
+[data-theme="dark"] .divide-gray-200 > * + * { border-color: #2a2010; }
+
+/* Text */
+[data-theme="dark"] .text-gray-800 { color: #f0ddb0; }
+[data-theme="dark"] .text-gray-700 { color: #e4cfa0; }
+[data-theme="dark"] .text-gray-600 { color: #c8b480; }
+[data-theme="dark"] .text-gray-500 { color: #987a50; }
+[data-theme="dark"] .text-gray-400 { color: #7a6040; }
+
+/* Hover backgrounds */
+[data-theme="dark"] .hover\:bg-gray-50:hover  { background-color: #161209; }
+[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: #1c1508; }
+
+/* Hover text */
+[data-theme="dark"] .hover\:text-gray-800:hover { color: #f0ddb0; }
+[data-theme="dark"] .hover\:text-gray-700:hover { color: #e4cfa0; }
+[data-theme="dark"] .hover\:text-gray-600:hover { color: #c8b480; }
+
+/* Table rows */
+[data-theme="dark"] .hover\:bg-gray-50\/50:hover { background-color: rgba(22,18,9,0.5); }
+
+/* Progress bar track */
+[data-theme="dark"] .bg-gray-100.rounded-full { background-color: #201808; }
+
+/* Shadows — lighten for dark bg */
+[data-theme="dark"] .shadow-sm  { box-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+[data-theme="dark"] .shadow-lg  { box-shadow: 0 8px 24px rgba(0,0,0,0.7); }
+
+/* Selected row */
+[data-theme="dark"] .bg-amber-50  { background-color: #1e1505; }
+
+/* Status badges */
+[data-theme="dark"] .bg-amber-100 { background-color: #2a1c08; }
+[data-theme="dark"] .text-amber-700 { color: #d4a84b; }
+[data-theme="dark"] .bg-green-50  { background-color: #0a1a0a; }
+[data-theme="dark"] .bg-green-100 { background-color: #0f200f; }
+[data-theme="dark"] .text-green-600 { color: #5ab85a; }
+[data-theme="dark"] .text-green-700 { color: #4ea84e; }
+[data-theme="dark"] .border-green-200 { border-color: #1e3a1e; }
+[data-theme="dark"] .border-green-300 { border-color: #2a4e2a; }
+[data-theme="dark"] .bg-red-50  { background-color: #1a0808; }
+[data-theme="dark"] .bg-red-100 { background-color: #220e0e; }
+[data-theme="dark"] .text-red-700 { color: #e05555; }
+[data-theme="dark"] .border-red-200 { border-color: #3a1818; }
+[data-theme="dark"] .bg-blue-50  { background-color: #080f1a; }
+[data-theme="dark"] .text-blue-700 { color: #6090d0; }
+[data-theme="dark"] .text-blue-500 { color: #4a78c0; }
+[data-theme="dark"] .border-blue-200 { border-color: #182038; }
+[data-theme="dark"] .hover\:bg-blue-50:hover { background-color: #0d1a2e; }

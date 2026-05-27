@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS guests (
   checked_in_at    TIMESTAMPTZ,
   email_sent           BOOLEAN NOT NULL DEFAULT FALSE,
   whatsapp_status      TEXT,                           -- null, 'sent', 'delivered', 'read', 'failed'
-  whatsapp_message_id  TEXT                            -- WA Cloud API message ID for webhook correlation
+  whatsapp_message_id  TEXT,                           -- WA Cloud API message ID for webhook correlation
+  is_vip               BOOLEAN NOT NULL DEFAULT FALSE  -- VIP guest flag
 );
 
 -- Migration: run this if the table already exists
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS wishes (
 -- Migration: run these if tables already exist
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS phone_number TEXT;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS email_sent BOOLEAN NOT NULL DEFAULT FALSE;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT FALSE;
 -- ALTER TABLE guests DROP COLUMN IF EXISTS whatsapp_sent;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_status TEXT;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_message_id TEXT;
