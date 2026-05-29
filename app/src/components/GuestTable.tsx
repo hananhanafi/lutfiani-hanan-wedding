@@ -384,7 +384,7 @@ function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gue
     }
   };
 
-  if (status === "sent") return <span className="text-green-600 text-xs font-medium">✅ Terkirim</span>;
+  // if (status === "sent") return <span className="text-green-600 text-xs font-medium">✅ Terkirim</span>;
   if (status === "error") return <span className="text-red-500 text-xs">Gagal</span>;
 
   return (
@@ -393,7 +393,7 @@ function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gue
       disabled={status === "sending"}
       className="text-xs px-2 py-1 rounded bg-[var(--color-gold)] text-white hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors whitespace-nowrap"
     >
-      {status === "sending" ? "Mengirim…" : "Kirim Pass"}
+      {status === "sending" ? "Mengirim…" : "Kirim Email"}
     </button>
   );
 }
@@ -1197,7 +1197,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Sent", "WA Sent", "Pass", ""].map((h) => (
+                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Sent", "WA Sent", "Kirim Email/WA", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -1253,7 +1253,10 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <SendEmailButton guest={g} onSent={handleUpdated} />
+                    <div className="flex items-center gap-1">
+                      <SendEmailButton guest={g} onSent={handleUpdated} />
+                      <WhatsAppButton guest={g} onSent={handleUpdated} />
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">

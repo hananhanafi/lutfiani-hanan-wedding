@@ -1,3 +1,19 @@
+export interface RsvpSubmission {
+  id: string;
+  name: string;
+  email?: string;
+  phone_number?: string;
+  attending: boolean;
+  plus_one_name?: string;
+  group_name?: string;
+  side?: string;
+  message?: string;
+  submitted_at: string;
+  token: string;
+  checked_in: boolean;
+  checked_in_at?: string;
+}
+
 export interface Guest {
   id: string;
   name: string;

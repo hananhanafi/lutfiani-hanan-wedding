@@ -13,14 +13,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Please enter a name." }, { status: 400 });
     }
 
-    const { data: guests } = await supabaseAdmin
-      .from("guests")
-      .select("id, name, attending, plus_one_name, checked_in, token")
-      .ilike("name", `%${name.trim()}%`)
-      .eq("attending", true)
-      .limit(5);
+    const [{ data: adminGuests }, { data: rsvpGuests }] = await Promise.all([
+      supabaseAdmin
+        .from("guests")
+        .select("id, name, attending, plus_one_name, checked_in, token")
+        .ilike("name", `%${name.trim()}%`)
+        .eq("attending", true)
+        .limit(5),
+      supabaseAdmin
+        .from("rsvp_submissions")
+        .select("id, name, attending, plus_one_name, checked_in, token")
+        .ilike("name", `%${name.trim()}%`)
+        .eq("attending", true)
+        .limit(5),
+    ]);
 
-    return NextResponse.json({ guests: guests ?? [] });
+    const guests = [
+      ...(adminGuests ?? []).map((g) => ({ ...g, source: "guests" as const })),
+      ...(rsvpGuests ?? []).map((g) => ({ ...g, source: "rsvp_submissions" as const })),
+    ].slice(0, 8);
+
+    return NextResponse.json({ guests });
   } catch (err) {
     console.error("Lookup error:", err);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
@@ -29,14 +42,16 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { guestId, pin } = await req.json();
+    const { guestId, source, pin } = await req.json();
 
     if (pin !== process.env.SCANNER_PIN) {
       return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
     }
 
+    const table = source === "rsvp_submissions" ? "rsvp_submissions" : "guests";
+
     const { data: guest } = await supabaseAdmin
-      .from("guests")
+      .from(table)
       .select("checked_in, name, plus_one_name")
       .eq("id", guestId)
       .single();
@@ -48,7 +63,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     await supabaseAdmin
-      .from("guests")
+      .from(table)
       .update({ checked_in: true, checked_in_at: new Date().toISOString() })
       .eq("id", guestId);
 

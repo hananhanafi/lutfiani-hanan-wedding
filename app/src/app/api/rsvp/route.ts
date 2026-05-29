@@ -34,26 +34,24 @@ export async function POST(req: NextRequest) {
 
     const token = uuidv4();
     const qrUrl = buildPassUrl(token);
-
-    // Generate QR code as base64 data URL
     const qrDataUrl = attending ? await generatePassQrDataUrl(qrUrl) : null;
 
-    // Upsert: update existing record if email matches, otherwise insert new
+    // Upsert: update existing submission if same email, otherwise insert new
     let isUpdate = false;
-    let guest = null;
+    let submission = null;
     let dbError = null;
 
     if (email?.trim()) {
       const { data: existing } = await supabaseAdmin
-        .from("guests")
+        .from("rsvp_submissions")
         .select("id")
-        .ilike("email", email.trim())  // case-insensitive match
+        .ilike("email", email.trim())
         .maybeSingle();
 
       if (existing) {
         isUpdate = true;
         const { data: updated, error: updateError } = await supabaseAdmin
-          .from("guests")
+          .from("rsvp_submissions")
           .update({
             name: name.trim(),
             email: email?.trim() || null,
@@ -76,15 +74,13 @@ export async function POST(req: NextRequest) {
           console.error("Supabase update error:", updateError);
           return NextResponse.json({ error: "Failed to update RSVP." }, { status: 500 });
         }
-
-        guest = updated;
-        dbError = null;
+        submission = updated;
       }
     }
 
-    if (!guest) {
+    if (!submission) {
       const { data: inserted, error: insertError } = await supabaseAdmin
-        .from("guests")
+        .from("rsvp_submissions")
         .insert({
           name: name.trim(),
           email: email?.trim() || null,
@@ -98,16 +94,16 @@ export async function POST(req: NextRequest) {
         })
         .select()
         .single();
-      guest = inserted;
+      submission = inserted;
       dbError = insertError;
     }
 
-    if (dbError || !guest) {
+    if (dbError || !submission) {
       console.error("Supabase error:", dbError);
       return NextResponse.json({ error: "Failed to save RSVP." }, { status: 500 });
     }
 
-    // Send emails (non-blocking — RSVP succeeds even if email fails)
+    // Send emails (non-blocking)
     try {
       if (attending && email && qrDataUrl) {
         const qrBase64 = dataUrlToBase64(qrDataUrl);
@@ -133,7 +129,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Notify the couple
       const notifyEmail = process.env.GMAIL_USER!;
       if (attending) {
         await sendMail({
@@ -161,7 +156,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       updated: isUpdate,
-      guest: { id: guest.id, name: guest.name, token: guest.token },
+      guest: { id: submission.id, name: submission.name, token: submission.token },
       qrDataUrl,
       qrUrl,
     });
@@ -170,3 +165,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   }
 }
+

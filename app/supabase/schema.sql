@@ -67,6 +67,23 @@ CREATE TABLE IF NOT EXISTS site_config (
   CONSTRAINT single_row CHECK (id = 1)
 );
 
+-- ── RSVP Submissions (public form) ────────────────────────────
+CREATE TABLE IF NOT EXISTS rsvp_submissions (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name             TEXT NOT NULL,
+  email            TEXT,
+  phone_number     TEXT,
+  attending        BOOLEAN NOT NULL DEFAULT TRUE,
+  plus_one_name    TEXT,
+  group_name       TEXT,
+  side             TEXT,
+  message          TEXT,
+  submitted_at     TIMESTAMPTZ DEFAULT NOW(),
+  token            UUID UNIQUE DEFAULT gen_random_uuid(),
+  checked_in       BOOLEAN NOT NULL DEFAULT FALSE,
+  checked_in_at    TIMESTAMPTZ
+);
+
 -- ── Wishes Wall ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS wishes (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -98,16 +115,23 @@ INSERT INTO site_config (id) VALUES (1)
 ON CONFLICT (id) DO NOTHING;
 
 -- ── Row Level Security ───────────────────────────────────────
--- Guests table: public can INSERT (RSVP), only service role can SELECT/UPDATE/DELETE
+-- Guests table: admin-managed only
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public RSVP insert"
-  ON guests FOR INSERT
-  WITH CHECK (TRUE);
 
 CREATE POLICY "Allow public token lookup (scanner)"
   ON guests FOR SELECT
   USING (TRUE);  -- API routes handle auth; adjust to restrict if needed
+
+-- rsvp_submissions: public can insert, service role manages the rest
+ALTER TABLE rsvp_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public RSVP insert"
+  ON rsvp_submissions FOR INSERT
+  WITH CHECK (TRUE);
+
+CREATE POLICY "Allow public rsvp token lookup"
+  ON rsvp_submissions FOR SELECT
+  USING (TRUE);
 
 -- site_config: read-only for public, write only via service role
 ALTER TABLE site_config ENABLE ROW LEVEL SECURITY;

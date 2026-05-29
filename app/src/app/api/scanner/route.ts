@@ -14,14 +14,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No token provided." }, { status: 400 });
     }
 
-    // Look up guest by token
-    const { data: guest, error } = await supabaseAdmin
+    // Look up token in guests first, then rsvp_submissions
+    let guest = null;
+    let source: "guests" | "rsvp_submissions" = "guests";
+
+    const { data: adminGuest } = await supabaseAdmin
       .from("guests")
       .select("id, name, attending, plus_one_name, checked_in, checked_in_at")
       .eq("token", token)
-      .single();
+      .maybeSingle();
 
-    if (error || !guest) {
+    if (adminGuest) {
+      guest = adminGuest;
+      source = "guests";
+    } else {
+      const { data: rsvpGuest } = await supabaseAdmin
+        .from("rsvp_submissions")
+        .select("id, name, attending, plus_one_name, checked_in, checked_in_at")
+        .eq("token", token)
+        .maybeSingle();
+      if (rsvpGuest) {
+        guest = rsvpGuest;
+        source = "rsvp_submissions";
+      }
+    }
+
+    if (!guest) {
       return NextResponse.json({ error: "Invalid QR code. Guest not found." }, { status: 404 });
     }
 
@@ -54,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     // Mark as checked in
     await supabaseAdmin
-      .from("guests")
+      .from(source)
       .update({ checked_in: true, checked_in_at: new Date().toISOString() })
       .eq("id", guest.id);
 

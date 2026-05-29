@@ -5,6 +5,7 @@ interface SendTemplateParams {
   templateName: string;
   languageCode: string;
   parameters: string[]; // positional body parameters
+  buttonUrls?: string[]; // URL button parameters in order (index 0, 1, ...)
 }
 
 interface SendTextParams {
@@ -48,8 +49,22 @@ export async function sendTemplateMessage({
   templateName,
   languageCode,
   parameters,
+  buttonUrls = [],
 }: SendTemplateParams): Promise<{ messageId: string }> {
   const { phoneNumberId, accessToken } = getConfig();
+
+  const components: object[] = [
+    {
+      type: "body",
+      parameters: parameters.map((text) => ({ type: "text", text })),
+    },
+    ...buttonUrls.map((url, index) => ({
+      type: "button",
+      sub_type: "url",
+      index: String(index),
+      parameters: [{ type: "text", text: url }],
+    })),
+  ];
 
   const body = {
     messaging_product: "whatsapp",
@@ -58,12 +73,7 @@ export async function sendTemplateMessage({
     template: {
       name: templateName,
       language: { code: languageCode },
-      components: [
-        {
-          type: "body",
-          parameters: parameters.map((text) => ({ type: "text", text })),
-        },
-      ],
+      components,
     },
   };
 

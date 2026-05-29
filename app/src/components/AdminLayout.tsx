@@ -9,6 +9,7 @@ import { useLanguage } from "./LanguageProvider";
 const navItems = [
   { href: "/admin", label: "Dasbor", icon: "📊" },
   { href: "/admin/guests", label: "Tamu", icon: "👥" },
+  { href: "/admin/rsvp", label: "RSVP", icon: "📋" },
   { href: "/admin/checkin", label: "Check-in", icon: "✅" },
   { href: "/admin/content", label: "Konten", icon: "✏️" },
   { href: "/admin/wishes", label: "Harapan", icon: "💌" },

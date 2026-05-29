@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
     const phone = formatPhoneForWA(guest.phone_number);
     const invitationLink = `${appUrl}/?token=${guest.token}`;
+    const passLink = `${appUrl}/pass?token=${guest.token}`;
 
     try {
       const { messageId } = await sendTemplateMessage({
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
         templateName,
         languageCode: templateLang,
         parameters: [guest.name, invitationLink],
+        buttonUrls: [invitationLink, passLink],
       });
 
       // Update guest record with message ID and status

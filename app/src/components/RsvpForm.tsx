@@ -107,13 +107,13 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Name */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              {t("rsvp_name")} *
+              {t("rsvp_name")} <span className="normal-case text-red-400">*</span>
             </label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
-              placeholder="e.g. Ahmad Rizki"
+              placeholder="Nama"
               readOnly={!!guestName}
               className={`w-full border border-[#e0d5c5] rounded-lg px-4 py-2.5 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)] font-[family-name:var(--font-lato)] ${
                 guestName ? "bg-[#f5f0ea] cursor-not-allowed" : ""
@@ -124,7 +124,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Email */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              {t("rsvp_email_label")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_email_hint")})</span>
+              {t("rsvp_email_label")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_email_hint")})</span> <span className="normal-case text-[var(--color-gold)]">({t("rsvp_optional")})</span>
             </label>
             <input
               type="email"
@@ -152,7 +152,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Attendance */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-2 font-[family-name:var(--font-lato)]">
-              {t("rsvp_attend_q")} *
+              {t("rsvp_attend_q")} <span className="normal-case text-red-400">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -208,7 +208,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Side */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-2 font-[family-name:var(--font-lato)]">
-              {t("rsvp_side")} *
+              {t("rsvp_side")} <span className="normal-case text-red-400">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[

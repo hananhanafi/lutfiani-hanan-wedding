@@ -14,11 +14,18 @@ export default async function PassPage({ searchParams }: Props) {
     return <ErrorScreen message="Token tidak ditemukan." />;
   }
 
-  const { data: guest } = await supabaseAdmin
+  const { data: adminGuest } = await supabaseAdmin
     .from("guests")
     .select("name, attending, plus_one_name, checked_in")
     .eq("token", token)
-    .single();
+    .maybeSingle();
+
+  const guest = adminGuest ?? (await supabaseAdmin
+    .from("rsvp_submissions")
+    .select("name, attending, plus_one_name, checked_in")
+    .eq("token", token)
+    .maybeSingle()
+  ).data;
 
   if (!guest) {
     return <ErrorScreen message="QR code ini tidak valid." />;
