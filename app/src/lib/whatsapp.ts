@@ -1,37 +1,18 @@
-const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
+const FONNTE_API_URL = "https://api.fonnte.com/send";
 
-interface SendTemplateParams {
-  to: string; // phone number in international format without '+' (e.g. "6281234567890")
-  templateName: string;
-  languageCode: string;
-  parameters: string[]; // positional body parameters
-  buttonUrls?: string[]; // URL button parameters in order (index 0, 1, ...)
+interface SendMessageParams {
+  to: string;   // phone number with country code, no '+' (e.g. "6281234567890")
+  message: string;
 }
 
-interface SendTextParams {
-  to: string;
-  text: string;
-}
-
-interface WhatsAppApiResponse {
-  messaging_product: string;
-  contacts: { input: string; wa_id: string }[];
-  messages: { id: string }[];
-}
-
-function getConfig() {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-
-  if (!phoneNumberId || !accessToken) {
-    throw new Error("WhatsApp Business API not configured. Set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN.");
-  }
-
-  return { phoneNumberId, accessToken };
+function getToken() {
+  const token = process.env.FONNTE_TOKEN;
+  if (!token) throw new Error("FONNTE_TOKEN is not configured.");
+  return token;
 }
 
 /**
- * Format phone number to WhatsApp format (digits only, with country code).
+ * Format phone number for Fonnte (digits only, with country code).
  * Handles Indonesian numbers starting with 0 or +62.
  */
 export function formatPhoneForWA(raw: string): string {
@@ -42,90 +23,34 @@ export function formatPhoneForWA(raw: string): string {
 }
 
 /**
- * Send a pre-approved template message via WhatsApp Cloud API.
+ * Send a WhatsApp message via Fonnte API.
+ * Returns a messageId (Fonnte's message ID).
  */
-export async function sendTemplateMessage({
-  to,
-  templateName,
-  languageCode,
-  parameters,
-  buttonUrls = [],
-}: SendTemplateParams): Promise<{ messageId: string }> {
-  const { phoneNumberId, accessToken } = getConfig();
+export async function sendFonnteMessage({ to, message }: SendMessageParams): Promise<{ messageId: string }> {
+  const token = getToken();
 
-  const components: object[] = [
-    {
-      type: "body",
-      parameters: parameters.map((text) => ({ type: "text", text })),
-    },
-    ...buttonUrls.map((url, index) => ({
-      type: "button",
-      sub_type: "url",
-      index: String(index),
-      parameters: [{ type: "text", text: url }],
-    })),
-  ];
-
-  const body = {
-    messaging_product: "whatsapp",
-    to,
-    type: "template",
-    template: {
-      name: templateName,
-      language: { code: languageCode },
-      components,
-    },
-  };
-
-  const res = await fetch(`${GRAPH_API_URL}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+  const body = new URLSearchParams({
+    target: to,
+    message,
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      `WhatsApp API error (${res.status}): ${JSON.stringify(err?.error?.message ?? err)}`
-    );
+  const res = await fetch(FONNTE_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || data.status === false) {
+    throw new Error(`Fonnte error: ${JSON.stringify(data?.reason ?? data)}`);
   }
 
-  const data: WhatsAppApiResponse = await res.json();
-  return { messageId: data.messages[0].id };
+  // Fonnte returns { status: true, id: "...", ... }
+  return { messageId: String(data.id ?? data.message ?? "sent") };
 }
 
-/**
- * Send a free-form text message (only works within 24h conversation window).
- */
-export async function sendTextMessage({ to, text }: SendTextParams): Promise<{ messageId: string }> {
-  const { phoneNumberId, accessToken } = getConfig();
-
-  const body = {
-    messaging_product: "whatsapp",
-    to,
-    type: "text",
-    text: { body: text },
-  };
-
-  const res = await fetch(`${GRAPH_API_URL}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      `WhatsApp API error (${res.status}): ${JSON.stringify(err?.error?.message ?? err)}`
-    );
-  }
-
-  const data: WhatsAppApiResponse = await res.json();
-  return { messageId: data.messages[0].id };
 }

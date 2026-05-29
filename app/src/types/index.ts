@@ -61,6 +61,10 @@ export interface SiteConfig {
   dress_code?: string;
   rsvp_deadline?: string;
   cover_photo_url?: string;
+  partner_one_photo_url?: string;
+  partner_two_photo_url?: string;
+  partner_one_full_name?: string;
+  partner_two_full_name?: string;
   theme_color_primary: string;
   theme_color_secondary: string;
   theme_font: string;
@@ -76,6 +80,7 @@ export interface SiteConfig {
   faq_json: FaqItem[];
   schedule_json: ScheduleItem[];
   gallery_photos_json: string[];
+  cover_video_url?: string;
   site_password_enabled: boolean;
   site_password_hash?: string;
   spotify_playlist_url?: string;

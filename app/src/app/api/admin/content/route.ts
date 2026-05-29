@@ -12,12 +12,14 @@ export async function POST(req: NextRequest) {
   const {
     partner_one_name, partner_two_name, wedding_date, wedding_time,
     venue_name, venue_address, venue_maps_url, dress_code, rsvp_deadline,
-    cover_photo_url, story_text, story_text_en, gift_registry_url, travel_info, travel_info_en,
+    cover_photo_url, cover_video_url, story_text, story_text_en, gift_registry_url, travel_info, travel_info_en,
     gift_qr_url, bank_name, bank_account_number, bank_account_name,
     theme_color_primary, theme_color_secondary, schedule_json, faq_json, gallery_photos_json,
     theme_font,
     site_password_enabled, site_password_plain,
     spotify_playlist_url,
+    partner_one_photo_url, partner_two_photo_url,
+    partner_one_full_name, partner_two_full_name,
   } = body;
 
   const updateData: Record<string, unknown> = {
@@ -30,6 +32,11 @@ export async function POST(req: NextRequest) {
     dress_code: dress_code || null,
     rsvp_deadline: rsvp_deadline || null,
     cover_photo_url: cover_photo_url || null,
+    cover_video_url: cover_video_url || null,
+    partner_one_photo_url: partner_one_photo_url || null,
+    partner_two_photo_url: partner_two_photo_url || null,
+    partner_one_full_name: partner_one_full_name || null,
+    partner_two_full_name: partner_two_full_name || null,
     story_text: story_text || null,
     story_text_en: story_text_en || null,
     gift_registry_url: gift_registry_url || null,

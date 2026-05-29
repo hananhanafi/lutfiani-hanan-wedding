@@ -183,6 +183,7 @@ body, .glass, .glass-bg, section, footer, input, textarea, select {
 /* White section backgrounds */
 [data-theme="dark"] .bg-\[\#fffbf5\] { background-color: #110d06; }
 [data-theme="dark"] .bg-\[var\(--color-cream-dark\)\] { background-color: #090805; }
+[data-theme="dark"] .bg-\[var\(--color-cream\)\] { background-color: #110d06; }
 [data-theme="dark"] footer { background-color: #090805 !important; border-color: rgba(212,168,75,0.15) !important; }
 
 /* Primary text */

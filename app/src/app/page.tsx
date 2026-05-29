@@ -18,6 +18,8 @@ import ScrollReveal from "@/components/ScrollReveal";
 import FloatingPetals from "@/components/FloatingPetals";
 import QuranVerse from "@/components/QuranVerse";
 import GuestPassButton from "@/components/GuestPassButton";
+import BackgroundVideo from "@/components/BackgroundVideo";
+import CoupleProfile from "@/components/CoupleProfile";
 import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
 interface Props {
@@ -64,6 +66,8 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <main className="relative">
+      <BackgroundVideo videoUrl={config.cover_video_url} posterUrl={config.cover_photo_url} />
+
       <EnvelopeModal
         partnerOneName={config.partner_one_name}
         partnerTwoName={config.partner_two_name}
@@ -85,6 +89,17 @@ export default async function Home({ searchParams }: Props) {
           <CountdownTimer weddingDate={config.wedding_date} />
         </ScrollReveal>
       )}
+
+      <ScrollReveal direction="up">
+        <CoupleProfile
+          partnerOneName={config.partner_one_name}
+          partnerTwoName={config.partner_two_name}
+          partnerOnePhotoUrl={config.partner_one_photo_url}
+          partnerTwoPhotoUrl={config.partner_two_photo_url}
+          partnerOneFullName={config.partner_one_full_name}
+          partnerTwoFullName={config.partner_two_full_name}
+        />
+      </ScrollReveal>
 
       <ScrollReveal direction="scale">
         <QuranVerse />

@@ -12,8 +12,8 @@ export default function EventSchedule({ schedule }: Props) {
   if (!schedule || schedule.length === 0) return null;
 
   return (
-    <section id="schedule" className="py-16 px-4 bg-[var(--color-cream-dark)]">
-      <div className="max-w-2xl mx-auto text-center">
+    <section id="schedule" className="py-16 px-4 ">
+      <div className="max-w-2xl mx-auto text-center glass-bg rounded-2xl px-8 py-10">
         <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("schedule_eyebrow")}
         </p>

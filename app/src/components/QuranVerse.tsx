@@ -13,7 +13,7 @@ export default function QuranVerse() {
   const source = lang === "en" ? "Q.S. Ar-Rum: 21" : "Q.S. Ar-Rūm: 21";
 
   return (
-    <section className="py-16 px-6 flex justify-center" aria-label="Qur'an verse">
+    <section className="py-16 px-6 flex justify-center bg-[var(--color-cream-dark)]" aria-label="Qur'an verse">
       <div className="max-w-2xl w-full text-center space-y-6">
         {/* Decorative divider */}
         <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-60">

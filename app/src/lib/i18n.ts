@@ -30,6 +30,9 @@ const dict = {
   /* ── Event Schedule ─────────────────────────────────────── */
   schedule_eyebrow: { id: "Hari Spesial", en: "The Day" },
 
+  /* ── Couple Profile ─────────────────────────────────────── */
+  couple_eyebrow: { id: "Mempelai", en: "The Couple" },
+
   /* ── Our Story ──────────────────────────────────────────── */
   story_eyebrow: { id: "Kisah Kami", en: "Our Story" },
 

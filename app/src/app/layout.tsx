@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Lato, Cormorant_Garamond, Cinzel } from "next/font/google";
+import { Playfair_Display, Lato, Cormorant_Garamond, Cinzel, Great_Vibes } from "next/font/google";
 import "./globals.css";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -30,6 +30,13 @@ const cormorant = Cormorant_Garamond({
 const cinzel = Cinzel({
   variable: "--font-cinzel",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const greatVibes = Great_Vibes({
+  variable: "--font-great-vibes",
+  subsets: ["latin"],
+  weight: "400",
   display: "swap",
 });
 
@@ -84,7 +91,7 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${playfair.variable} ${lato.variable} ${cormorant.variable} ${cinzel.variable} h-full antialiased`}
+      className={`${playfair.variable} ${lato.variable} ${cormorant.variable} ${cinzel.variable} ${greatVibes.variable} h-full antialiased`}
       style={{
         "--color-gold": primaryColor,
         "--color-cream-dark": secondaryColor,

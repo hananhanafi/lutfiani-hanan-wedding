@@ -60,6 +60,11 @@ CREATE TABLE IF NOT EXISTS site_config (
   schedule_json        JSONB DEFAULT '[]',           -- array of {time, title, description}
   gallery_photos_json  JSONB DEFAULT '[]',           -- array of photo URLs
   -- Site password protection
+  cover_video_url       TEXT,
+  partner_one_photo_url TEXT,
+  partner_two_photo_url TEXT,
+  partner_one_full_name TEXT,
+  partner_two_full_name TEXT,
   site_password_enabled BOOLEAN DEFAULT FALSE,
   site_password_hash    TEXT,
   -- Metadata

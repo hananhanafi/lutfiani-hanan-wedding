@@ -5,7 +5,7 @@ import Busboy from "busboy";
 import { PassThrough } from "stream";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 
-const COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10 MB — compress if over this
+const COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10 MB — compress images if over this
 const HARD_LIMIT = 50 * 1024 * 1024;          // 50 MB — reject unconditionally
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -15,8 +15,13 @@ const ALLOWED_TYPES = new Set([
   "image/gif",
   "image/heic",
   "image/heif",
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+  "video/quicktime",
 ]);
-const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"]);
+const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "mp4", "webm", "ogg", "mov"]);
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
 
 /** Parse multipart/form-data from a raw Buffer via busboy */
 interface ParsedUpload {
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest) {
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
   const mimeOk = ALLOWED_TYPES.has(mimeType) || (mimeType === "" && ALLOWED_EXTS.has(ext));
   if (!mimeOk) {
-    return NextResponse.json({ error: `File type "${mimeType || ext}" is not allowed. Use JPG, PNG, WebP, or GIF.` }, { status: 400 });
+    return NextResponse.json({ error: `File type "${mimeType || ext}" is not allowed. Use JPG, PNG, WebP, GIF, MP4, or WebM.` }, { status: 400 });
   }
 
   // Ensure bucket exists
@@ -114,8 +119,8 @@ export async function POST(req: NextRequest) {
   let uploadContentType = mimeType || "image/jpeg";
   let fileExt = ext || "jpg";
 
-  // Compress if over 10 MB
-  if (buffer.length > COMPRESS_THRESHOLD) {
+  // Compress images over 10 MB — skip compression for video files
+  if (!VIDEO_TYPES.has(mimeType) && buffer.length > COMPRESS_THRESHOLD) {
     try {
       const compressed = await compressImage(buffer);
       buffer = compressed.buffer;
@@ -127,7 +132,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const filename = `${bucketName === "gallery" ? "photo" : "cover"}-${Date.now()}.${fileExt}`;
+  const filePrefix = bucketName === "gallery" ? "photo" : bucketName === "videos" ? "video" : "cover";
+  const filename = `${filePrefix}-${Date.now()}.${fileExt}`;
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(bucketName)

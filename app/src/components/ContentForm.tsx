@@ -55,6 +55,11 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     dress_code: config.dress_code ?? "",
     rsvp_deadline: config.rsvp_deadline ?? "",
     cover_photo_url: config.cover_photo_url ?? "",
+    cover_video_url: config.cover_video_url ?? "",
+    partner_one_photo_url: config.partner_one_photo_url ?? "",
+    partner_two_photo_url: config.partner_two_photo_url ?? "",
+    partner_one_full_name: config.partner_one_full_name ?? "",
+    partner_two_full_name: config.partner_two_full_name ?? "",
     story_text: config.story_text ?? "",
     story_text_en: config.story_text_en ?? "",
     gift_qr_url: config.gift_qr_url ?? "",
@@ -96,6 +101,9 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     setFaqItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingPartnerOne, setUploadingPartnerOne] = useState(false);
+  const [uploadingPartnerTwo, setUploadingPartnerTwo] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -161,6 +169,77 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Nama Pasangan 1" value={form.partner_one_name} onChange={(v) => set("partner_one_name", v)} />
           <Field label="Nama Pasangan 2" value={form.partner_two_name} onChange={(v) => set("partner_two_name", v)} />
+          <Field label="Nama Lengkap Pasangan 1" value={form.partner_one_full_name} onChange={(v) => set("partner_one_full_name", v)} placeholder="mis. Budi Santoso bin Ahmad" />
+          <Field label="Nama Lengkap Pasangan 2" value={form.partner_two_full_name} onChange={(v) => set("partner_two_full_name", v)} placeholder="mis. Siti Rahayu binti Hasan" />
+        </div>
+
+        {/* Partner Photos */}
+        <div className="grid sm:grid-cols-2 gap-6">
+          {/* Partner One Photo */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Foto Pasangan 1</label>
+            {form.partner_one_photo_url && (
+              <div className="relative mb-2 rounded-full overflow-hidden w-24 h-24 bg-gray-100 ring-2 ring-[var(--color-gold)]/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.partner_one_photo_url} alt="Partner 1" className="w-full h-full object-cover object-top" />
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <label className={`cursor-pointer px-3 py-2 text-sm rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors ${uploadingPartnerOne ? "opacity-50 pointer-events-none" : ""}` }>
+                {uploadingPartnerOne ? "Mengunggah…" : form.partner_one_photo_url ? "Ganti Foto" : "Unggah Foto"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploadingPartnerOne}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setUploadingPartnerOne(true); setMessage(null);
+                    try {
+                      const fd = new FormData(); fd.append("file", file);
+                      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                      set("partner_one_photo_url", data.url);
+                    } catch (err: unknown) {
+                      setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
+                    } finally { setUploadingPartnerOne(false); e.target.value = ""; }
+                  }} />
+              </label>
+              {form.partner_one_photo_url && (
+                <button type="button" onClick={() => set("partner_one_photo_url", "")} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Hapus</button>
+              )}
+            </div>
+          </div>
+
+          {/* Partner Two Photo */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Foto Pasangan 2</label>
+            {form.partner_two_photo_url && (
+              <div className="relative mb-2 rounded-full overflow-hidden w-24 h-24 bg-gray-100 ring-2 ring-[var(--color-gold)]/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.partner_two_photo_url} alt="Partner 2" className="w-full h-full object-cover object-top" />
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <label className={`cursor-pointer px-3 py-2 text-sm rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors ${uploadingPartnerTwo ? "opacity-50 pointer-events-none" : ""}`}>
+                {uploadingPartnerTwo ? "Mengunggah…" : form.partner_two_photo_url ? "Ganti Foto" : "Unggah Foto"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploadingPartnerTwo}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setUploadingPartnerTwo(true); setMessage(null);
+                    try {
+                      const fd = new FormData(); fd.append("file", file);
+                      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                      set("partner_two_photo_url", data.url);
+                    } catch (err: unknown) {
+                      setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
+                    } finally { setUploadingPartnerTwo(false); e.target.value = ""; }
+                  }} />
+              </label>
+              {form.partner_two_photo_url && (
+                <button type="button" onClick={() => set("partner_two_photo_url", "")} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Hapus</button>
+              )}
+            </div>
+          </div>
         </div>
         {/* Cover Photo Upload */}
         <div>
@@ -215,6 +294,82 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
             )}
           </div>
           <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · maks 5 MB</p>
+        </div>
+
+        {/* Background Video Upload */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Video Latar (opsional)</label>
+          {form.cover_video_url && (
+            <div className="relative mb-2 rounded-lg overflow-hidden bg-black">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video
+                src={form.cover_video_url}
+                muted
+                playsInline
+                controls
+                className="w-full max-h-48 object-cover"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <label
+              className={`cursor-pointer px-3 py-2 text-sm rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors ${
+                uploadingVideo ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
+              {uploadingVideo ? "Mengunggah…" : form.cover_video_url ? "Ganti Video" : "Unggah Video"}
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                className="hidden"
+                disabled={uploadingVideo}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingVideo(true);
+                  setMessage(null);
+                  try {
+                    const ext = file.name.split(".").pop()?.toLowerCase() ?? "mp4";
+                    const filename = `video-${Date.now()}.${ext}`;
+
+                    // Step 1: get a Supabase signed upload URL (video never passes through Next.js)
+                    const urlRes = await fetch("/api/admin/upload-url", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ bucket: "videos", filename, contentType: file.type }),
+                    });
+                    const urlData = await urlRes.json();
+                    if (!urlRes.ok) throw new Error(urlData.error ?? "Gagal mendapatkan URL unggah");
+
+                    // Step 2: upload directly to Supabase Storage
+                    const uploadRes = await fetch(urlData.signedUrl, {
+                      method: "PUT",
+                      headers: { "Content-Type": file.type || "video/mp4" },
+                      body: file,
+                    });
+                    if (!uploadRes.ok) throw new Error("Unggah ke storage gagal");
+
+                    set("cover_video_url", urlData.publicUrl);
+                  } catch (err: unknown) {
+                    setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
+                  } finally {
+                    setUploadingVideo(false);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+            {form.cover_video_url && (
+              <button
+                type="button"
+                onClick={() => set("cover_video_url", "")}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Hapus
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">MP4, WebM · maks 50 MB · akan diputar otomatis tanpa suara sebagai latar</p>
         </div>
       </section>
 
