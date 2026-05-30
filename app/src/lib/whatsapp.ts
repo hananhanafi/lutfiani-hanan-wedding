@@ -52,5 +52,3 @@ export async function sendFonnteMessage({ to, message }: SendMessageParams): Pro
   // Fonnte returns { status: true, id: "...", ... }
   return { messageId: String(data.id ?? data.message ?? "sent") };
 }
-
-}
