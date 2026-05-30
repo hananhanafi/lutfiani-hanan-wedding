@@ -1,0 +1,555 @@
+{
+  "info": {
+    "name": "WhatsApp Service API",
+    "description": "Self-hosted WhatsApp Baileys service API collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "your-api-key-here",
+      "type": "string"
+    },
+    {
+      "key": "testPhone",
+      "value": "6281234567890",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "default",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Public health check — no auth required"
+          }
+        },
+        {
+          "name": "Connection Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["status"]
+            },
+            "description": "Get WhatsApp connection status and phone number"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connection",
+      "item": [
+        {
+          "name": "Connect",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/connect",
+              "host": ["{{baseUrl}}"],
+              "path": ["connect"]
+            },
+            "description": "Start WhatsApp connection. Waits up to 15s and returns QR directly if available."
+          }
+        },
+        {
+          "name": "Connect Fresh (Clear Session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/connect/fresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["connect", "fresh"]
+            },
+            "description": "Clears old auth state and forces a new QR code. Use this if /connect keeps failing due to stale session."
+          }
+        },
+        {
+          "name": "Get QR Code (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/qr",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr"]
+            },
+            "description": "Get QR code as base64 data URL. Waits up to 10s if QR is not yet available."
+          }
+        },
+        {
+          "name": "Get QR Code (Image)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/qr/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr", "image"]
+            },
+            "description": "Get QR code as PNG image. Waits up to 10s if QR is not yet available."
+          }
+        },
+        {
+          "name": "Disconnect",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/disconnect",
+              "host": ["{{baseUrl}}"],
+              "path": ["disconnect"]
+            },
+            "description": "Logout from WhatsApp and clear session"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send Messages",
+      "item": [
+        {
+          "name": "Send Text Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"{{testPhone}}\",\n  \"message\": \"Hello from WhatsApp Service! This is a test message.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["send"]
+            },
+            "description": "Send a text message to a single recipient. Phone number should include country code (e.g. 6281234567890)."
+          }
+        },
+        {
+          "name": "Send Bulk Messages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"to\": \"{{testPhone}}\",\n      \"message\": \"Bulk message 1 - Hello!\"\n    },\n    {\n      \"to\": \"{{testPhone}}\",\n      \"message\": \"Bulk message 2 - Testing!\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/send-bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-bulk"]
+            },
+            "description": "Send messages to multiple recipients. Max 100 per batch. Includes 1.5-2.5s delay between messages to avoid rate limiting."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send Media",
+      "item": [
+        {
+          "name": "Send Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "to",
+                  "value": "{{testPhone}}",
+                  "type": "text"
+                },
+                {
+                  "key": "caption",
+                  "value": "Check out this image!",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select an image file (jpg, png, webp)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/send-image",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-image"]
+            },
+            "description": "Send an image with optional caption. Select a file in the 'image' field."
+          }
+        },
+        {
+          "name": "Send Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "to",
+                  "value": "{{testPhone}}",
+                  "type": "text"
+                },
+                {
+                  "key": "caption",
+                  "value": "Check out this video!",
+                  "type": "text"
+                },
+                {
+                  "key": "video",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select a video file (mp4)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/send-video",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-video"]
+            },
+            "description": "Send a video with optional caption. Select a file in the 'video' field."
+          }
+        },
+        {
+          "name": "Send Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "to",
+                  "value": "{{testPhone}}",
+                  "type": "text"
+                },
+                {
+                  "key": "caption",
+                  "value": "Here is the document",
+                  "type": "text"
+                },
+                {
+                  "key": "filename",
+                  "value": "invitation.pdf",
+                  "type": "text"
+                },
+                {
+                  "key": "document",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select a document file (pdf, docx, etc.)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/send-document",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-document"]
+            },
+            "description": "Send a document with filename and optional caption. Select a file in the 'document' field."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Multi-Session",
+      "item": [
+        {
+          "name": "List All Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions"]
+            },
+            "description": "List all WhatsApp sessions with their status and phone number."
+          }
+        },
+        {
+          "name": "Create Session (Device)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{sessionId}}\",\n  \"name\": \"My WhatsApp Number\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions"]
+            },
+            "description": "Create a new session/device without connecting. Use POST /sessions/:id/connect afterward to pair via QR."
+          }
+        },
+        {
+          "name": "Connect Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/connect",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "connect"]
+            },
+            "description": "Create and connect a session. Returns QR code if not already connected. Waits up to 15s for QR."
+          }
+        },
+        {
+          "name": "Connect Session Fresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/connect/fresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "connect", "fresh"]
+            },
+            "description": "Delete existing session data and start fresh. Forces a new QR code."
+          }
+        },
+        {
+          "name": "Get Session Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "status"]
+            },
+            "description": "Get the connection status of a specific session."
+          }
+        },
+        {
+          "name": "Get Session QR",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/qr",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "qr"]
+            },
+            "description": "Get the QR code for a specific session. Waits up to 10s if QR is not yet available."
+          }
+        },
+        {
+          "name": "Disconnect Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/disconnect",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "disconnect"]
+            },
+            "description": "Disconnect a session but keep auth data for reconnecting later."
+          }
+        },
+        {
+          "name": "Delete Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}"]
+            },
+            "description": "Disconnect and permanently delete a session including its auth data."
+          }
+        },
+        {
+          "name": "Send via Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"{{testPhone}}\",\n  \"message\": \"Hello from session {{sessionId}}!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "send"]
+            },
+            "description": "Send a text message via a specific session."
+          }
+        },
+        {
+          "name": "Send Bulk via Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"to\": \"{{testPhone}}\",\n      \"message\": \"Bulk message 1 from session {{sessionId}}\"\n    },\n    {\n      \"to\": \"{{testPhone}}\",\n      \"message\": \"Bulk message 2 from session {{sessionId}}\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{sessionId}}/send-bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions", "{{sessionId}}", "send-bulk"]
+            },
+            "description": "Send bulk messages via a specific session. Max 100 per batch."
+          }
+        }
+      ]
+    }
+  ]
+}
