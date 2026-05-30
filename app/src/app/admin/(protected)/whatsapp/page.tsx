@@ -9,7 +9,7 @@ interface WASession {
   phone: string | null;
 }
 
-type WizardStep = "create" | "qr" | "success";
+type WizardStep = "create" | "method" | "qr" | "pair-phone" | "pair-code" | "success";
 
 export default function WhatsAppPage() {
   const [sessions, setSessions] = useState<WASession[]>([]);
@@ -24,6 +24,10 @@ export default function WhatsAppPage() {
   const [wizardBusy, setWizardBusy] = useState(false);
   const [wizardPhone, setWizardPhone] = useState<string | null>(null);
   const [activeWizardId, setActiveWizardId] = useState<string | null>(null);
+
+  // Phone pairing
+  const [pairPhoneInput, setPairPhoneInput] = useState("");
+  const [pairCode, setPairCode] = useState<string | null>(null);
 
   // QR
   const [qrData, setQrData] = useState<{ sessionId: string; qr: string } | null>(null);
@@ -50,7 +54,8 @@ export default function WhatsAppPage() {
 
   // Detect wizard session becoming connected
   useEffect(() => {
-    if (!activeWizardId || wizardStep !== "qr") return;
+    if (!activeWizardId) return;
+    if (wizardStep !== "qr" && wizardStep !== "pair-code") return;
     const s = sessions.find((x) => x.sessionId === activeWizardId);
     if (s?.status === "connected") {
       setWizardPhone(s.phone);
@@ -112,28 +117,37 @@ export default function WhatsAppPage() {
     setWizardError("");
     setWizardPhone(null);
     setActiveWizardId(null);
+    setPairPhoneInput("");
+    setPairCode(null);
     setWizardOpen(true);
   };
 
   const closeWizard = () => {
     setWizardOpen(false);
     setQrData(null);
+    setPairCode(null);
     stopCountdown();
   };
 
-  const handleWizardStart = async () => {
+  // Step 1 → 2: just advance to method picker (no network call yet)
+  const handleWizardStart = () => {
     const id = wizardId.trim();
     if (!id) return;
     setWizardError("");
+    setWizardStep("method");
+  };
+
+  // Method: QR — create session + connect + get QR
+  const handleMethodQr = async () => {
+    const id = wizardId.trim();
+    setWizardError("");
     setWizardBusy(true);
     try {
-      // Create session (ignore "already exists" errors)
       await fetch("/api/admin/whatsapp-sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, name: id }),
       });
-      // Connect and get QR
       const res = await fetch(`/api/admin/whatsapp-sessions/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,9 +168,51 @@ export default function WhatsAppPage() {
         fetchSessions();
       } else {
         setWizardError(data.error ?? "Tidak ada QR. Coba lagi.");
+        setWizardStep("method");
       }
     } catch {
       setWizardError("Gagal menghubungkan. Periksa koneksi server WhatsApp.");
+      setWizardStep("method");
+    } finally {
+      setWizardBusy(false);
+    }
+  };
+
+  // Method: Phone pairing — show phone number input
+  const handleMethodPhone = () => {
+    setWizardError("");
+    setPairPhoneInput("");
+    setPairCode(null);
+    setWizardStep("pair-phone");
+  };
+
+  // Phone pairing: request code
+  const handleRequestPairCode = async () => {
+    const id = wizardId.trim();
+    const phone = pairPhoneInput.replace(/[^0-9]/g, "");
+    if (!phone) {
+      setWizardError("Masukkan nomor telepon yang valid.");
+      return;
+    }
+    setWizardError("");
+    setWizardBusy(true);
+    try {
+      const res = await fetch(`/api/admin/whatsapp-sessions/${id}/pairing-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWizardError(data.error ?? "Gagal mendapatkan kode. Coba lagi.");
+      } else {
+        setPairCode(data.code ?? null);
+        setActiveWizardId(id);
+        setWizardStep("pair-code");
+        fetchSessions();
+      }
+    } catch {
+      setWizardError("Gagal menghubungkan ke server WhatsApp.");
     } finally {
       setWizardBusy(false);
     }
@@ -232,8 +288,11 @@ export default function WhatsAppPage() {
     );
   };
 
-  const STEPS = ["Buat Sesi", "Scan QR", "Selesai"];
-  const stepIdx = wizardStep === "create" ? 0 : wizardStep === "qr" ? 1 : 2;
+  const STEPS = ["Nama Sesi", "Sambungkan", "Selesai"];
+  const stepIdx =
+    wizardStep === "create" || wizardStep === "method" ? 0
+    : wizardStep === "success" ? 2
+    : 1;
 
   return (
     <div className="space-y-6">
@@ -290,17 +349,132 @@ export default function WhatsAppPage() {
                     placeholder="ortu / ayah / mama"
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
                     autoFocus
+                    onKeyDown={(e) => e.key === "Enter" && wizardId.trim() && handleWizardStart()}
                   />
                   <p className="text-xs text-gray-400 mt-1">Hanya huruf &amp; angka. Contoh: ortu, ayah, mama atau nama</p>
                 </div>
                 {wizardError && <p className="text-sm text-red-500">{wizardError}</p>}
                 <button
                   onClick={handleWizardStart}
-                  disabled={!wizardId.trim() || wizardBusy}
+                  disabled={!wizardId.trim()}
                   className="w-full py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {wizardBusy ? "Menyiapkan..." : "Lanjut →"}
+                  Lanjut →
                 </button>
+              </div>
+            )}
+
+            {/* Step 1b: Method picker */}
+            {wizardStep === "method" && (
+              <div className="px-5 pb-6 pt-2 space-y-3">
+                <p className="text-sm text-gray-600">Pilih cara menghubungkan <span className="font-medium text-gray-800">{wizardId}</span>:</p>
+                {wizardError && <p className="text-sm text-red-500">{wizardError}</p>}
+                <button
+                  onClick={handleMethodQr}
+                  disabled={wizardBusy}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border-2 border-gray-200 hover:border-[var(--color-gold)] hover:bg-[var(--color-cream-dark)] disabled:opacity-50 transition-colors text-left"
+                >
+                  <span className="text-3xl flex-shrink-0">📷</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Scan QR Code</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Perlu 2 perangkat — buka WhatsApp di HP lain dan scan kode QR</p>
+                  </div>
+                </button>
+                <button
+                  onClick={handleMethodPhone}
+                  disabled={wizardBusy}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border-2 border-gray-200 hover:border-[var(--color-gold)] hover:bg-[var(--color-cream-dark)] disabled:opacity-50 transition-colors text-left"
+                >
+                  <span className="text-3xl flex-shrink-0">📱</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Kode Nomor Telepon</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Cukup 1 perangkat — masukkan kode 8 karakter di aplikasi WhatsApp Anda</p>
+                  </div>
+                </button>
+                <button onClick={() => setWizardStep("create")} className="text-xs text-gray-400 hover:text-gray-600">
+                  ← Ganti nama sesi
+                </button>
+              </div>
+            )}
+
+            {/* Step 2a: Enter phone number for pairing */}
+            {wizardStep === "pair-phone" && (
+              <div className="px-5 pb-6 pt-2 space-y-4">
+                <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700 space-y-1">
+                  <p className="font-semibold">Nomor telepon WhatsApp yang akan ditautkan</p>
+                  <p className="text-xs text-blue-600">Masukkan nomor yang terdaftar di WhatsApp (format internasional, tanpa +)</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Nomor Telepon</label>
+                  <input
+                    type="tel"
+                    value={pairPhoneInput}
+                    onChange={(e) => { setPairPhoneInput(e.target.value); setWizardError(""); }}
+                    placeholder="6281234567890"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none focus:border-[var(--color-gold)] font-mono tracking-wide"
+                    autoFocus
+                    onKeyDown={(e) => e.key === "Enter" && !wizardBusy && handleRequestPairCode()}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Contoh: 6281234567890 (tanpa + atau spasi)</p>
+                </div>
+                {wizardError && <p className="text-sm text-red-500">{wizardError}</p>}
+                <button
+                  onClick={handleRequestPairCode}
+                  disabled={!pairPhoneInput.trim() || wizardBusy}
+                  className="w-full py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {wizardBusy ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Mengambil kode...
+                    </span>
+                  ) : "Dapatkan Kode →"}
+                </button>
+                <button onClick={() => setWizardStep("method")} className="text-xs text-gray-400 hover:text-gray-600">
+                  ← Kembali
+                </button>
+              </div>
+            )}
+
+            {/* Step 2b: Display pairing code */}
+            {wizardStep === "pair-code" && (
+              <div className="px-5 pb-6 pt-2 space-y-4">
+                <div className="bg-[var(--color-cream-dark)] rounded-xl p-4">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Cara memasukkan kode di HP:</p>
+                  <div className="space-y-2">
+                    {[
+                      ["1", "Buka WhatsApp di HP Anda"],
+                      ["2", "Ketuk ⋮ (titik tiga) → Perangkat Tertaut"],
+                      ["3", "Ketuk \"Tautkan Perangkat\""],
+                      ["4", "Ketuk \"Tautkan dengan nomor telepon\""],
+                      ["5", "Masukkan kode 8 karakter di bawah ini"],
+                    ].map(([n, text]) => (
+                      <div key={n} className="flex items-center gap-2">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[var(--color-gold)] text-white text-[10px] font-bold flex items-center justify-center">{n}</span>
+                        <span className="text-xs text-gray-700">{text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {pairCode ? (
+                  <div className="flex flex-col items-center space-y-2">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Kode Pemasangan</p>
+                    <div className="bg-gray-900 text-green-400 font-mono text-3xl font-bold tracking-[0.35em] px-6 py-4 rounded-2xl select-all">
+                      {pairCode}
+                    </div>
+                    <p className="text-xs text-gray-400">Ketuk untuk menyalin</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-4 space-y-2">
+                    <div className="w-8 h-8 border-4 border-green-200 border-t-green-500 rounded-full animate-spin" />
+                    <p className="text-sm text-gray-500">Mengambil kode...</p>
+                  </div>
+                )}
+
+                <p className="text-xs text-center text-gray-400">
+                  Setelah Anda memasukkan kode, halaman ini otomatis lanjut.
+                </p>
               </div>
             )}
 

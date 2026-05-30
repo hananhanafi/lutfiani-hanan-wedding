@@ -204,6 +204,17 @@ class WhatsAppClient {
     }
   }
 
+  async requestPairingCode(phoneNumber: string): Promise<string> {
+    if (!this.sock) {
+      throw new Error("Socket not initialized. Connect first.");
+    }
+    // Clean: digits only, no +, spaces, dashes
+    const cleaned = phoneNumber.replace(/[^0-9]/g, "");
+    if (!cleaned) throw new Error("Invalid phone number");
+    const code = await this.sock.requestPairingCode(cleaned);
+    return code;
+  }
+
   async sendText(to: string, text: string): Promise<proto.WebMessageInfo> {
     if (!this.sock || this.status !== "connected") {
       throw new Error("WhatsApp not connected");

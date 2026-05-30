@@ -380,6 +380,53 @@ app.get("/sessions/:id/status", auth, (req, res) => {
   res.json({ sessionId: id, status: client.getStatus(), phone: client.getPhoneNumber(), connected: client.isConnected() });
 });
 
+// Request pairing code (single-device phone-number pairing)
+app.post("/sessions/:id/pairing-code", auth, async (req, res) => {
+  const id = req.params.id as string;
+  const { phoneNumber } = req.body as { phoneNumber?: string };
+
+  if (!phoneNumber) {
+    return res.status(400).json({ error: "Missing 'phoneNumber'" });
+  }
+
+  // Start with a clean slate — clear any existing auth so we force a fresh pairing
+  sessionManager.deleteSession(id);
+  const authDir = `auth_state/${id}`;
+  if (fs.existsSync(authDir)) {
+    fs.rmSync(authDir, { recursive: true, force: true });
+  }
+
+  const client = sessionManager.createSession(id);
+
+  // Start connecting in the background
+  client.connect();
+
+  // Wait up to 10 s for the socket to be initialised (status leaves "disconnected")
+  let socketReady = false;
+  for (let i = 0; i < 20; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    const st = client.getStatus();
+    if (st === "connecting" || st === "qr" || st === "connected") {
+      socketReady = true;
+      break;
+    }
+  }
+
+  if (!socketReady) {
+    return res.status(500).json({ error: "Connection timeout. WhatsApp service may be unavailable." });
+  }
+
+  // Give the socket a brief moment to fully initialise before requesting the code
+  await new Promise((r) => setTimeout(r, 1500));
+
+  try {
+    const code = await client.requestPairingCode(phoneNumber);
+    res.json({ sessionId: id, code });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Failed to request pairing code" });
+  }
+});
+
 // Get QR for session
 app.get("/sessions/:id/qr", auth, async (req, res) => {
   const id = req.params.id as string;
