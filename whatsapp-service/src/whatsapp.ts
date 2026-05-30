@@ -233,6 +233,23 @@ class WhatsAppClient {
     return result!;
   }
 
+  async sendImageUrl(
+    to: string,
+    imageUrl: string,
+    caption?: string,
+  ): Promise<proto.WebMessageInfo> {
+    if (!this.sock || this.status !== "connected") {
+      throw new Error("WhatsApp not connected");
+    }
+
+    const jid = this.formatJid(to);
+    const result = await this.sock.sendMessage(jid, {
+      image: { url: imageUrl },
+      caption: caption ?? "",
+    });
+    return result!;
+  }
+
   async sendDocument(
     to: string,
     docBuffer: Buffer,

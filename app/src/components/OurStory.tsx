@@ -20,7 +20,7 @@ export default function OurStory({ storyText, storyTextEn, partnerOneName, partn
   return (
     <section id="story" className="relative overflow-hidden py-20 px-4">
       <ParallaxLayer speed={0.25} className="" />
-      <div className="relative z-10 max-w-2xl mx-auto text-center">
+      <div className="relative z-10 max-w-2xl mx-auto text-center glass-bg rounded-xl p-10">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("story_eyebrow")}
         </p>

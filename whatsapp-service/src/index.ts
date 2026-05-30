@@ -197,8 +197,8 @@ app.post("/send-bulk", auth, async (req, res) => {
     return res.status(400).json({ error: "Missing 'messages' array" });
   }
 
-  if (messages.length > 100) {
-    return res.status(400).json({ error: "Maximum 100 messages per batch" });
+  if (messages.length > 50) {
+    return res.status(400).json({ error: "Maximum 50 messages per batch" });
   }
 
   const results: { to: string; success: boolean; messageId?: string; error?: string }[] = [];
@@ -439,6 +439,37 @@ app.post("/sessions/:id/send", auth, async (req, res) => {
   }
 });
 
+// Send image via specific session (supports URL or file upload)
+app.post("/sessions/:id/send-image", auth, upload.single("image"), async (req, res) => {
+  const id = req.params.id as string;
+  const client = sessionManager.getSession(id);
+  if (!client) return res.status(404).json({ error: "Session not found" });
+  if (!client.isConnected()) return res.status(400).json({ error: "Session not connected" });
+
+  const { to, caption, imageUrl, imageBase64 } = req.body;
+  if (!to) return res.status(400).json({ error: "Missing 'to'" });
+
+  try {
+    let result;
+    if (req.file) {
+      // File upload via multipart
+      result = await client.sendImage(to, req.file.buffer, caption, req.file.mimetype);
+    } else if (imageBase64) {
+      // Base64-encoded image
+      const buffer = Buffer.from(imageBase64, "base64");
+      result = await client.sendImage(to, buffer, caption, "image/png");
+    } else if (imageUrl) {
+      // URL-based image
+      result = await client.sendImageUrl(to, imageUrl, caption);
+    } else {
+      return res.status(400).json({ error: "Missing 'image' file, 'imageBase64', or 'imageUrl'" });
+    }
+    res.json({ success: true, sessionId: id, messageId: result.key.id, to });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : "Send image failed" });
+  }
+});
+
 // Send bulk via specific session
 app.post("/sessions/:id/send-bulk", auth, async (req, res) => {
   const id = req.params.id as string;
@@ -450,8 +481,8 @@ app.post("/sessions/:id/send-bulk", auth, async (req, res) => {
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Missing 'messages' array" });
   }
-  if (messages.length > 100) {
-    return res.status(400).json({ error: "Maximum 100 messages per batch" });
+  if (messages.length > 50) {
+    return res.status(400).json({ error: "Maximum 50 messages per batch" });
   }
 
   const results: { to: string; success: boolean; messageId?: string; error?: string }[] = [];

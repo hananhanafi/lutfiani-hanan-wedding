@@ -64,10 +64,10 @@ export default function ScannerPage() {
       if (data.valid) {
         setPinVerified(true);
       } else {
-        setPinError("Incorrect PIN. Please try again.");
+        setPinError("PIN salah. Silakan coba lagi.");
       }
     } catch {
-      setPinError("Connection error. Check your network and try again.");
+      setPinError("Koneksi error. Periksa jaringan dan coba lagi.");
     } finally {
       setPinLoading(false);
     }
@@ -101,7 +101,7 @@ export default function ScannerPage() {
     } else if (data.warning === "already_checked_in") {
       setResult({ status: "already_checked_in", name: data.guest.name, checked_in_at: data.guest.checked_in_at });
     } else {
-      setResult({ status: "error", message: data.error ?? "Unknown error." });
+      setResult({ status: "error", message: data.error ?? "Terjadi kesalahan." });
     }
 
     processingRef.current = false;
@@ -125,7 +125,7 @@ export default function ScannerPage() {
     } else if (data.warning === "already_checked_in") {
       setResult({ status: "already_checked_in", name: data.guest.name, checked_in_at: data.guest.checked_in_at });
     } else {
-      setResult({ status: "error", message: data.error ?? "Unknown error." });
+      setResult({ status: "error", message: data.error ?? "Terjadi kesalahan." });
     }
   };
 
@@ -269,7 +269,7 @@ export default function ScannerPage() {
                 disabled={confirming}
                 className="flex-1 py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 font-[family-name:var(--font-lato)]"
               >
-                {confirming ? "Memproses…" : "✓ Check In"}
+                {confirming ? "Memproses…" : "✓ Check-in"}
               </button>
             </div>
           </div>
@@ -468,7 +468,7 @@ export default function ScannerPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">Plus One</label>
+                  <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">Pendamping</label>
                   <input
                     value={walkinPlusOne}
                     onChange={(e) => setWalkinPlusOne(e.target.value)}

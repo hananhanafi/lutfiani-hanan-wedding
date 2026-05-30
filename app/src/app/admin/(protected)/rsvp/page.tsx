@@ -53,7 +53,7 @@ export default function RsvpPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-semibold text-gray-800">RSVP Submissions</h1>
+        <h1 className="text-2xl font-semibold text-gray-800">Konfirmasi Kehadiran (RSVP)</h1>
         <div className="flex gap-3 text-sm">
           <span className="px-3 py-1 rounded-full bg-green-100 text-green-700">{attending} Hadir</span>
           <span className="px-3 py-1 rounded-full bg-red-100 text-red-700">{notAttending} Tidak Hadir</span>

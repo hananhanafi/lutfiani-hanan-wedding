@@ -165,7 +165,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Couple */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">The Couple</h2>
+        <h2 className="font-semibold text-gray-700">Mempelai</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Nama Pasangan 1" value={form.partner_one_name} onChange={(v) => set("partner_one_name", v)} />
           <Field label="Nama Pasangan 2" value={form.partner_two_name} onChange={(v) => set("partner_two_name", v)} />
@@ -181,7 +181,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
             {form.partner_one_photo_url && (
               <div className="relative mb-2 rounded-full overflow-hidden w-24 h-24 bg-gray-100 ring-2 ring-[var(--color-gold)]/40">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.partner_one_photo_url} alt="Partner 1" className="w-full h-full object-cover object-top" />
+                <img src={form.partner_one_photo_url} alt="Pasangan 1" className="w-full h-full object-cover object-top" />
               </div>
             )}
             <div className="flex items-center gap-3">
@@ -195,7 +195,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                       const fd = new FormData(); fd.append("file", file);
                       const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
                       const data = await res.json();
-                      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                      if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
                       set("partner_one_photo_url", data.url);
                     } catch (err: unknown) {
                       setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
@@ -214,7 +214,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
             {form.partner_two_photo_url && (
               <div className="relative mb-2 rounded-full overflow-hidden w-24 h-24 bg-gray-100 ring-2 ring-[var(--color-gold)]/40">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.partner_two_photo_url} alt="Partner 2" className="w-full h-full object-cover object-top" />
+                <img src={form.partner_two_photo_url} alt="Pasangan 2" className="w-full h-full object-cover object-top" />
               </div>
             )}
             <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                       const fd = new FormData(); fd.append("file", file);
                       const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
                       const data = await res.json();
-                      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                      if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
                       set("partner_two_photo_url", data.url);
                     } catch (err: unknown) {
                       setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
@@ -247,7 +247,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           {form.cover_photo_url && (
             <div className="relative mb-2 rounded-lg overflow-hidden h-100 bg-gray-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={form.cover_photo_url} alt="Cover preview" className="w-full h-full object-cover" />
+              <img src={form.cover_photo_url} alt="Pratinjau sampul" className="w-full h-full object-cover" />
             </div>
           )}
           <div className="flex items-center gap-3">
@@ -272,7 +272,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                     fd.append("file", file);
                     const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
                     const data = await res.json();
-                    if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                    if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
                     set("cover_photo_url", data.url);
                   } catch (err: unknown) {
                     setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
@@ -375,7 +375,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
 
       {/* Event Details */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Event Details</h2>
+        <h2 className="font-semibold text-gray-700">Detail Acara</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Tanggal Pernikahan" value={form.wedding_date} onChange={(v) => set("wedding_date", v)} type="date" />
           <Field label="Waktu Pernikahan" value={form.wedding_time} onChange={(v) => set("wedding_time", v)} placeholder="mis. 16:00 WIB" />
@@ -390,14 +390,14 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
       {/* Schedule */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-700">Schedule</h2>
+          <h2 className="font-semibold text-gray-700">Jadwal Acara</h2>
           <button type="button" onClick={addScheduleItem}
             className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors">
-            + Add Item
+            + Tambah
           </button>
         </div>
         {scheduleItems.length === 0 && (
-          <p className="text-xs text-gray-400 italic">No schedule items yet. Click &ldquo;+ Add Item&rdquo; to add one.</p>
+          <p className="text-xs text-gray-400 italic">Belum ada jadwal. Klik “+ Tambah” untuk menambahkan.</p>
         )}
         <div className="space-y-4">
           {scheduleItems.map((item, i) => (
@@ -405,15 +405,15 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
               <button type="button" onClick={() => removeScheduleItem(i)}
                 className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500 transition-colors">✕</button>
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Time" value={item.time} onChange={(v) => setScheduleField(i, "time", v)} placeholder="mis. 10:00 WIB" />
+                <Field label="Waktu" value={item.time} onChange={(v) => setScheduleField(i, "time", v)} placeholder="mis. 10:00 WIB" />
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Title (Indonesia)" value={item.title} onChange={(v) => setScheduleField(i, "title", v)} placeholder="mis. Akad Nikah" />
-                <Field label="Title (English — optional)" value={item.title_en ?? ""} onChange={(v) => setScheduleField(i, "title_en", v)} placeholder="e.g. Wedding Ceremony" />
+                <Field label="Judul (Indonesia)" value={item.title} onChange={(v) => setScheduleField(i, "title", v)} placeholder="mis. Akad Nikah" />
+                <Field label="Judul (English — opsional)" value={item.title_en ?? ""} onChange={(v) => setScheduleField(i, "title_en", v)} placeholder="cth. Wedding Ceremony" />
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Description (Indonesia — optional)" value={item.description ?? ""} onChange={(v) => setScheduleField(i, "description", v)} placeholder="mis. Prosesi ijab kabul" />
-                <Field label="Description (English — optional)" value={item.description_en ?? ""} onChange={(v) => setScheduleField(i, "description_en", v)} placeholder="e.g. The vow exchange" />
+                <Field label="Deskripsi (Indonesia — opsional)" value={item.description ?? ""} onChange={(v) => setScheduleField(i, "description", v)} placeholder="mis. Prosesi ijab kabul" />
+                <Field label="Deskripsi (English — opsional)" value={item.description_en ?? ""} onChange={(v) => setScheduleField(i, "description_en", v)} placeholder="cth. The vow exchange" />
               </div>
             </div>
           ))}
@@ -422,16 +422,16 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
 
       {/* Story & Extras */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Our Story &amp; Extras</h2>
+        <h2 className="font-semibold text-gray-700">Kisah Kami &amp; Lainnya</h2>
         <TextArea label="Teks Kisah Kami (Indonesia)" value={form.story_text} onChange={(v) => set("story_text", v)} rows={5} placeholder="Bagaimana kami bertemu..." />
-        <TextArea label="Our Story Text (English — optional)" value={form.story_text_en} onChange={(v) => set("story_text_en", v)} rows={5} placeholder="How we met..." />
+        <TextArea label="Teks Kisah Kami (English — opsional)" value={form.story_text_en} onChange={(v) => set("story_text_en", v)} rows={5} placeholder="How we met..." />
         <TextArea label="Info Perjalanan &amp; Penginapan (Indonesia)" value={form.travel_info} onChange={(v) => set("travel_info", v)} rows={3} placeholder="Hotel terdekat..." />
-        <TextArea label="Travel &amp; Stay Info (English — optional)" value={form.travel_info_en} onChange={(v) => set("travel_info_en", v)} rows={3} placeholder="Nearest hotels..." />
+        <TextArea label="Info Perjalanan &amp; Penginapan (English — opsional)" value={form.travel_info_en} onChange={(v) => set("travel_info_en", v)} rows={3} placeholder="Nearest hotels..." />
       </section>
 
       {/* Gift / Bank Transfer */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Gift &amp; Bank Transfer</h2>
+        <h2 className="font-semibold text-gray-700">Hadiah &amp; Transfer Bank</h2>
 
         {/* Payment QR Upload */}
         <div>
@@ -439,7 +439,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           {form.gift_qr_url && (
             <div className="relative mb-2 rounded-lg overflow-hidden w-32 h-32 bg-gray-100 border border-gray-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={form.gift_qr_url} alt="Payment QR" className="w-full h-full object-contain" />
+              <img src={form.gift_qr_url} alt="QR Pembayaran" className="w-full h-full object-contain" />
             </div>
           )}
           <div className="flex items-center gap-3">
@@ -465,7 +465,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                     fd.append("bucket", "covers");
                     const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
                     const data = await res.json();
-                    if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                    if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
                     set("gift_qr_url", data.url);
                   } catch (err: unknown) {
                     setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
@@ -491,7 +491,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
 
       {/* Spotify Playlist */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Spotify Playlist</h2>
+        <h2 className="font-semibold text-gray-700">Playlist Spotify</h2>
         <Field
           label="URL Playlist"
           value={form.spotify_playlist_url}
@@ -507,11 +507,11 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           <h2 className="font-semibold text-gray-700">FAQ</h2>
           <button type="button" onClick={addFaqItem}
             className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors">
-            + Add Item
+            + Tambah
           </button>
         </div>
         {faqItems.length === 0 && (
-          <p className="text-xs text-gray-400 italic">No FAQ items yet. Click &ldquo;+ Add Item&rdquo; to add one.</p>
+          <p className="text-xs text-gray-400 italic">Belum ada FAQ. Klik “+ Tambah” untuk menambahkan.</p>
         )}
         <div className="space-y-4">
           {faqItems.map((item, i) => (
@@ -519,20 +519,20 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
               <button type="button" onClick={() => removeFaqItem(i)}
                 className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500 transition-colors">✕</button>
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Question (Indonesia)" value={item.question} onChange={(v) => setFaqField(i, "question", v)} placeholder="mis. Apakah ada dress code?" />
-                <Field label="Question (English — optional)" value={item.question_en ?? ""} onChange={(v) => setFaqField(i, "question_en", v)} placeholder="e.g. Is there a dress code?" />
+                <Field label="Pertanyaan (Indonesia)" value={item.question} onChange={(v) => setFaqField(i, "question", v)} placeholder="mis. Apakah ada dress code?" />
+                <Field label="Pertanyaan (English — opsional)" value={item.question_en ?? ""} onChange={(v) => setFaqField(i, "question_en", v)} placeholder="cth. Is there a dress code?" />
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Answer (Indonesia)</label>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jawaban (Indonesia)</label>
                   <textarea value={item.answer} onChange={(e) => setFaqField(i, "answer", e.target.value)}
                     placeholder="mis. Ya, semi-formal..." rows={3}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] resize-y" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Answer (English — optional)</label>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jawaban (English — opsional)</label>
                   <textarea value={item.answer_en ?? ""} onChange={(e) => setFaqField(i, "answer_en", e.target.value)}
-                    placeholder="e.g. Yes, semi-formal..." rows={3}
+                    placeholder="cth. Yes, semi-formal..." rows={3}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] resize-y" />
                 </div>
               </div>
@@ -543,7 +543,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
 
       {/* Gallery Photos */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Photo Gallery</h2>
+        <h2 className="font-semibold text-gray-700">Galeri Foto</h2>
         {galleryUrls.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {galleryUrls.map((url, i) => (
@@ -587,12 +587,12 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                     fd.append("bucket", "gallery");
                     const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
                     const data = await res.json();
-                    if (!res.ok) throw new Error(data.error ?? "Upload failed");
+                    if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
                     urls.push(data.url);
                   }
                   setGalleryUrls((prev) => [...prev, ...urls]);
                 } catch (err: unknown) {
-                  setMessage({ type: "error", text: err instanceof Error ? err.message : "Upload failed" });
+                  setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
                 } finally {
                   setUploadingGallery(false);
                   e.target.value = "";
@@ -615,7 +615,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
 
       {/* Theme */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Theme</h2>
+        <h2 className="font-semibold text-gray-700">Tema</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Warna Utama</label>
@@ -639,16 +639,16 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
             onChange={(e) => set("theme_font", e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
           >
-            <option value="Playfair Display">Playfair Display (classic, elegant)</option>
-            <option value="Cormorant Garamond">Cormorant Garamond (romantic, fine)</option>
-            <option value="Cinzel">Cinzel (regal, timeless)</option>
+            <option value="Playfair Display">Playfair Display (klasik, elegan)</option>
+            <option value="Cormorant Garamond">Cormorant Garamond (romantis, halus)</option>
+            <option value="Cinzel">Cinzel (megah, abadi)</option>
           </select>
         </div>
       </section>
 
       {/* Site Password */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-700">Site Password Protection</h2>
+        <h2 className="font-semibold text-gray-700">Proteksi Kata Sandi</h2>
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"

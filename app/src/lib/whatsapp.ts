@@ -65,6 +65,74 @@ async function sendViaSelfHosted({ to, message, sessionId, serviceUrl }: SendMes
 }
 
 /**
+ * Send a WhatsApp image with caption via self-hosted Baileys service.
+ */
+export async function sendWhatsAppImage({ to, imageUrl, caption, sessionId }: {
+  to: string;
+  imageUrl: string;
+  caption?: string;
+  sessionId?: string;
+}): Promise<{ messageId: string }> {
+  const serviceUrl = process.env.WA_SERVICE_URL;
+  if (!serviceUrl) throw new Error("WA_SERVICE_URL not configured. Image send requires self-hosted service.");
+
+  const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
+  const session = sessionId ?? "default";
+  const url = `${serviceUrl.replace(/\/$/, "")}/sessions/${session}/send-image`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({ to, imageUrl, caption }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success) {
+    throw new Error(`WA Service image error: ${data.error ?? JSON.stringify(data)}`);
+  }
+
+  return { messageId: String(data.messageId ?? "sent") };
+}
+
+/**
+ * Send a WhatsApp image from base64 data via self-hosted Baileys service.
+ */
+export async function sendWhatsAppImageBase64({ to, imageBase64, caption, sessionId }: {
+  to: string;
+  imageBase64: string;
+  caption?: string;
+  sessionId?: string;
+}): Promise<{ messageId: string }> {
+  const serviceUrl = process.env.WA_SERVICE_URL;
+  if (!serviceUrl) throw new Error("WA_SERVICE_URL not configured. Image send requires self-hosted service.");
+
+  const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
+  const session = sessionId ?? "default";
+  const url = `${serviceUrl.replace(/\/$/, "")}/sessions/${session}/send-image`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({ to, imageBase64, caption }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success) {
+    throw new Error(`WA Service image base64 error: ${data.error ?? JSON.stringify(data)}`);
+  }
+
+  return { messageId: String(data.messageId ?? "sent") };
+}
+
+/**
  * Send bulk messages via self-hosted Baileys WhatsApp service.
  */
 export async function sendWhatsAppBulk(

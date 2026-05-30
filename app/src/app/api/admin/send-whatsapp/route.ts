@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
-import { sendFonnteMessage, formatPhoneForWA } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, sendWhatsAppImage, sendWhatsAppImageBase64, formatPhoneForWA } from "@/lib/whatsapp";
+import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
 
 /**
  * POST /api/admin/send-whatsapp
- * Body: { guestIds: string[] } — send WA message to selected guests
- * Or:   { guestId: string }   — send to a single guest
+ * Body: { guestIds: string[], sessionId?: string } — send WA message to selected guests via service
  */
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -14,9 +14,14 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const guestIds: string[] = body.guestIds ?? (body.guestId ? [body.guestId] : []);
+  const sessionId: string | undefined = body.sessionId;
+  const imageUrl: string | undefined = body.imageUrl || process.env.WA_IMAGE_URL || undefined;
 
   if (guestIds.length === 0) {
     return NextResponse.json({ error: "guestIds required" }, { status: 400 });
+  }
+  if (guestIds.length > 50) {
+    return NextResponse.json({ error: "Maksimal 50 penerima per batch" }, { status: 400 });
   }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
@@ -31,11 +36,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch guests" }, { status: 500 });
   }
 
-  const results: { guestId: string; success: boolean; error?: string; messageId?: string }[] = [];
+  const coupleName = process.env.NEXT_PUBLIC_COUPLE_NAME ?? "Kami";
+  const results: { guestId: string; name: string; success: boolean; error?: string; messageId?: string }[] = [];
 
   for (const guest of guests) {
     if (!guest.phone_number?.trim()) {
-      results.push({ guestId: guest.id, success: false, error: "No phone number" });
+      results.push({ guestId: guest.id, name: guest.name, success: false, error: "No phone number" });
       continue;
     }
 
@@ -43,15 +49,45 @@ export async function POST(req: NextRequest) {
     const invitationLink = `${appUrl}/?token=${guest.token}`;
     const passLink = `${appUrl}/pass?token=${guest.token}`;
 
+    const heart = "\u{1F90D}";
+    const pray = "\u{1F64F}";
+
     const message =
-      `Assalamualaikum, *${guest.name}* 🌸\n\n` +
-      `Kami dengan penuh kebahagiaan mengundang Anda untuk hadir di pernikahan kami.\n\n` +
-      `📩 *Undangan digital:*\n${invitationLink}\n\n` +
-      `🎫 *Pass masuk:*\n${passLink}\n\n` +
-      `Tunjukkan pass ini saat tiba di venue. Kami sangat berharap dapat merayakan momen istimewa ini bersama Anda. 💛`;
+      `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
+      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${guest.name}* untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
+      `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
+      `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
+      `Hormat Kami,\n${coupleName}`;
 
     try {
-      const { messageId } = await sendFonnteMessage({ to: phone, message });
+      let messageId: string;
+
+      if (imageUrl) {
+        // Send image with the invitation text as caption
+        const result = await sendWhatsAppImage({ to: phone, imageUrl, caption: message, sessionId });
+        messageId = result.messageId;
+      } else {
+        // Text-only message
+        const result = await sendWhatsAppMessage({ to: phone, message, sessionId });
+        messageId = result.messageId;
+      }
+
+      // Send QR code as second message
+      try {
+        const passUrl = buildPassUrl(guest.token);
+        const qrDataUrl = await generatePassQrDataUrl(passUrl);
+        const qrBase64 = dataUrlToBase64(qrDataUrl);
+        await new Promise((r) => setTimeout(r, 1000)); // small delay between messages
+        await sendWhatsAppImageBase64({
+          to: phone,
+          imageBase64: qrBase64,
+          caption: `🎫 *QR Masuk — ${guest.name}*\nTunjukkan QR code ini saat tiba di venue`,
+          sessionId,
+        });
+      } catch {
+        // QR send failure is non-fatal — invitation was already sent
+      }
 
       await supabaseAdmin
         .from("guests")
@@ -61,7 +97,7 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", guest.id);
 
-      results.push({ guestId: guest.id, success: true, messageId });
+      results.push({ guestId: guest.id, name: guest.name, success: true, messageId });
     } catch (err) {
       await supabaseAdmin
         .from("guests")
@@ -70,9 +106,15 @@ export async function POST(req: NextRequest) {
 
       results.push({
         guestId: guest.id,
+        name: guest.name,
         success: false,
         error: err instanceof Error ? err.message : "Unknown error",
       });
+    }
+
+    // Delay between messages to avoid rate limiting
+    if (guestIds.length > 1) {
+      await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
     }
   }
 

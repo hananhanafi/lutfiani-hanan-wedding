@@ -58,7 +58,7 @@ export default function QrScanner({ onScan, active }: Props) {
         })
         .catch((err) => {
           console.error("Camera error:", err);
-          setCameraError("Camera access failed. Make sure you're on HTTPS and have granted camera permission.");
+          setCameraError("Akses kamera gagal. Pastikan Anda menggunakan HTTPS dan telah memberikan izin kamera.");
         });
     });
 

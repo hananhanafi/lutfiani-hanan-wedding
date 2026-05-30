@@ -94,7 +94,7 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
                 value={form.phone_number}
                 onChange={set("phone_number")}
                 maxLength={30}
-                placeholder="+62 812 345 678"
+                placeholder="0812345678"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
               />
             </div>
@@ -115,7 +115,7 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Plus One</label>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pendamping</label>
               <input
                 value={form.plus_one_name}
                 onChange={set("plus_one_name")}
@@ -174,7 +174,7 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
                 onChange={(e) => setForm((prev) => ({ ...prev, is_vip: e.target.checked }))}
                 className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
               />
-              <span className="text-sm font-medium text-gray-700">VIP Guest</span>
+              <span className="text-sm font-medium text-gray-700">Tamu VIP</span>
               <span className="text-xs text-gray-400">(undangan khusus)</span>
             </label>
           </div>
@@ -272,7 +272,7 @@ function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: 
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">No. WhatsApp <span className="text-red-400">*</span></label>
-              <input required type="tel" value={form.phone_number} onChange={set("phone_number")} maxLength={30} placeholder="+62 812 345 678"
+              <input required type="tel" value={form.phone_number} onChange={set("phone_number")} maxLength={30} placeholder="0812345678"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]" />
             </div>
           </div>
@@ -288,7 +288,7 @@ function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: 
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Plus One</label>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pendamping</label>
               <input value={form.plus_one_name} onChange={set("plus_one_name")} maxLength={100} placeholder="Nama pasangan"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]" />
             </div>
@@ -326,7 +326,7 @@ function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: 
                 onChange={(e) => setForm((prev) => ({ ...prev, is_vip: e.target.checked }))}
                 className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
               />
-              <span className="text-sm font-medium text-gray-700">VIP Guest</span>
+              <span className="text-sm font-medium text-gray-700">Tamu VIP</span>
               <span className="text-xs text-gray-400">(undangan khusus)</span>
             </label>
           </div>
@@ -398,62 +398,194 @@ function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gue
   );
 }
 
-function WhatsAppButton({ guest, coupleName, onSent }: { guest: Guest; coupleName: string; onSent?: (guest: Guest) => void }) {
-  const isSent =
-    guest.whatsapp_status === "sent" ||
-    guest.whatsapp_status === "delivered" ||
-    guest.whatsapp_status === "read";
+function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName: string; onSent?: (guest: Guest) => void; activeSession?: string | null; sessions?: { sessionId: string; status: string; phone: string | null }[] }) {
+  const [step, setStep] = useState<"idle" | "pick" | "otp" | "sending">("idle");
+  const [sending, setSending] = useState(false);
+  const [pickerSessions, setPickerSessions] = useState(sessions ?? []);
+  const [selectedSession, setSelectedSession] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [otpPhoneLast4, setOtpPhoneLast4] = useState("");
 
-  if (!guest.phone_number) return <span className="text-gray-300 text-xs">—</span>;
-  // if (isSent) return <span className="text-green-600 text-xs font-medium">✅ Terkirim</span>;
-
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, "");
-  const invitationLink = `${appUrl}/?token=${guest.token}`;
-  const passLink = `${appUrl}/pass?token=${guest.token}`;
-
-  const heart = String.fromCodePoint(0x1F90D); // 🤍
-  const pray = String.fromCodePoint(0x1F64F); // 🙏
-
-  const message = 
-    `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
-    `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${guest.name}* untuk hadir dalam acara pernikahan kami.\n\n` +
-    `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
-    `*QR Masuk:*\n${passLink}\n` +
-    `Tunjukkan QR code ini saat tiba di venue\n\n` +
-    `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
-    `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
-    `Hormat Kami,\n${coupleName}`;
-
-  const rawPhone = guest.phone_number.replace(/\D/g, "");
-  const phone = rawPhone.startsWith("0") ? "62" + rawPhone.slice(1) : rawPhone;
-
-  const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+  if (!guest.phone_number) return <span className="text-gray-300 text-xs">&mdash;</span>;
 
   const handleClick = async () => {
-    const a = document.createElement("a");
-    a.href = waUrl;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
+    if (!sessions || sessions.length === 0) {
+      try {
+        const res = await fetch("/api/admin/whatsapp-sessions");
+        const data = await res.json();
+        setPickerSessions(data.sessions ?? []);
+      } catch {
+        setPickerSessions([]);
+      }
+    }
+    setStep("pick");
+  };
+
+  const handleSelectSender = async (sessionId: string) => {
+    setSelectedSession(sessionId);
+    setOtpCode("");
+    setOtpError("");
+    setOtpSending(true);
+    setStep("otp");
+
     try {
-      await fetch("/api/admin/send-whatsapp/mark", {
+      const res = await fetch("/api/admin/whatsapp-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestId: guest.id }),
+        body: JSON.stringify({ sessionId }),
       });
-      onSent?.({ ...guest, whatsapp_status: "sent" });
+      const data = await res.json();
+      if (!res.ok) {
+        setOtpError(data.error ?? "Gagal mengirim OTP");
+      } else {
+        setOtpPhoneLast4(data.phone ?? "");
+      }
     } catch {
-      // marking failure is non-critical
+      setOtpError("Gagal mengirim OTP");
+    } finally {
+      setOtpSending(false);
     }
   };
 
+  const handleVerifyAndSend = async () => {
+    setOtpVerifying(true);
+    setOtpError("");
+    try {
+      const res = await fetch("/api/admin/whatsapp-otp", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: selectedSession, code: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.verified) {
+        setOtpError(data.error ?? "OTP tidak valid");
+        setOtpVerifying(false);
+        return;
+      }
+    } catch {
+      setOtpError("Gagal memverifikasi OTP");
+      setOtpVerifying(false);
+      return;
+    }
+
+    // OTP verified — send the message
+    setOtpVerifying(false);
+    setSending(true);
+    setStep("sending");
+    try {
+      const res = await fetch("/api/admin/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestId: guest.id, sessionId: selectedSession }),
+      });
+      const data = await res.json();
+      if (data.sent > 0) {
+        onSent?.({ ...guest, whatsapp_status: "sent" });
+      } else {
+        alert(data.results?.[0]?.error ?? "Gagal mengirim");
+      }
+    } catch {
+      alert("Gagal mengirim pesan WhatsApp");
+    } finally {
+      setSending(false);
+      setStep("idle");
+    }
+  };
+
+  const connectedSessions = (sessions ?? pickerSessions).filter((s) => s.status === "connected");
+
   return (
-    <button
-      onClick={handleClick}
-      className="text-xs px-2 py-1 rounded text-white transition-colors whitespace-nowrap bg-[#25d366] hover:bg-[#1da851]"
-    >
-      Kirim WA
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        disabled={sending}
+        className="text-xs px-2 py-1 rounded text-white transition-colors whitespace-nowrap bg-[#25d366] hover:bg-[#1da851] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {sending ? "..." : "Kirim WA"}
+      </button>
+
+      {(step === "pick" || step === "otp") && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-xs p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
+                {step === "pick" ? "Pilih Pengirim" : "Verifikasi OTP"}
+              </h3>
+              <button onClick={() => setStep("idle")} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">&times;</button>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Kirim ke: <span className="font-medium text-gray-700 dark:text-gray-200">{guest.name}</span></p>
+
+            {step === "pick" && (
+              <>
+                {connectedSessions.length === 0 ? (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">Tidak ada sesi WA yang terhubung. Hubungkan di menu WhatsApp.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {connectedSessions.map((s) => (
+                      <button
+                        key={s.sessionId}
+                        onClick={() => handleSelectSender(s.sessionId)}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-white">{s.sessionId}</p>
+                          {s.phone && <p className="text-xs text-gray-400">+{s.phone}</p>}
+                        </div>
+                        <span className="text-green-500 text-lg">→</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {step === "otp" && (
+              <>
+                {otpSending ? (
+                  <div className="flex flex-col items-center py-3 space-y-2">
+                    <div className="w-7 h-7 border-3 border-green-200 border-t-green-500 rounded-full animate-spin" />
+                    <p className="text-xs text-gray-500">Mengirim OTP...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        OTP dikirim ke nomor pengirim {otpPhoneLast4 && `(****${otpPhoneLast4})`}
+                      </p>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="6 digit OTP"
+                      value={otpCode}
+                      onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "")); setOtpError(""); }}
+                      className="w-full text-center text-xl tracking-[0.4em] font-mono px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-400"
+                      autoFocus
+                    />
+                    {otpError && <p className="text-xs text-red-500 text-center">{otpError}</p>}
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setStep("pick")} className="text-xs text-gray-400 hover:text-gray-600">← Ganti</button>
+                      <button onClick={() => handleSelectSender(selectedSession)} className="text-xs text-green-600 hover:text-green-700">Kirim ulang</button>
+                    </div>
+                    <button
+                      onClick={handleVerifyAndSend}
+                      disabled={otpCode.length !== 6 || otpVerifying}
+                      className="w-full px-4 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {otpVerifying ? "Memverifikasi..." : "Verifikasi & Kirim"}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -475,14 +607,14 @@ function CopyLinkButton({ token }: { token: string }) {
   return (
     <button
       onClick={handleCopy}
-      title={copied ? "Copied!" : "Copy invitation link"}
+      title={copied ? "Tersalin!" : "Salin link undangan"}
       className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap ${
         copied
           ? "border-green-300 text-green-600 bg-green-50"
           : "border-blue-200 text-blue-500 hover:bg-blue-50 hover:text-blue-700"
       }`}
     >
-      {copied ? "✓ Copied" : "🔗 Link"}
+      {copied ? "✓ Tersalin" : "🔗 Link"}
     </button>
   );
 }
@@ -637,7 +769,7 @@ function CsvImportModal({
                 disabled={!file || uploading}
                 className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors"
               >
-                {uploading ? "Mengimport…" : "Import"}
+                {uploading ? "Mengimport…" : "Impor"}
               </button>
             )}
           </div>
@@ -650,214 +782,381 @@ function CsvImportModal({
 /* ── WhatsApp Batch Modal ──────────────────────────────────── */
 function WhatsAppBatchModal({
   guests,
-  coupleName,
   onClose,
   onSentAll,
+  sessions: initialSessions,
 }: {
   guests: Guest[];
   coupleName: string;
   onClose: () => void;
   onSentAll?: (results: { guestId: string; success: boolean }[]) => void;
+  sessions?: { sessionId: string; status: string; phone: string | null }[];
 }) {
   const eligible = guests.filter((g) => g.phone_number?.trim());
   const skipped  = guests.filter((g) => !g.phone_number?.trim());
   const toSend = eligible;
 
-  const [currentIndex, setCurrentIndex] = useState(-1); // -1 = not started
-  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
-  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+  const [step, setStep] = useState<"pick-sender" | "otp" | "confirm" | "sending" | "done">("pick-sender");
+  const [selectedSession, setSelectedSession] = useState<string>("");
+  const [sentSoFar, setSentSoFar] = useState(0);
+  const [sessions, setSessions] = useState(initialSessions ?? []);
+  const [results, setResults] = useState<{ guestId: string; name: string; success: boolean; error?: string }[]>([]);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [otpPhoneLast4, setOtpPhoneLast4] = useState("");
 
-  const isStarted = currentIndex >= 0;
-  const isDone = currentIndex >= toSend.length;
-  const currentGuest = isStarted && !isDone ? toSend[currentIndex] : null;
+  // Fetch sessions on mount if not passed
+  useEffect(() => {
+    if (!initialSessions || initialSessions.length === 0) {
+      fetch("/api/admin/whatsapp-sessions")
+        .then((r) => r.json())
+        .then((data) => setSessions(data.sessions ?? []))
+        .catch(() => {});
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const buildWaUrl = (guest: Guest) => {
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, "");
-    const invitationLink = `${appUrl}/?token=${guest.token}`;
-    const passLink = `${appUrl}/pass?token=${guest.token}`;
-    const heart = String.fromCodePoint(0x1F90D);
-    const pray = String.fromCodePoint(0x1F64F);
+  const connectedSessions = sessions.filter((s) => s.status === "connected");
 
-    const message =
-      `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
-      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${guest.name}* untuk hadir dalam acara pernikahan kami.\n\n` +
-      `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
-      `*QR Masuk:*\n${passLink}\n` +
-      `Tunjukkan QR code ini saat tiba di venue\n\n` +
-      `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
-      `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
-      `Hormat Kami,\n${coupleName}`;
-
-    const rawPhone = (guest.phone_number ?? "").replace(/\D/g, "");
-    const phone = rawPhone.startsWith("0") ? "62" + rawPhone.slice(1) : rawPhone;
-    return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-  };
-
-  const openCurrentAndMark = async () => {
-    if (!currentGuest) return;
-    const a = document.createElement("a");
-    a.href = buildWaUrl(currentGuest);
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
+  const handleSelectSender = async (sessionId: string) => {
+    setSelectedSession(sessionId);
+    setOtpCode("");
+    setOtpError("");
+    setOtpSending(true);
+    setStep("otp");
 
     try {
-      await fetch("/api/admin/send-whatsapp/mark", {
+      const res = await fetch("/api/admin/whatsapp-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestId: currentGuest.id }),
+        body: JSON.stringify({ sessionId }),
       });
-    } catch { /* non-critical */ }
-
-    setSentIds((prev) => new Set(prev).add(currentGuest.id));
+      const data = await res.json();
+      if (!res.ok) {
+        setOtpError(data.error ?? "Gagal mengirim OTP");
+      } else {
+        setOtpPhoneLast4(data.phone ?? "");
+      }
+    } catch {
+      setOtpError("Gagal mengirim OTP");
+    } finally {
+      setOtpSending(false);
+    }
   };
 
-  const handleStart = () => {
-    setCurrentIndex(0);
+  const handleVerifyOtp = async () => {
+    setOtpVerifying(true);
+    setOtpError("");
+    try {
+      const res = await fetch("/api/admin/whatsapp-otp", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: selectedSession, code: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.verified) {
+        setOtpError(data.error ?? "OTP tidak valid");
+      } else {
+        setStep("confirm");
+      }
+    } catch {
+      setOtpError("Gagal memverifikasi OTP");
+    } finally {
+      setOtpVerifying(false);
+    }
   };
 
-  const handleSendAndNext = async () => {
-    await openCurrentAndMark();
-    setCurrentIndex((i) => i + 1);
+  const handleResendOtp = () => {
+    handleSelectSender(selectedSession);
   };
 
-  const handleSkip = () => {
-    if (currentGuest) setSkippedIds((prev) => new Set(prev).add(currentGuest.id));
-    setCurrentIndex((i) => i + 1);
+  const handleSend = async () => {
+    setStep("sending");
+    setResults([]);
+    setSentSoFar(0);
+
+    const allResults: typeof results = [];
+    const CHUNK = 10;
+
+    for (let i = 0; i < toSend.length; i += CHUNK) {
+      const chunk = toSend.slice(i, i + CHUNK);
+      try {
+        const res = await fetch("/api/admin/send-whatsapp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestIds: chunk.map((g) => g.id),
+            sessionId: selectedSession,
+          }),
+        });
+        const data = await res.json();
+        allResults.push(...(data.results ?? []));
+      } catch {
+        allResults.push(
+          ...chunk.map((g) => ({ guestId: g.id, name: g.name, success: false, error: "Network error" }))
+        );
+      }
+      setResults([...allResults]);
+      setSentSoFar(allResults.length);
+    }
+
+    setStep("done");
   };
 
   const handleDone = () => {
-    const results = toSend.map((g) => ({
-      guestId: g.id,
-      success: sentIds.has(g.id),
+    const finalResults = results.map((r) => ({
+      guestId: r.guestId,
+      success: r.success,
     }));
-    onSentAll?.(results);
+    onSentAll?.(finalResults);
     onClose();
   };
 
+  const sentCount = results.filter((r) => r.success).length;
+  const failedCount = results.filter((r) => !r.success).length;
+  const selectedSessionInfo = connectedSessions.find((s) => s.sessionId === selectedSession);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Kirim WhatsApp Massal</h2>
-            <p className="text-xs text-gray-400 mt-0.5">via wa.me — kirim satu per satu</p>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Kirim WhatsApp Massal</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {step === "pick-sender" ? "Pilih pengirim" : step === "otp" ? "Verifikasi OTP" : step === "confirm" ? "Konfirmasi pengiriman" : step === "sending" ? "Mengirim..." : "Selesai"}
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">&times;</button>
         </div>
 
         <div className="px-6 py-5 space-y-4 overflow-y-auto">
-          {/* Summary */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Akan dikirim</span>
-              <span className="font-medium text-gray-800">{toSend.length} tamu</span>
-            </div>
-            {skipped.length > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Tanpa nomor HP (dilewati)</span>
-                <span className="text-amber-500 font-medium">{skipped.length} tamu</span>
-              </div>
-            )}
-          </div>
+          {/* Step 1: Pick Sender */}
+          {step === "pick-sender" && (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Pilih nomor WhatsApp pengirim:</p>
+              {connectedSessions.length === 0 ? (
+                <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-4 text-sm text-amber-700 dark:text-amber-300">
+                  Tidak ada sesi WA yang terhubung. Hubungkan terlebih dahulu di menu <span className="font-medium">WhatsApp</span>.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {connectedSessions.map((s) => (
+                    <button
+                      key={s.sessionId}
+                      onClick={() => handleSelectSender(s.sessionId)}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-white">{s.sessionId}</p>
+                        {s.phone && <p className="text-xs text-gray-400">+{s.phone}</p>}
+                      </div>
+                      <span className="text-green-500 text-lg">→</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
-          {/* Progress indicator */}
-          {isStarted && !isDone && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>Progress</span>
-                <span>{currentIndex + 1} / {toSend.length}</span>
+          {/* Step 2: OTP Verification */}
+          {step === "otp" && (
+            <div className="space-y-4">
+              {otpSending ? (
+                <div className="flex flex-col items-center py-4 space-y-3">
+                  <div className="w-8 h-8 border-4 border-green-200 border-t-green-500 rounded-full animate-spin" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Mengirim kode OTP ke nomor pengirim...</p>
+                </div>
+              ) : otpError && !otpPhoneLast4 ? (
+                <div className="space-y-3">
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 text-sm text-red-700 dark:text-red-300">
+                    {otpError}
+                  </div>
+                  <button
+                    onClick={() => setStep("pick-sender")}
+                    className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    ← Pilih pengirim lain
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center space-y-1">
+                    <div className="w-12 h-12 mx-auto bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center text-2xl">🔐</div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Kode OTP telah dikirim ke nomor pengirim
+                    </p>
+                    {otpPhoneLast4 && (
+                      <p className="text-xs text-gray-400">Nomor berakhiran ****{otpPhoneLast4}</p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="Masukkan 6 digit OTP"
+                      value={otpCode}
+                      onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "")); setOtpError(""); }}
+                      className="w-full text-center text-2xl tracking-[0.5em] font-mono px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                      autoFocus
+                    />
+                    {otpError && (
+                      <p className="text-xs text-red-500 mt-1.5 text-center">{otpError}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={handleResendOtp}
+                      disabled={otpSending}
+                      className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
+                    >
+                      Kirim ulang OTP
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Confirm */}
+          {step === "confirm" && (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">Pengirim</span>
+                  <span className="font-medium text-green-600">
+                    {selectedSession} {selectedSessionInfo?.phone ? `(+${selectedSessionInfo.phone})` : ""}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">Akan dikirim</span>
+                  <span className="font-medium text-gray-800 dark:text-white">{toSend.length} tamu</span>
+                </div>
+                {skipped.length > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-300">Tanpa nomor HP (dilewati)</span>
+                    <span className="text-amber-500 font-medium">{skipped.length} tamu</span>
+                  </div>
+                )}
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
+
+              {/* Guest list preview */}
+              {toSend.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    Penerima ({toSend.length})
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg divide-y divide-gray-50 dark:divide-gray-700">
+                    {toSend.map((g) => (
+                      <div key={g.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                        <span className="font-medium text-gray-700 dark:text-gray-200 flex-1 truncate">{g.name}</span>
+                        <span className="text-gray-400 text-xs shrink-0">{g.phone_number}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Step: Sending — live progress */}
+          {step === "sending" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Mengirim undangan...</span>
+                <span className="font-medium text-gray-800">{sentSoFar} / {toSend.length}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="bg-[#25d366] h-2 rounded-full transition-all"
-                  style={{ width: `${((currentIndex) / toSend.length) * 100}%` }}
+                  className="h-full bg-[#25d366] rounded-full transition-all duration-500"
+                  style={{ width: `${toSend.length > 0 ? (sentSoFar / toSend.length) * 100 : 0}%` }}
                 />
               </div>
-            </div>
-          )}
-
-          {/* Current guest card */}
-          {currentGuest && (
-            <div className="border border-[#25d366]/30 bg-green-50 rounded-lg p-4 space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Sedang mengirim ke:</p>
-              <p className="text-base font-semibold text-gray-800">{currentGuest.name}</p>
-              <p className="text-sm text-gray-500">{currentGuest.phone_number}</p>
-            </div>
-          )}
-
-          {/* Guest list preview (before starting) */}
-          {!isStarted && toSend.length > 0 && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                Akan menerima pesan ({toSend.length})
-              </label>
-              <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
-                {toSend.map((g) => (
-                  <div key={g.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                    <span className="font-medium text-gray-700 flex-1 truncate">{g.name}</span>
-                    <span className="text-gray-400 text-xs shrink-0">{g.phone_number}</span>
+              <div className="max-h-52 overflow-y-auto space-y-1 mt-1">
+                {results.map((r) => (
+                  <div key={r.guestId} className="flex items-center gap-2 px-2 py-1 rounded text-sm animate-in fade-in">
+                    <span className={r.success ? "text-green-500 flex-shrink-0" : "text-red-400 flex-shrink-0"}>
+                      {r.success ? "✓" : "✗"}
+                    </span>
+                    <span className="text-gray-700 flex-1 truncate">{r.name}</span>
+                    {!r.success && <span className="text-xs text-red-400 shrink-0">{r.error}</span>}
                   </div>
                 ))}
               </div>
+              <p className="text-xs text-center text-gray-400">Mohon tunggu, jangan tutup halaman ini</p>
             </div>
           )}
 
-          {/* Info */}
-          {!isStarted && (
-            <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
-              <p className="font-medium">Cara kerja:</p>
-              <p>1. Klik &quot;Mulai Kirim&quot; untuk memulai</p>
-              <p>2. Setiap tamu akan dibuka di tab WhatsApp baru</p>
-              <p>3. Kirim pesan di WhatsApp, lalu klik &quot;Lanjut&quot; untuk tamu berikutnya</p>
-            </div>
-          )}
-
-          {/* Done state */}
-          {isDone && (
-            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm space-y-1">
-              <p className="font-medium text-green-700">Selesai!</p>
-              <p className="text-green-600">{sentIds.size} pesan dibuka di WhatsApp</p>
-              {skippedIds.size > 0 && <p className="text-amber-600">{skippedIds.size} dilewati</p>}
+          {/* Step 4: Done */}
+          {step === "done" && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 px-4 py-3 text-sm space-y-1">
+                <p className="font-medium text-green-700 dark:text-green-300">Selesai!</p>
+                <p className="text-green-600 dark:text-green-400">{sentCount} pesan terkirim</p>
+                {failedCount > 0 && <p className="text-red-600 dark:text-red-400">{failedCount} gagal</p>}
+              </div>
+              {failedCount > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-red-500 uppercase tracking-wide mb-1">Gagal:</label>
+                  <div className="max-h-32 overflow-y-auto border border-red-100 dark:border-red-800 rounded-lg divide-y divide-red-50 dark:divide-red-800">
+                    {results.filter((r) => !r.success).map((r) => (
+                      <div key={r.guestId} className="flex items-center gap-3 px-3 py-2 text-sm">
+                        <span className="font-medium text-gray-700 dark:text-gray-200 flex-1 truncate">{r.name}</span>
+                        <span className="text-red-400 text-xs shrink-0">{r.error}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        <div className="px-6 pb-5 flex items-center justify-between gap-3 shrink-0 border-t border-gray-100 pt-4">
-          {!isStarted && (
+        <div className="px-6 pb-5 flex items-center justify-between gap-3 shrink-0 border-t border-gray-100 dark:border-gray-700 pt-4">
+          {step === "pick-sender" && (
+            <button type="button" onClick={onClose} className="ml-auto px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+              Batal
+            </button>
+          )}
+
+          {step === "otp" && !otpSending && (
             <>
-              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                Batal
+              <button type="button" onClick={() => setStep("pick-sender")} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                ← Ganti Pengirim
               </button>
               <button
                 type="button"
-                disabled={toSend.length === 0}
-                onClick={handleStart}
-                className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 transition-colors flex items-center gap-2"
+                disabled={otpCode.length !== 6 || otpVerifying}
+                onClick={handleVerifyOtp}
+                className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-                Mulai Kirim ({toSend.length})
+                {otpVerifying ? "Memverifikasi..." : "Verifikasi OTP"}
               </button>
             </>
           )}
 
-          {isStarted && !isDone && (
+          {step === "confirm" && (
             <>
-              <button type="button" onClick={handleSkip} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                Lewati
+              <button type="button" onClick={() => setStep("pick-sender")} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                ← Ganti Pengirim
               </button>
               <button
                 type="button"
-                onClick={handleSendAndNext}
+                onClick={handleSend}
                 className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] transition-colors flex items-center gap-2"
               >
                 <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-                Kirim & Lanjut
+                Kirim Semua ({toSend.length})
               </button>
             </>
           )}
 
-          {isDone && (
+          {step === "sending" && (
+            <p className="text-sm text-gray-400 mx-auto">{sentSoFar} dari {toSend.length} terkirim...</p>
+          )}
+
+          {step === "done" && (
             <button
               type="button"
               onClick={handleDone}
@@ -878,6 +1177,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showWaModal, setShowWaModal] = useState(false);
+  const [waSessions, setWaSessions] = useState<{ sessionId: string; status: string; phone: string | null }[]>([]);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -896,6 +1196,17 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
       setDraft({ attending: filterAttending, side: filterSide, checkin: filterCheckin, vip: filterVip, email: filterEmail, wa: filterWa });
     }
   }, [showFilterModal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch WA sessions for sender selector
+  useEffect(() => {
+    fetch("/api/admin/whatsapp-sessions")
+      .then((r) => r.json())
+      .then((data) => {
+        const sessions = data.sessions ?? [];
+        setWaSessions(sessions);
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleted = (id: string) =>
     setGuests((prev) => prev.filter((g) => g.id !== id));
@@ -1006,6 +1317,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
           guests={guests.filter((g) => selectedIds.has(g.id))}
           coupleName={coupleName}
           onClose={() => setShowWaModal(false)}
+          sessions={waSessions}
           onSentAll={(results) => {
             setGuests((prev) => prev.map((g) => {
               const r = results.find((r) => r.guestId === g.id);
@@ -1277,7 +1589,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   </button>
                   <CopyLinkButton token={g.token} />
                   <SendEmailButton guest={g} onSent={handleUpdated} />
-                  <WhatsAppButton guest={g} coupleName={coupleName} onSent={handleUpdated} />
+                  <WhatsAppButton guest={g} coupleName={coupleName} onSent={handleUpdated} sessions={waSessions} />
                   <DeleteButton guestId={g.id} guestName={g.name} onDeleted={handleDeleted} />
                 </div>
               </div>
@@ -1300,7 +1612,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Sent", "WA Sent", "Kirim Email/WA", ""].map((h) => (
+                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "Kirim Email/WA", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -1348,7 +1660,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   </td>
                   <td className="px-4 py-3">
                     {g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read" ? (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs capitalize">{g.whatsapp_status}</span>
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs capitalize">Terkirim</span>
                     ) : g.whatsapp_status === "failed" ? (
                       <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">Gagal</span>
                     ) : (
@@ -1358,7 +1670,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <SendEmailButton guest={g} onSent={handleUpdated} />
-                      <WhatsAppButton guest={g} coupleName={coupleName} onSent={handleUpdated} />
+                      <WhatsAppButton guest={g} coupleName={coupleName} onSent={handleUpdated} sessions={waSessions} />
                     </div>
                   </td>
                   <td className="px-4 py-3">
