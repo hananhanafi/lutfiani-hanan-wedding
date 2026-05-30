@@ -398,53 +398,61 @@ function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gue
   );
 }
 
-function WhatsAppButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Guest) => void }) {
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
-    guest.whatsapp_status === "sent" || guest.whatsapp_status === "delivered" || guest.whatsapp_status === "read"
-      ? "sent"
-      : guest.whatsapp_status === "failed"
-        ? "error"
-        : "idle"
-  );
+function WhatsAppButton({ guest, coupleName, onSent }: { guest: Guest; coupleName: string; onSent?: (guest: Guest) => void }) {
+  const isSent =
+    guest.whatsapp_status === "sent" ||
+    guest.whatsapp_status === "delivered" ||
+    guest.whatsapp_status === "read";
 
   if (!guest.phone_number) return <span className="text-gray-300 text-xs">—</span>;
+  // if (isSent) return <span className="text-green-600 text-xs font-medium">✅ Terkirim</span>;
 
-  if (status === "sent") return <span className="text-green-600 text-xs font-medium">✅ Terkirim</span>;
-  if (status === "error") {
-    // Allow retry on failure
-  }
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, "");
+  const invitationLink = `${appUrl}/?token=${guest.token}`;
+  const passLink = `${appUrl}/pass?token=${guest.token}`;
 
-  const handleSend = async () => {
-    setStatus("sending");
+  const heart = String.fromCodePoint(0x1F90D); // 🤍
+  const pray = String.fromCodePoint(0x1F64F); // 🙏
+
+  const message = 
+    `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
+    `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${guest.name}* untuk hadir dalam acara pernikahan kami.\n\n` +
+    `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
+    `*QR Masuk:*\n${passLink}\n` +
+    `Tunjukkan QR code ini saat tiba di venue\n\n` +
+    `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
+    `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
+    `Hormat Kami,\n${coupleName}`;
+
+  const rawPhone = guest.phone_number.replace(/\D/g, "");
+  const phone = rawPhone.startsWith("0") ? "62" + rawPhone.slice(1) : rawPhone;
+
+  const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+
+  const handleClick = async () => {
+    const a = document.createElement("a");
+    a.href = waUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.click();
     try {
-      const res = await fetch("/api/admin/send-whatsapp", {
+      await fetch("/api/admin/send-whatsapp/mark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ guestId: guest.id }),
       });
-      const data = await res.json();
-      if (res.ok && data.sent > 0) {
-        setStatus("sent");
-        onSent?.({ ...guest, whatsapp_status: "sent" });
-      } else {
-        setStatus("error");
-      }
+      onSent?.({ ...guest, whatsapp_status: "sent" });
     } catch {
-      setStatus("error");
+      // marking failure is non-critical
     }
   };
 
   return (
     <button
-      onClick={handleSend}
-      disabled={status === "sending"}
-      className={`text-xs px-2 py-1 rounded text-white transition-colors whitespace-nowrap ${
-        status === "error"
-          ? "bg-red-500 hover:bg-red-600"
-          : "bg-[#25d366] hover:bg-[#1da851]"
-      } disabled:opacity-50`}
+      onClick={handleClick}
+      className="text-xs px-2 py-1 rounded text-white transition-colors whitespace-nowrap bg-[#25d366] hover:bg-[#1da851]"
     >
-      {status === "sending" ? "Mengirim…" : status === "error" ? "Retry WA" : "Kirim WA"}
+      Kirim WA
     </button>
   );
 }
@@ -642,37 +650,89 @@ function CsvImportModal({
 /* ── WhatsApp Batch Modal ──────────────────────────────────── */
 function WhatsAppBatchModal({
   guests,
+  coupleName,
   onClose,
   onSentAll,
 }: {
   guests: Guest[];
+  coupleName: string;
   onClose: () => void;
   onSentAll?: (results: { guestId: string; success: boolean }[]) => void;
 }) {
   const eligible = guests.filter((g) => g.phone_number?.trim());
   const skipped  = guests.filter((g) => !g.phone_number?.trim());
-  const alreadySent = eligible.filter((g) => g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read");
-  const toSend = eligible.filter((g) => g.whatsapp_status !== "sent" && g.whatsapp_status !== "delivered" && g.whatsapp_status !== "read");
+  const toSend = eligible;
 
-  const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; failed: number; results: { guestId: string; success: boolean; error?: string }[] } | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(-1); // -1 = not started
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
 
-  const handleSendAll = async () => {
-    setSending(true);
+  const isStarted = currentIndex >= 0;
+  const isDone = currentIndex >= toSend.length;
+  const currentGuest = isStarted && !isDone ? toSend[currentIndex] : null;
+
+  const buildWaUrl = (guest: Guest) => {
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, "");
+    const invitationLink = `${appUrl}/?token=${guest.token}`;
+    const passLink = `${appUrl}/pass?token=${guest.token}`;
+    const heart = String.fromCodePoint(0x1F90D);
+    const pray = String.fromCodePoint(0x1F64F);
+
+    const message =
+      `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
+      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${guest.name}* untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
+      `*QR Masuk:*\n${passLink}\n` +
+      `Tunjukkan QR code ini saat tiba di venue\n\n` +
+      `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
+      `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
+      `Hormat Kami,\n${coupleName}`;
+
+    const rawPhone = (guest.phone_number ?? "").replace(/\D/g, "");
+    const phone = rawPhone.startsWith("0") ? "62" + rawPhone.slice(1) : rawPhone;
+    return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+  };
+
+  const openCurrentAndMark = async () => {
+    if (!currentGuest) return;
+    const a = document.createElement("a");
+    a.href = buildWaUrl(currentGuest);
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.click();
+
     try {
-      const res = await fetch("/api/admin/send-whatsapp", {
+      await fetch("/api/admin/send-whatsapp/mark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestIds: toSend.map((g) => g.id) }),
+        body: JSON.stringify({ guestId: currentGuest.id }),
       });
-      const data = await res.json();
-      setResult(data);
-      onSentAll?.(data.results ?? []);
-    } catch {
-      setResult({ sent: 0, failed: toSend.length, results: [] });
-    } finally {
-      setSending(false);
-    }
+    } catch { /* non-critical */ }
+
+    setSentIds((prev) => new Set(prev).add(currentGuest.id));
+  };
+
+  const handleStart = () => {
+    setCurrentIndex(0);
+  };
+
+  const handleSendAndNext = async () => {
+    await openCurrentAndMark();
+    setCurrentIndex((i) => i + 1);
+  };
+
+  const handleSkip = () => {
+    if (currentGuest) setSkippedIds((prev) => new Set(prev).add(currentGuest.id));
+    setCurrentIndex((i) => i + 1);
+  };
+
+  const handleDone = () => {
+    const results = toSend.map((g) => ({
+      guestId: g.id,
+      success: sentIds.has(g.id),
+    }));
+    onSentAll?.(results);
+    onClose();
   };
 
   return (
@@ -681,7 +741,7 @@ function WhatsAppBatchModal({
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-gray-800">Kirim WhatsApp Massal</h2>
-            <p className="text-xs text-gray-400 mt-0.5">via WhatsApp Business API</p>
+            <p className="text-xs text-gray-400 mt-0.5">via wa.me — kirim satu per satu</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
@@ -693,12 +753,6 @@ function WhatsAppBatchModal({
               <span className="text-gray-600">Akan dikirim</span>
               <span className="font-medium text-gray-800">{toSend.length} tamu</span>
             </div>
-            {alreadySent.length > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Sudah terkirim (dilewati)</span>
-                <span className="text-green-600 font-medium">{alreadySent.length} tamu</span>
-              </div>
-            )}
             {skipped.length > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Tanpa nomor HP (dilewati)</span>
@@ -707,8 +761,33 @@ function WhatsAppBatchModal({
             )}
           </div>
 
-          {/* Guest list preview */}
-          {toSend.length > 0 && (
+          {/* Progress indicator */}
+          {isStarted && !isDone && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>Progress</span>
+                <span>{currentIndex + 1} / {toSend.length}</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2">
+                <div
+                  className="bg-[#25d366] h-2 rounded-full transition-all"
+                  style={{ width: `${((currentIndex) / toSend.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Current guest card */}
+          {currentGuest && (
+            <div className="border border-[#25d366]/30 bg-green-50 rounded-lg p-4 space-y-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Sedang mengirim ke:</p>
+              <p className="text-base font-semibold text-gray-800">{currentGuest.name}</p>
+              <p className="text-sm text-gray-500">{currentGuest.phone_number}</p>
+            </div>
+          )}
+
+          {/* Guest list preview (before starting) */}
+          {!isStarted && toSend.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                 Akan menerima pesan ({toSend.length})
@@ -724,44 +803,67 @@ function WhatsAppBatchModal({
             </div>
           )}
 
-          {/* Info about templates */}
-          <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
-            <p className="font-medium">ℹ️ Pesan menggunakan template yang sudah disetujui Meta.</p>
-            <p>Parameter: nama tamu + link undangan</p>
-            <p>Status pengiriman akan diperbarui otomatis via webhook.</p>
-          </div>
+          {/* Info */}
+          {!isStarted && (
+            <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
+              <p className="font-medium">Cara kerja:</p>
+              <p>1. Klik &quot;Mulai Kirim&quot; untuk memulai</p>
+              <p>2. Setiap tamu akan dibuka di tab WhatsApp baru</p>
+              <p>3. Kirim pesan di WhatsApp, lalu klik &quot;Lanjut&quot; untuk tamu berikutnya</p>
+            </div>
+          )}
 
-          {/* Result */}
-          {result && (
-            <div className={`rounded-lg border px-4 py-3 text-sm space-y-1 ${result.sent > 0 ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-              {result.sent > 0 && <p className="font-medium text-green-700">✓ {result.sent} pesan berhasil dikirim</p>}
-              {result.failed > 0 && (
-                <details className="text-xs text-red-600">
-                  <summary className="cursor-pointer font-medium">{result.failed} gagal</summary>
-                  <ul className="mt-1 ml-3 list-disc space-y-0.5">
-                    {result.results.filter((r) => !r.success).map((r) => (
-                      <li key={r.guestId}>{r.guestId.slice(0, 8)}…: {r.error}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
+          {/* Done state */}
+          {isDone && (
+            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm space-y-1">
+              <p className="font-medium text-green-700">Selesai!</p>
+              <p className="text-green-600">{sentIds.size} pesan dibuka di WhatsApp</p>
+              {skippedIds.size > 0 && <p className="text-amber-600">{skippedIds.size} dilewati</p>}
             </div>
           )}
         </div>
 
         <div className="px-6 pb-5 flex items-center justify-between gap-3 shrink-0 border-t border-gray-100 pt-4">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-            {result ? "Tutup" : "Batal"}
-          </button>
-          {!result && (
+          {!isStarted && (
+            <>
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={toSend.length === 0}
+                onClick={handleStart}
+                className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+                Mulai Kirim ({toSend.length})
+              </button>
+            </>
+          )}
+
+          {isStarted && !isDone && (
+            <>
+              <button type="button" onClick={handleSkip} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                Lewati
+              </button>
+              <button
+                type="button"
+                onClick={handleSendAndNext}
+                className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] transition-colors flex items-center gap-2"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+                Kirim & Lanjut
+              </button>
+            </>
+          )}
+
+          {isDone && (
             <button
               type="button"
-              disabled={toSend.length === 0 || sending}
-              onClick={handleSendAll}
-              className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm hover:bg-[#1ebe5d] disabled:opacity-50 transition-colors flex items-center gap-2"
+              onClick={handleDone}
+              className="ml-auto px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors"
             >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.066 1.487 5.788L0 24l6.39-1.467A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.003-1.37l-.36-.214-3.713.853.882-3.613-.235-.371A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-              {sending ? "Mengirim…" : `Kirim ke ${toSend.length} Tamu`}
+              Selesai
             </button>
           )}
         </div>
@@ -770,7 +872,7 @@ function WhatsAppBatchModal({
   );
 }
 
-export default function GuestTable({ guests: initialGuests }: { guests: Guest[] }) {
+export default function GuestTable({ guests: initialGuests, coupleName = "Kami" }: { guests: Guest[]; coupleName?: string }) {
   const [guests, setGuests] = useState<Guest[]>(initialGuests);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -902,6 +1004,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
       {showWaModal && (
         <WhatsAppBatchModal
           guests={guests.filter((g) => selectedIds.has(g.id))}
+          coupleName={coupleName}
           onClose={() => setShowWaModal(false)}
           onSentAll={(results) => {
             setGuests((prev) => prev.map((g) => {
@@ -1174,7 +1277,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                   </button>
                   <CopyLinkButton token={g.token} />
                   <SendEmailButton guest={g} onSent={handleUpdated} />
-                  <WhatsAppButton guest={g} onSent={handleUpdated} />
+                  <WhatsAppButton guest={g} coupleName={coupleName} onSent={handleUpdated} />
                   <DeleteButton guestId={g.id} guestName={g.name} onDeleted={handleDeleted} />
                 </div>
               </div>
@@ -1255,7 +1358,7 @@ export default function GuestTable({ guests: initialGuests }: { guests: Guest[] 
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <SendEmailButton guest={g} onSent={handleUpdated} />
-                      <WhatsAppButton guest={g} onSent={handleUpdated} />
+                      <WhatsAppButton guest={g} coupleName={coupleName} onSent={handleUpdated} />
                     </div>
                   </td>
                   <td className="px-4 py-3">
