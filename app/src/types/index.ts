@@ -31,7 +31,10 @@ export interface Guest {
   email_sent: boolean;
   whatsapp_status?: 'sent' | 'delivered' | 'read' | 'failed' | null;
   whatsapp_message_id?: string;
+  whatsapp_sent_by?: string | null;
+  whatsapp_sender_number?: string | null;
   is_vip: boolean;
+  created_by?: string | null;
 }
 
 export interface ScheduleItem {

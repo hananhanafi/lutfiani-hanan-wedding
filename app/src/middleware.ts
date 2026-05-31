@@ -1,8 +1,12 @@
 ﻿import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
+import { getToken } from "next-auth/jwt";
 
 // Routes that bypass the site password gate
 const EXEMPT_PREFIXES = ["/admin", "/scanner", "/api", "/pass", "/enter", "/_next"];
+
+// Routes a "sender" role is allowed to visit
+const SENDER_ALLOWED = ["/admin/whatsapp", "/admin/kirim", "/admin/login"];
 
 function isExempt(pathname: string) {
   return EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
@@ -42,6 +46,17 @@ export async function middleware(request: NextRequest) {
   // multipart body streaming (e.g. file uploads).
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
+  }
+
+  // Role-based access: sender role may only visit whatsapp + kirim pages
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (token?.role === "sender") {
+      const allowed = SENDER_ALLOWED.some((p) => pathname.startsWith(p));
+      if (!allowed) {
+        return NextResponse.redirect(new URL("/admin/kirim", request.url));
+      }
+    }
   }
 
   const { supabaseResponse } = updateSession(request);

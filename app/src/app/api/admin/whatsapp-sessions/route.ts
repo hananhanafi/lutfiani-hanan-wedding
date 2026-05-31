@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
 import { getWhatsAppSessions } from "@/lib/whatsapp";
+import { recordSessionOwner, getOwnedSessionIds } from "@/lib/sessionOwnership";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const data = await getWhatsAppSessions();
+
+    // Senders only see sessions they own
+    if (token.role === "sender") {
+      const ownedIds = await getOwnedSessionIds("sender", token.staffId as string | undefined);
+      const filtered = (data.sessions ?? []).filter((s: { sessionId: string }) =>
+        (ownedIds ?? []).includes(s.sessionId)
+      );
+      return NextResponse.json({ sessions: filtered });
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(
@@ -19,8 +30,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, name } = await req.json();
   if (!id) return NextResponse.json({ error: "Missing session id" }, { status: 400 });
@@ -37,6 +48,12 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ id, name }),
     });
     const data = await res.json();
+
+    if (res.ok) {
+      // Record ownership (staffId is null for env-admin)
+      await recordSessionOwner(id, (token.staffId as string | undefined) ?? null);
+    }
+
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
     return NextResponse.json(

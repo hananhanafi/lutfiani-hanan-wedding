@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
+import { canUseSession } from "@/lib/sessionOwnership";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 
 function getServiceUrl() {
   const url = process.env.WA_SERVICE_URL;
@@ -14,13 +15,17 @@ function getApiKey() {
 
 // GET /api/admin/whatsapp-sessions/[id] — session status
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  if (!await canUseSession(id, token.role as string, token.staffId as string | undefined)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const res = await fetch(`${getServiceUrl()}/sessions/${id}/status`, {
@@ -38,10 +43,15 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  if (!await canUseSession(id, token.role as string, token.staffId as string | undefined)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { action } = await req.json();
 
   let endpoint = "";
@@ -64,13 +74,17 @@ export async function POST(
 
 // DELETE /api/admin/whatsapp-sessions/[id] — delete session
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  if (!await canUseSession(id, token.role as string, token.staffId as string | undefined)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const res = await fetch(`${getServiceUrl()}/sessions/${id}`, {
@@ -78,6 +92,12 @@ export async function DELETE(
       headers: { "x-api-key": getApiKey() },
     });
     const data = await res.json();
+
+    // Remove ownership record
+    if (res.ok) {
+      await supabaseAdmin.from("whatsapp_session_owners").delete().eq("session_id", id);
+    }
+
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });

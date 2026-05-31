@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
-import { sendWhatsAppMessage, sendWhatsAppImage, sendWhatsAppImageBase64, formatPhoneForWA } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, sendWhatsAppImage, sendWhatsAppImageBase64, formatPhoneForWA, getWhatsAppStatus } from "@/lib/whatsapp";
 import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
+import { canUseSession } from "@/lib/sessionOwnership";
 
 /**
  * POST /api/admin/send-whatsapp
@@ -24,6 +25,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Maksimal 50 penerima per batch" }, { status: 400 });
   }
 
+  // Enforce session ownership for senders
+  if (sessionId && !await canUseSession(sessionId, token.role as string, token.staffId as string | undefined)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 
   // Fetch guests
@@ -37,7 +43,18 @@ export async function POST(req: NextRequest) {
   }
 
   const coupleName = process.env.NEXT_PUBLIC_COUPLE_NAME ?? "Kami";
-  const results: { guestId: string; name: string; success: boolean; error?: string; messageId?: string }[] = [];
+  const sentBy = (token.staffId as string | undefined) ?? null;
+
+  // Resolve the actual phone number for the sender session (non-fatal)
+  let senderPhone: string | null = null;
+  try {
+    const sessionStatus = await getWhatsAppStatus(sessionId);
+    senderPhone = sessionStatus.phone ?? null;
+  } catch {
+    // ignore — store sessionId as fallback
+  }
+
+  const results: { guestId: string; name: string; success: boolean; error?: string; messageId?: string; senderNumber?: string | null; sentBy?: string | null; dbError?: string | null }[] = [];
 
   for (const guest of guests) {
     if (!guest.phone_number?.trim()) {
@@ -89,15 +106,34 @@ export async function POST(req: NextRequest) {
         // QR send failure is non-fatal — invitation was already sent
       }
 
-      await supabaseAdmin
+      const senderNumber = senderPhone ?? sessionId ?? null;
+      const { error: dbError } = await supabaseAdmin
         .from("guests")
         .update({
           whatsapp_status: "sent",
           whatsapp_message_id: messageId,
+          whatsapp_sent_by: sentBy,
+          whatsapp_sender_number: senderNumber,
         })
         .eq("id", guest.id);
 
-      results.push({ guestId: guest.id, name: guest.name, success: true, messageId });
+      if (dbError) {
+        console.error("[send-whatsapp] DB update failed:", dbError);
+        // Retry without FK field in case sentBy causes a constraint error
+        const { error: retryError } = await supabaseAdmin
+          .from("guests")
+          .update({
+            whatsapp_status: "sent",
+            whatsapp_message_id: messageId,
+            whatsapp_sender_number: senderNumber,
+          })
+          .eq("id", guest.id);
+        if (retryError) {
+          console.error("[send-whatsapp] DB retry failed:", retryError);
+        }
+      }
+
+      results.push({ guestId: guest.id, name: guest.name, success: true, messageId, senderNumber, sentBy, dbError: dbError?.message ?? null });
     } catch (err) {
       await supabaseAdmin
         .from("guests")

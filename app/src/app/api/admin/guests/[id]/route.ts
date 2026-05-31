@@ -12,6 +12,14 @@ export async function PATCH(
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
+  // Senders may only edit guests they created
+  if (token.role === "sender") {
+    const { data: existing } = await supabaseAdmin.from("guests").select("created_by").eq("id", id).single();
+    if (!existing || existing.created_by !== token.staffId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const body = await req.json();
   const { name, email, phone_number, attending, plus_one_name, group_name, side, message, checked_in, email_sent, whatsapp_status, is_vip } = body;
 

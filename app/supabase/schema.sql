@@ -19,14 +19,19 @@ CREATE TABLE IF NOT EXISTS guests (
   checked_in       BOOLEAN NOT NULL DEFAULT FALSE,
   checked_in_at    TIMESTAMPTZ,
   email_sent           BOOLEAN NOT NULL DEFAULT FALSE,
-  whatsapp_status      TEXT,                           -- null, 'sent', 'delivered', 'read', 'failed'
-  whatsapp_message_id  TEXT,                           -- WA Cloud API message ID for webhook correlation
-  is_vip               BOOLEAN NOT NULL DEFAULT FALSE  -- VIP guest flag
+  whatsapp_status        TEXT,                           -- null, 'sent', 'delivered', 'read', 'failed'
+  whatsapp_message_id    TEXT,                           -- WA Cloud API message ID for webhook correlation
+  whatsapp_sent_by       UUID REFERENCES staff(id) ON DELETE SET NULL, -- staff who sent the WA invitation
+  whatsapp_sender_number TEXT,                           -- WA session/phone number used to send
+  is_vip                 BOOLEAN NOT NULL DEFAULT FALSE, -- VIP guest flag
+  created_by             UUID REFERENCES staff(id) ON DELETE SET NULL -- staff member who added this guest
 );
 
 -- Migration: run this if the table already exists
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS group_name TEXT;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS side TEXT;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_sent_by UUID REFERENCES staff(id) ON DELETE SET NULL;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_sender_number TEXT;
 
 -- ── Site Configuration ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS site_config (
@@ -97,6 +102,30 @@ CREATE TABLE IF NOT EXISTS wishes (
   reactions   JSONB DEFAULT '{}',
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ── Staff accounts ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS staff (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          TEXT NOT NULL,
+  username      TEXT UNIQUE,                          -- optional login alias; if set, can login with this instead of email
+  email         TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role          TEXT NOT NULL DEFAULT 'sender' CHECK (role IN ('admin', 'sender')),
+  is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Migration: run if staff table already exists
+-- ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+-- ── WhatsApp session ownership ───────────────────────────────
+-- Tracks which staff member created each WA session (sessionId from the WA microservice)
+CREATE TABLE IF NOT EXISTS whatsapp_session_owners (
+  session_id  TEXT PRIMARY KEY,
+  staff_id    UUID REFERENCES staff(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+-- Migration: run if guests table already exists
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES staff(id) ON DELETE SET NULL;
 
 -- Migration: run these if tables already exist
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS phone_number TEXT;

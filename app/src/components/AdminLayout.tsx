@@ -2,24 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "./ThemeProvider";
 import { useLanguage } from "./LanguageProvider";
 
-const navItems = [
-  { href: "/admin", label: "Dasbor", icon: "📊" },
-  { href: "/admin/guests", label: "Tamu", icon: "👥" },
-  { href: "/admin/rsvp", label: "RSVP", icon: "📋" },
-  { href: "/admin/whatsapp", label: "WhatsApp", icon: "💬" },
-  { href: "/admin/kirim", label: "Kirim", icon: "📤" },
-  { href: "/admin/content", label: "Konten", icon: "✏️" },
-  { href: "/admin/wishes", label: "Harapan", icon: "💌" },
+const ALL_NAV_ITEMS = [
+  { href: "/admin", label: "Dasbor", icon: "📊", roles: ["admin"] },
+  { href: "/admin/guests", label: "Tamu", icon: "👥", roles: ["admin"] },
+  { href: "/admin/rsvp", label: "RSVP", icon: "📋", roles: ["admin"] },
+  { href: "/admin/whatsapp", label: "WhatsApp", icon: "💬", roles: ["admin", "sender"] },
+  { href: "/admin/kirim", label: "Kirim", icon: "📤", roles: ["admin", "sender"] },
+  { href: "/admin/content", label: "Konten", icon: "✏️", roles: ["admin"] },
+  { href: "/admin/wishes", label: "Harapan", icon: "💌", roles: ["admin"] },
+  { href: "/admin/staff", label: "Staf", icon: "👤", roles: ["admin"] },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, toggle: toggleTheme } = useTheme();
   const { lang, toggle: toggleLang } = useLanguage();
+  const { data: session } = useSession();
+  const role = (session?.user as { role?: string })?.role ?? "admin";
+  const navItems = ALL_NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -28,6 +32,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-3">
           <span className="text-lg font-semibold text-gray-800">Panel Admin</span>
           <span className="text-xs bg-[var(--color-cream-dark)] text-[var(--color-gold)] px-2 py-0.5 rounded-full">Pernikahan</span>
+          {role === "sender" && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Pengirim</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

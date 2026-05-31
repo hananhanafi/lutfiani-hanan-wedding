@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       message: message?.trim() || null,
       is_vip: is_vip === true,
       token: uuidv4(),
+      created_by: (token.staffId as string) ?? null,
     })
     .select()
     .single();

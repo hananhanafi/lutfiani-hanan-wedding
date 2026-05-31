@@ -203,7 +203,7 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
   );
 }
 
-function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: () => void; onUpdated: (guest: Guest) => void }) {
+export function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; onClose: () => void; onUpdated: (guest: Guest) => void }) {
   const [form, setForm] = useState({
     name: guest.name,
     email: guest.email ?? "",
@@ -399,8 +399,9 @@ function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gue
 }
 
 function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName: string; onSent?: (guest: Guest) => void; activeSession?: string | null; sessions?: { sessionId: string; status: string; phone: string | null }[] }) {
-  const [step, setStep] = useState<"idle" | "pick" | "otp" | "sending">("idle");
+  const [step, setStep] = useState<"idle" | "pick" | "otp" | "sending" | "success">("idle");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const [pickerSessions, setPickerSessions] = useState(sessions ?? []);
   const [selectedSession, setSelectedSession] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -432,6 +433,40 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
     setStep("otp");
 
     try {
+      // Check if already verified within 1-hour window
+      const checkRes = await fetch(`/api/admin/whatsapp-otp?sessionId=${encodeURIComponent(sessionId)}`);
+      const checkData = await checkRes.json();
+      if (checkData.verified) {
+        setOtpPhoneLast4(checkData.phoneLast4 ?? "");
+        setStep("sending");
+        setSending(true);
+        setSendError("");
+        setOtpSending(false);
+        // Fall through to send
+        try {
+          const res = await fetch("/api/admin/send-whatsapp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ guestId: guest.id, sessionId }),
+          });
+          const data = await res.json();
+          if (data.sent > 0) {
+            const r0 = data.results?.[0];
+            onSent?.({ ...guest, whatsapp_status: "sent", whatsapp_sender_number: r0?.senderNumber ?? sessionId, whatsapp_sent_by: r0?.sentBy ?? null });
+            setStep("success");
+          } else {
+            setSendError(data.results?.[0]?.error ?? "Gagal mengirim");
+            setStep("success");
+          }
+        } catch {
+          setSendError("Gagal mengirim pesan WhatsApp");
+          setStep("success");
+        } finally {
+          setSending(false);
+        }
+        return;
+      }
+      // No valid verification — send a new OTP
       const res = await fetch("/api/admin/whatsapp-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -440,8 +475,36 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
       const data = await res.json();
       if (!res.ok) {
         setOtpError(data.error ?? "Gagal mengirim OTP");
+      } else if (data.alreadyVerified) {
+        setOtpPhoneLast4(data.phoneLast4 ?? "");
+        setStep("sending");
+        setSending(true);
+        setSendError("");
+        setOtpSending(false);
+        try {
+          const res2 = await fetch("/api/admin/send-whatsapp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ guestId: guest.id, sessionId }),
+          });
+          const data2 = await res2.json();
+          if (data2.sent > 0) {
+            const r0 = data2.results?.[0];
+            onSent?.({ ...guest, whatsapp_status: "sent", whatsapp_sender_number: r0?.senderNumber ?? sessionId, whatsapp_sent_by: r0?.sentBy ?? null });
+            setStep("success");
+          } else {
+            setSendError(data2.results?.[0]?.error ?? "Gagal mengirim");
+            setStep("success");
+          }
+        } catch {
+          setSendError("Gagal mengirim pesan WhatsApp");
+          setStep("success");
+        } finally {
+          setSending(false);
+        }
+        return;
       } else {
-        setOtpPhoneLast4(data.phone ?? "");
+        setOtpPhoneLast4(data.phoneLast4 ?? "");
       }
     } catch {
       setOtpError("Gagal mengirim OTP");
@@ -474,6 +537,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
     // OTP verified — send the message
     setOtpVerifying(false);
     setSending(true);
+    setSendError("");
     setStep("sending");
     try {
       const res = await fetch("/api/admin/send-whatsapp", {
@@ -483,15 +547,18 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
       });
       const data = await res.json();
       if (data.sent > 0) {
-        onSent?.({ ...guest, whatsapp_status: "sent" });
+        const r0 = data.results?.[0];
+        onSent?.({ ...guest, whatsapp_status: "sent", whatsapp_sender_number: r0?.senderNumber ?? selectedSession, whatsapp_sent_by: r0?.sentBy ?? null });
+        setStep("success");
       } else {
-        alert(data.results?.[0]?.error ?? "Gagal mengirim");
+        setSendError(data.results?.[0]?.error ?? "Gagal mengirim");
+        setStep("success");
       }
     } catch {
-      alert("Gagal mengirim pesan WhatsApp");
+      setSendError("Gagal mengirim pesan WhatsApp");
+      setStep("success");
     } finally {
       setSending(false);
-      setStep("idle");
     }
   };
 
@@ -507,14 +574,16 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
         {sending ? "..." : "Kirim WA"}
       </button>
 
-      {(step === "pick" || step === "otp") && (
+      {(step === "pick" || step === "otp" || step === "sending" || step === "success") && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-xs p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
-                {step === "pick" ? "Pilih Pengirim" : "Verifikasi OTP"}
+                {step === "pick" ? "Pilih Pengirim" : step === "otp" ? "Verifikasi OTP" : step === "sending" ? "Mengirim..." : sendError ? "Gagal" : "Berhasil!"}
               </h3>
-              <button onClick={() => setStep("idle")} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">&times;</button>
+              {step !== "sending" && (
+                <button onClick={() => setStep("idle")} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">&times;</button>
+              )}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">Kirim ke: <span className="font-medium text-gray-700 dark:text-gray-200">{guest.name}</span></p>
 
@@ -540,6 +609,38 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
                   </div>
                 )}
               </>
+            )}
+
+            {step === "sending" && (
+              <div className="flex flex-col items-center py-4 space-y-3">
+                <div className="w-10 h-10 border-4 border-green-200 border-t-[#25d366] rounded-full animate-spin" />
+                <p className="text-sm text-gray-500">Mengirim undangan...</p>
+              </div>
+            )}
+
+            {step === "success" && (
+              <div className="flex flex-col items-center py-3 space-y-3">
+                {sendError ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">✗</div>
+                    <p className="text-sm text-red-600 text-center">{sendError}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    </div>
+                    <p className="text-sm font-medium text-green-700">Undangan berhasil dikirim!</p>
+                    <p className="text-xs text-gray-400">ke {guest.name}</p>
+                  </>
+                )}
+                <button
+                  onClick={() => setStep("idle")}
+                  className="w-full py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
             )}
 
             {step === "otp" && (
@@ -789,7 +890,7 @@ function WhatsAppBatchModal({
   guests: Guest[];
   coupleName: string;
   onClose: () => void;
-  onSentAll?: (results: { guestId: string; success: boolean }[]) => void;
+  onSentAll?: (results: { guestId: string; success: boolean; senderNumber?: string | null; sentBy?: string | null }[]) => void;
   sessions?: { sessionId: string; status: string; phone: string | null }[];
 }) {
   const eligible = guests.filter((g) => g.phone_number?.trim());
@@ -800,7 +901,7 @@ function WhatsAppBatchModal({
   const [selectedSession, setSelectedSession] = useState<string>("");
   const [sentSoFar, setSentSoFar] = useState(0);
   const [sessions, setSessions] = useState(initialSessions ?? []);
-  const [results, setResults] = useState<{ guestId: string; name: string; success: boolean; error?: string }[]>([]);
+  const [results, setResults] = useState<{ guestId: string; name: string; success: boolean; error?: string; senderNumber?: string | null; sentBy?: string | null }[]>([]);
   const [otpCode, setOtpCode] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -827,6 +928,16 @@ function WhatsAppBatchModal({
     setStep("otp");
 
     try {
+      // Check if already verified within 1-hour window
+      const checkRes = await fetch(`/api/admin/whatsapp-otp?sessionId=${encodeURIComponent(sessionId)}`);
+      const checkData = await checkRes.json();
+      if (checkData.verified) {
+        setOtpPhoneLast4(checkData.phoneLast4 ?? "");
+        setOtpSending(false);
+        setStep("confirm");
+        return;
+      }
+      // No valid verification — send a new OTP
       const res = await fetch("/api/admin/whatsapp-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -835,8 +946,13 @@ function WhatsAppBatchModal({
       const data = await res.json();
       if (!res.ok) {
         setOtpError(data.error ?? "Gagal mengirim OTP");
+      } else if (data.alreadyVerified) {
+        setOtpPhoneLast4(data.phoneLast4 ?? "");
+        setOtpSending(false);
+        setStep("confirm");
+        return;
       } else {
-        setOtpPhoneLast4(data.phone ?? "");
+        setOtpPhoneLast4(data.phoneLast4 ?? "");
       }
     } catch {
       setOtpError("Gagal mengirim OTP");
@@ -908,6 +1024,8 @@ function WhatsAppBatchModal({
     const finalResults = results.map((r) => ({
       guestId: r.guestId,
       success: r.success,
+      senderNumber: r.senderNumber ?? null,
+      sentBy: r.sentBy ?? null,
     }));
     onSentAll?.(finalResults);
     onClose();
@@ -1321,7 +1439,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
           onSentAll={(results) => {
             setGuests((prev) => prev.map((g) => {
               const r = results.find((r) => r.guestId === g.id);
-              if (r?.success) return { ...g, whatsapp_status: "sent" as const };
+              if (r?.success) return { ...g, whatsapp_status: "sent" as const, whatsapp_sender_number: r.senderNumber ?? null, whatsapp_sent_by: r.sentBy ?? null };
               if (r && !r.success) return { ...g, whatsapp_status: "failed" as const };
               return g;
             }));
@@ -1577,6 +1695,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                 {g.email_sent && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">📧 Terkirim</span>}
                 {g.whatsapp_status && g.whatsapp_status !== "failed" && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">💬 {g.whatsapp_status}</span>}
                 {g.whatsapp_status === "failed" && <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">💬 Gagal</span>}
+                {g.whatsapp_sender_number && <span className="text-[10px] text-gray-400 w-full">📱 {g.whatsapp_sender_number}</span>}
               </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-gray-400">{formatDate(g.submitted_at)}</span>
@@ -1612,7 +1731,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "Kirim Email/WA", ""].map((h) => (
+                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "WA Oleh", "Kirim Email/WA", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -1665,6 +1784,15 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                       <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">Gagal</span>
                     ) : (
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Belum</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {g.whatsapp_sender_number ? (
+                      <div className="text-xs">
+                        <p className="text-gray-500 whitespace-nowrap">📱 {g.whatsapp_sender_number}</p>
+                      </div>
+                    ) : (
+                      <span className="text-gray-300">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">

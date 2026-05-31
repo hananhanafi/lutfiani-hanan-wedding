@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Guest } from "@/types";
+import { EditGuestModal } from "@/components/GuestTable";
 
 interface WASession {
   sessionId: string;
@@ -17,6 +18,8 @@ interface SendResult {
   name: string;
   success: boolean;
   error?: string;
+  senderNumber?: string | null;
+  sentBy?: string | null;
 }
 
 export default function KirimPage({
@@ -53,9 +56,12 @@ export default function KirimPage({
 
   // Add guest
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", phone_number: "", group_name: "", side: "" as "" | "bride" | "groom" });
+  const [addForm, setAddForm] = useState({ name: "", phone_number: "", group_name: "", side: "" as "" | "bride" | "groom", is_vip: false });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
+
+  // Edit guest
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
 
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +78,7 @@ export default function KirimPage({
         setAddError(data.error ?? "Gagal menambahkan tamu.");
       } else {
         setGuests((prev) => [data.guest, ...prev]);
-        setAddForm({ name: "", phone_number: "", group_name: "", side: "" });
+        setAddForm({ name: "", phone_number: "", group_name: "", side: "", is_vip: false });
         setShowAddModal(false);
       }
     } catch {
@@ -89,6 +95,8 @@ export default function KirimPage({
       .catch(() => {})
       .finally(() => setSessionsLoading(false));
   }, []);
+
+
 
   const connectedSessions = sessions.filter((s) => s.status === "connected");
 
@@ -148,12 +156,8 @@ export default function KirimPage({
 
   // ── Send flow ──
   const startSend = () => {
-    if (selectedIds.size === 0) return;
-    if (connectedSessions.length === 1) {
-      handleSelectSender(connectedSessions[0].sessionId);
-    } else {
-      setSendStep("pick-sender");
-    }
+    if (selectedIds.size === 0 || !selectedSession) return;
+    handleSelectSender(selectedSession);
   };
 
   const handleSelectSender = async (sessionId: string) => {
@@ -163,6 +167,16 @@ export default function KirimPage({
     setOtpSending(true);
     setSendStep("otp");
     try {
+      // Check if already verified within 1-hour window
+      const checkRes = await fetch(`/api/admin/whatsapp-otp?sessionId=${encodeURIComponent(sessionId)}`);
+      const checkData = await checkRes.json();
+      if (checkData.verified) {
+        setOtpPhoneLast4(checkData.phoneLast4 ?? "");
+        setOtpSending(false);
+        await doSend();
+        return;
+      }
+      // No valid verification — send a new OTP
       const res = await fetch("/api/admin/whatsapp-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -171,8 +185,13 @@ export default function KirimPage({
       const data = await res.json();
       if (!res.ok) {
         setOtpError(data.error ?? "Gagal mengirim OTP");
+      } else if (data.alreadyVerified) {
+        setOtpPhoneLast4(data.phoneLast4 ?? "");
+        setOtpSending(false);
+        await doSend();
+        return;
       } else {
-        setOtpPhoneLast4(data.phone ?? "");
+        setOtpPhoneLast4(data.phoneLast4 ?? "");
       }
     } catch {
       setOtpError("Gagal mengirim OTP");
@@ -248,7 +267,7 @@ export default function KirimPage({
     setGuests((prev) =>
       prev.map((g) => {
         const r = allResults.find((x) => x.guestId === g.id);
-        if (r?.success) return { ...g, whatsapp_status: "sent" as const };
+        if (r?.success) return { ...g, whatsapp_status: "sent" as const, whatsapp_sender_number: r.senderNumber ?? selectedSession, whatsapp_sent_by: r.sentBy ?? null };
         return g;
       })
     );
@@ -266,7 +285,12 @@ export default function KirimPage({
 
   const waStatusBadge = (g: Guest) => {
     if (isWaSent(g))
-      return <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">✓ Terkirim</span>;
+      return (
+        <span className="inline-flex flex-col gap-0.5">
+          <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">✓ Terkirim</span>
+          {g.whatsapp_sender_number && <span className="text-[10px] text-gray-400">📱 {g.whatsapp_sender_number}</span>}
+        </span>
+      );
     if (g.whatsapp_status === "failed")
       return <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full">✗ Gagal</span>;
     return <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">Belum</span>;
@@ -332,6 +356,16 @@ export default function KirimPage({
                 </div>
               </div>
               {addError && <p className="text-sm text-red-500">{addError}</p>}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={addForm.is_vip}
+                  onChange={(e) => setAddForm((p) => ({ ...p, is_vip: e.target.checked }))}
+                  className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
+                />
+                <span className="text-sm font-medium text-gray-700">Tamu VIP</span>
+                <span className="text-xs text-gray-400">(undangan khusus)</span>
+              </label>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Batal</button>
                 <button type="submit" disabled={addSaving} className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors">
@@ -350,36 +384,22 @@ export default function KirimPage({
           <p className="text-sm text-gray-500 mt-0.5">Kirim undangan WhatsApp ke tamu dengan mudah</p>
         </div>
         <button
-          onClick={() => { setAddForm({ name: "", phone_number: "", group_name: "", side: "" }); setAddError(""); setShowAddModal(true); }}
+          onClick={() => { setAddForm({ name: "", phone_number: "", group_name: "", side: "", is_vip: false }); setAddError(""); setShowAddModal(true); }}
           className="flex-shrink-0 px-3 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
         >
           + Tamu
         </button>
       </div>
 
-      {/* WhatsApp status banner */}
-      {sessionsLoading ? null : connectedSessions.length > 0 ? (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm flex-shrink-0">
-            ✓
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-green-800">WhatsApp Terhubung</p>
-            <p className="text-xs text-green-600 truncate">
-              {connectedSessions.map((s) => `${s.sessionId}${s.phone ? ` (+${s.phone})` : ""}`).join(", ")}
-            </p>
-          </div>
-        </div>
-      ) : (
+      {/* Sender picker */}
+      {sessionsLoading ? (
+        <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+      ) : connectedSessions.length === 0 ? (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-white text-sm flex-shrink-0">
-            !
-          </div>
+          <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-white text-sm flex-shrink-0">!</div>
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-800">WhatsApp Belum Terhubung</p>
-            <p className="text-xs text-amber-700 mt-0.5">
-              Hubungkan WhatsApp terlebih dahulu agar bisa kirim undangan.
-            </p>
+            <p className="text-xs text-amber-700 mt-0.5">Hubungkan terlebih dahulu untuk kirim undangan.</p>
           </div>
           <Link
             href="/admin/whatsapp"
@@ -387,6 +407,38 @@ export default function KirimPage({
           >
             Hubungkan →
           </Link>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2.5">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Pengirim WhatsApp</p>
+          <div className="space-y-2">
+            {connectedSessions.map((s) => (
+              <button
+                key={s.sessionId}
+                onClick={() => setSelectedSession(s.sessionId)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 transition-colors text-left ${
+                  selectedSession === s.sessionId
+                    ? "border-[#25d366] bg-green-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                  selectedSession === s.sessionId ? "border-[#25d366] bg-[#25d366]" : "border-gray-300"
+                }`}>
+                  {selectedSession === s.sessionId && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">{s.sessionId}</p>
+                  {s.phone && <p className="text-xs text-gray-500">+{s.phone}</p>}
+                </div>
+                {selectedSession === s.sessionId && (
+                  <span className="text-xs text-[#25d366] font-medium flex-shrink-0">✓ Dipilih</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -483,6 +535,17 @@ export default function KirimPage({
                     <p className="text-[10px] text-gray-400 truncate">{g.group_name}</p>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setEditingGuest(g); }}
+                  className="flex-shrink-0 p-1.5 text-gray-400 hover:text-[var(--color-gold)] transition-colors"
+                  title="Edit tamu"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
               </label>
             );
           })}
@@ -492,22 +555,45 @@ export default function KirimPage({
       {/* Fixed bottom send bar */}
       {selectedIds.size > 0 && sendStep === "idle" && (
         <div className="fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-3 sm:relative sm:bottom-auto sm:border-0 sm:bg-transparent sm:p-0 sm:mt-4">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-800">{selectedIds.size} tamu dipilih</p>
-            <p className="text-xs text-gray-400">
-              {guests.filter((g) => selectedIds.has(g.id) && !g.phone_number?.trim()).length > 0
-                ? `${guests.filter((g) => selectedIds.has(g.id) && !g.phone_number?.trim()).length} tanpa nomor (dilewati)`
-                : "Semua punya nomor WA"}
+            <p className="text-xs text-gray-400 truncate">
+              {selectedSession
+                ? `Via: ${selectedSession}`
+                : connectedSessions.length === 0
+                ? "WhatsApp belum terhubung"
+                : "Pilih pengirim di atas"}
             </p>
           </div>
-          <button
-            onClick={startSend}
-            disabled={connectedSessions.length === 0}
-            className="flex-shrink-0 px-5 py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Kirim WA →
-          </button>
+          {connectedSessions.length === 0 ? (
+            <Link
+              href="/admin/whatsapp"
+              className="flex-shrink-0 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 transition-colors whitespace-nowrap"
+            >
+              Hubungkan WA
+            </Link>
+          ) : (
+            <button
+              onClick={startSend}
+              disabled={!selectedSession}
+              className="flex-shrink-0 px-5 py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Kirim WA →
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Edit guest modal */}
+      {editingGuest && (
+        <EditGuestModal
+          guest={editingGuest}
+          onClose={() => setEditingGuest(null)}
+          onUpdated={(updated) => {
+            setGuests((prev) => prev.map((g) => g.id === updated.id ? updated : g));
+            setEditingGuest(null);
+          }}
+        />
       )}
 
       {/* ── Send Modal ── */}
@@ -530,7 +616,7 @@ export default function KirimPage({
             </div>
 
             <div className="px-5 py-5 space-y-4">
-              {/* Pick sender */}
+              {/* Pick sender — fallback if somehow reached */}
               {sendStep === "pick-sender" && (
                 <>
                   <p className="text-sm text-gray-600">Pilih nomor WhatsApp pengirim:</p>
