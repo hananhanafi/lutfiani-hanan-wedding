@@ -218,29 +218,16 @@ export default function WhatsAppPage() {
     }
   };
 
-  const connectSession = async (sessionId: string) => {
-    setActionLoading(sessionId);
-    try {
-      const res = await fetch(`/api/admin/whatsapp-sessions/${sessionId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "connect" }),
-      });
-      const data = await res.json();
-      if (data.qr) {
-        setQrData({ sessionId, qr: data.qr });
-        setActiveWizardId(sessionId);
-        setWizardStep("qr");
-        setWizardOpen(true);
-        startCountdown();
-      } else if (data.status === "connected") {
-        fetchSessions();
-      }
-    } catch {
-      alert("Gagal menghubungkan");
-    } finally {
-      setActionLoading(null);
-    }
+  const connectSession = (sessionId: string) => {
+    // Re-open wizard at the method picker for the existing session
+    setWizardId(sessionId);
+    setWizardStep("method");
+    setWizardError("");
+    setWizardPhone(null);
+    setActiveWizardId(null);
+    setPairPhoneInput("");
+    setPairCode(null);
+    setWizardOpen(true);
   };
 
   const disconnectSession = async (sessionId: string) => {
