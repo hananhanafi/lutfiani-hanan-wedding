@@ -24,7 +24,9 @@ CREATE TABLE IF NOT EXISTS guests (
   whatsapp_sent_by       UUID REFERENCES staff(id) ON DELETE SET NULL, -- staff who sent the WA invitation
   whatsapp_sender_number TEXT,                           -- WA session/phone number used to send
   is_vip                 BOOLEAN NOT NULL DEFAULT FALSE, -- VIP guest flag
-  created_by             UUID REFERENCES staff(id) ON DELETE SET NULL -- staff member who added this guest
+  created_by             UUID REFERENCES staff(id) ON DELETE SET NULL, -- staff member who added this guest
+  rsvp_submitted_at      TIMESTAMPTZ,                    -- when the guest self-submitted via RSVP form
+  rsvp_submission_id     UUID REFERENCES rsvp_submissions(id) ON DELETE SET NULL -- linked RSVP submission
 );
 
 -- Migration: run this if the table already exists
@@ -32,6 +34,10 @@ CREATE TABLE IF NOT EXISTS guests (
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS side TEXT;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_sent_by UUID REFERENCES staff(id) ON DELETE SET NULL;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS whatsapp_sender_number TEXT;
+-- CREATE UNIQUE INDEX IF NOT EXISTS guests_email_unique ON guests (email) WHERE email IS NOT NULL;
+-- CREATE UNIQUE INDEX IF NOT EXISTS guests_phone_unique ON guests (phone_number) WHERE phone_number IS NOT NULL;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS rsvp_submitted_at TIMESTAMPTZ;
+-- ALTER TABLE guests ADD COLUMN IF NOT EXISTS rsvp_submission_id UUID REFERENCES rsvp_submissions(id) ON DELETE SET NULL;
 
 -- ── Site Configuration ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS site_config (
@@ -93,6 +99,15 @@ CREATE TABLE IF NOT EXISTS rsvp_submissions (
   checked_in       BOOLEAN NOT NULL DEFAULT FALSE,
   checked_in_at    TIMESTAMPTZ
 );
+
+-- ── Rate Limits ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS rate_limits (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ip         TEXT NOT NULL,
+  action     TEXT NOT NULL,              -- e.g. 'rsvp', 'wishes'
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS rate_limits_ip_action_idx ON rate_limits (ip, action, created_at);
 
 -- ── Wishes Wall ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS wishes (

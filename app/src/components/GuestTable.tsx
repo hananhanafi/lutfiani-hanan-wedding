@@ -363,7 +363,7 @@ function SendEmailButton({ guest, onSent }: { guest: Guest; onSent?: (guest: Gue
     guest.email_sent ? "sent" : "idle"
   );
 
-  if (!guest.email || !guest.attending) return <span className="text-gray-300 text-xs">—</span>;
+  if (!guest.email || !guest.attending) return <span className="text-gray-300 text-xs">&mdash;</span>;
 
   const handleSend = async () => {
     setStatus("sending");
@@ -576,31 +576,35 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
 
       {(step === "pick" || step === "otp" || step === "sending" || step === "success") && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-xs p-5 space-y-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-xs p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
-                {step === "pick" ? "Pilih Pengirim" : step === "otp" ? "Verifikasi OTP" : step === "sending" ? "Mengirim..." : sendError ? "Gagal" : "Berhasil!"}
+              <h3 className={`text-sm font-semibold ${
+                step === "success" && sendError ? "text-red-600" :
+                step === "success" ? "text-green-700" :
+                "text-gray-800"
+              }`}>
+                {step === "pick" ? "Pilih Pengirim" : step === "otp" ? "Verifikasi OTP" : step === "sending" ? "Mengirim..." : sendError ? "Gagal Mengirim" : "Berhasil Dikirim!"}
               </h3>
               {step !== "sending" && (
-                <button onClick={() => setStep("idle")} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">&times;</button>
+                <button onClick={() => setStep("idle")} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Kirim ke: <span className="font-medium text-gray-700 dark:text-gray-200">{guest.name}</span></p>
+            <p className="text-xs text-gray-500">Kirim ke: <span className="font-medium text-gray-700">{guest.name}</span></p>
 
             {step === "pick" && (
               <>
                 {connectedSessions.length === 0 ? (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">Tidak ada sesi WA yang terhubung. Hubungkan di menu WhatsApp.</p>
+                  <p className="text-sm text-amber-600">Tidak ada sesi WA yang terhubung. Hubungkan di menu WhatsApp.</p>
                 ) : (
                   <div className="space-y-2">
                     {connectedSessions.map((s) => (
                       <button
                         key={s.sessionId}
                         onClick={() => handleSelectSender(s.sessionId)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 hover:border-green-400 hover:bg-green-50 transition-colors text-left"
                       >
                         <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-white">{s.sessionId}</p>
+                          <p className="text-sm font-medium text-gray-800">{s.sessionId}</p>
                           {s.phone && <p className="text-xs text-gray-400">+{s.phone}</p>}
                         </div>
                         <span className="text-green-500 text-lg">→</span>
@@ -613,7 +617,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
 
             {step === "sending" && (
               <div className="flex flex-col items-center py-4 space-y-3">
-                <div className="w-10 h-10 border-4 border-green-200 border-t-[#25d366] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-green-100 border-t-green-500 rounded-full animate-spin" />
                 <p className="text-sm text-gray-500">Mengirim undangan...</p>
               </div>
             )}
@@ -622,8 +626,9 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
               <div className="flex flex-col items-center py-3 space-y-3">
                 {sendError ? (
                   <>
-                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">✗</div>
-                    <p className="text-sm text-red-600 text-center">{sendError}</p>
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl text-red-500">✗</div>
+                    <p className="text-sm font-medium text-red-600 text-center">Gagal mengirim undangan</p>
+                    <p className="text-xs text-red-400 text-center">{sendError}</p>
                   </>
                 ) : (
                   <>
@@ -636,7 +641,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
                 )}
                 <button
                   onClick={() => setStep("idle")}
-                  className="w-full py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
+                  className={`w-full py-2 rounded-lg text-sm font-medium transition-colors text-white ${sendError ? "bg-red-500 hover:bg-red-600" : "bg-[var(--color-gold)] hover:bg-[var(--color-gold-hover)]"}`}
                 >
                   Tutup
                 </button>
@@ -647,13 +652,13 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
               <>
                 {otpSending ? (
                   <div className="flex flex-col items-center py-3 space-y-2">
-                    <div className="w-7 h-7 border-3 border-green-200 border-t-green-500 rounded-full animate-spin" />
+                    <div className="w-7 h-7 border-2 border-green-100 border-t-green-500 rounded-full animate-spin" />
                     <p className="text-xs text-gray-500">Mengirim OTP...</p>
                   </div>
                 ) : (
                   <>
                     <div className="text-center space-y-1">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-500">
                         OTP dikirim ke nomor pengirim {otpPhoneLast4 && `(****${otpPhoneLast4})`}
                       </p>
                     </div>
@@ -664,7 +669,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
                       placeholder="6 digit OTP"
                       value={otpCode}
                       onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "")); setOtpError(""); }}
-                      className="w-full text-center text-xl tracking-[0.4em] font-mono px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-400"
+                      className="w-full text-center text-xl tracking-[0.4em] font-mono px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-400"
                       autoFocus
                     />
                     {otpError && <p className="text-xs text-red-500 text-center">{otpError}</p>}
@@ -715,7 +720,7 @@ function CopyLinkButton({ token }: { token: string }) {
           : "border-blue-200 text-blue-500 hover:bg-blue-50 hover:text-blue-700"
       }`}
     >
-      {copied ? "✓ Tersalin" : "🔗 Link"}
+      {copied ? "✓ Tersalin" : "🔗 QR Link"}
     </button>
   );
 }
@@ -1692,8 +1697,9 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
               {g.email && <p className="text-xs text-gray-400">{g.email}</p>}
               {g.phone_number && <p className="text-xs text-gray-400">{g.phone_number}</p>}
               <div className="flex items-center gap-2 flex-wrap">
-                {g.email_sent && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">📧 Terkirim</span>}
-                {g.whatsapp_status && g.whatsapp_status !== "failed" && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">💬 {g.whatsapp_status}</span>}
+                {g.rsvp_submitted_at && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">📝 RSVP</span>}
+                {g.email_sent && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">📧 Email Terkirim</span>}
+                {g.whatsapp_status && g.whatsapp_status !== "failed" && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">💬 WA Terkirim</span>}
                 {g.whatsapp_status === "failed" && <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">💬 Gagal</span>}
                 {g.whatsapp_sender_number && <span className="text-[10px] text-gray-400 w-full">📱 {g.whatsapp_sender_number}</span>}
               </div>
@@ -1731,7 +1737,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "VIP", "Email", "Telepon", "Status", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "WA Oleh", "Kirim Email/WA", ""].map((h) => (
+                {["Nama", "VIP", "Email", "Telepon", "Status", "RSVP", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "WA Oleh", "Kirim Email/WA", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -1758,6 +1764,13 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   <td className="px-4 py-3 text-gray-500">{g.email ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">{g.phone_number ?? "—"}</td>
                   <td className="px-4 py-3">{statusBadge(g.attending)}</td>
+                  <td className="px-4 py-3">
+                    {g.rsvp_submitted_at ? (
+                      <span title={formatDate(g.rsvp_submitted_at)} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs whitespace-nowrap">📝 RSVP</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-500">{g.plus_one_name ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">{g.group_name ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500 capitalize">{g.side ?? "—"}</td>
@@ -1772,14 +1785,14 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   </td>
                   <td className="px-4 py-3">
                     {g.email_sent ? (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Terkirim</span>
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">📧 Email Terkirim</span>
                     ) : (
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Belum</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read" ? (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs capitalize">Terkirim</span>
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs capitalize">💬 WA Terkirim</span>
                     ) : g.whatsapp_status === "failed" ? (
                       <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">Gagal</span>
                     ) : (

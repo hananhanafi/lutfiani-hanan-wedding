@@ -15,12 +15,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Look up token in guests first, then rsvp_submissions
-    let guest = null;
+    let guest: { id: string; name: string; attending: boolean | null; plus_one_name: string | null; checked_in: boolean; checked_in_at: string | null; rsvp_submission_id?: string | null } | null = null;
     let source: "guests" | "rsvp_submissions" = "guests";
 
     const { data: adminGuest } = await supabaseAdmin
       .from("guests")
-      .select("id, name, attending, plus_one_name, checked_in, checked_in_at")
+      .select("id, name, attending, plus_one_name, checked_in, checked_in_at, rsvp_submission_id")
       .eq("token", token)
       .maybeSingle();
 
@@ -71,10 +71,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark as checked in
+    const checkedInAt = new Date().toISOString();
     await supabaseAdmin
       .from(source)
-      .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+      .update({ checked_in: true, checked_in_at: checkedInAt })
       .eq("id", guest.id);
+
+    // Sync check-in to the other table
+    if (source === "guests" && guest.rsvp_submission_id) {
+      await supabaseAdmin
+        .from("rsvp_submissions")
+        .update({ checked_in: true, checked_in_at: checkedInAt })
+        .eq("id", guest.rsvp_submission_id);
+    } else if (source === "rsvp_submissions") {
+      await supabaseAdmin
+        .from("guests")
+        .update({ checked_in: true, checked_in_at: checkedInAt })
+        .eq("rsvp_submission_id", guest.id);
+    }
 
     return NextResponse.json({
       success: true,

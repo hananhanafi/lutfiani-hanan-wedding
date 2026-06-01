@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const DEFAULT_LIMIT = 6;
 
@@ -21,6 +22,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const { limited } = await checkRateLimit(ip, "wishes", 10, 600); // 10 per 10 min
+  if (limited) {
+    return NextResponse.json(
+      { error: "Terlalu banyak permintaan. Coba lagi dalam beberapa menit." },
+      { status: 429 }
+    );
+  }
+
   const { name, message } = await req.json();
 
   if (!name?.trim() || !message?.trim()) {

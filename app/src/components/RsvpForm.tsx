@@ -124,7 +124,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Email */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
-              {t("rsvp_email_label")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_email_hint")})</span> <span className="normal-case text-[var(--color-gold)]">({t("rsvp_optional")})</span>
+              {t("rsvp_email_label")} <span className="normal-case text-[var(--color-gold)]">({t("rsvp_email_hint")})</span>
             </label>
             <input
               type="email"

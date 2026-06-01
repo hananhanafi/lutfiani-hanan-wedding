@@ -44,6 +44,26 @@ export async function PATCH(
     return NextResponse.json({ error: "No fields to update." }, { status: 400 });
   }
 
+  // Uniqueness checks (exclude self)
+  const orFilters: string[] = [];
+  if (updateData.email) orFilters.push(`email.eq.${updateData.email}`);
+  if (updateData.phone_number) orFilters.push(`phone_number.eq.${updateData.phone_number}`);
+  if (orFilters.length > 0) {
+    const { data: conflict } = await supabaseAdmin
+      .from("guests")
+      .select("id, email, phone_number")
+      .or(orFilters.join(","))
+      .neq("id", id)
+      .limit(1)
+      .maybeSingle();
+    if (conflict) {
+      if (conflict.email === updateData.email) {
+        return NextResponse.json({ error: "Email sudah digunakan oleh tamu lain." }, { status: 409 });
+      }
+      return NextResponse.json({ error: "Nomor telepon sudah digunakan oleh tamu lain." }, { status: 409 });
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from("guests")
     .update(updateData)

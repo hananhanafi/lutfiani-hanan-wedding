@@ -18,6 +18,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Phone number is required." }, { status: 400 });
   }
 
+  // Uniqueness checks
+  const orFilters: string[] = [];
+  if (email?.trim()) orFilters.push(`email.eq.${email.trim()}`);
+  if (phone_number?.trim()) orFilters.push(`phone_number.eq.${phone_number.trim()}`);
+  if (orFilters.length > 0) {
+    const { data: existing } = await supabaseAdmin
+      .from("guests")
+      .select("id, email, phone_number")
+      .or(orFilters.join(","))
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      if (existing.email === email?.trim()) {
+        return NextResponse.json({ error: "Email sudah digunakan oleh tamu lain." }, { status: 409 });
+      }
+      return NextResponse.json({ error: "Nomor telepon sudah digunakan oleh tamu lain." }, { status: 409 });
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from("guests")
     .insert({

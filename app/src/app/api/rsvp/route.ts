@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { v4 as uuidv4 } from "uuid";
 import { sendMail } from "@/lib/mailer";
 import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const { limited } = await checkRateLimit(ip, "rsvp", 5, 600); // 5 per 10 min
+    if (limited) {
+      return NextResponse.json(
+        { error: "Terlalu banyak permintaan. Coba lagi dalam beberapa menit." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { name, email, phone_number, attending, plus_one_name, group_name, side, message } = body;
 
@@ -103,30 +113,78 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to save RSVP." }, { status: 500 });
     }
 
+    // Auto-link to guest list by email or phone
+    try {
+      const lookupFilters: string[] = [];
+      if (email?.trim()) lookupFilters.push(`email.eq.${email.trim()}`);
+      if (phone_number?.trim()) lookupFilters.push(`phone_number.eq.${phone_number.trim()}`);
+      if (lookupFilters.length > 0) {
+        const { data: matchedGuest } = await supabaseAdmin
+          .from("guests")
+          .select("id")
+          .or(lookupFilters.join(","))
+          .limit(1)
+          .maybeSingle();
+        if (matchedGuest) {
+          await supabaseAdmin
+            .from("guests")
+            .update({
+              attending,
+              message: message?.trim() || null,
+              plus_one_name: plus_one_name?.trim() || null,
+              rsvp_submitted_at: new Date().toISOString(),
+              rsvp_submission_id: submission.id,
+            })
+            .eq("id", matchedGuest.id);
+        }
+      }
+    } catch (linkErr) {
+      console.error("Guest auto-link error (RSVP still saved):", linkErr);
+    }
+
     // Send emails (non-blocking)
     try {
-      if (attending && email && qrDataUrl) {
-        const qrBase64 = dataUrlToBase64(qrDataUrl);
-        await sendMail({
-          to: email,
-          subject: isUpdate ? "Your Updated Wedding Entry Pass 💌" : "Your Wedding Entry Pass 💌",
-          html: `
-            <div style="font-family: Georgia, serif; max-width: 500px; margin: 0 auto; padding: 32px; background: #fffbf5; color: #3a3028;">
-              <h1 style="font-size: 28px; text-align: center; margin-bottom: 8px;">We can't wait to see you!</h1>
-              <p style="text-align: center; color: #9a7d5a; margin-bottom: 24px;">Dear ${name}, your RSVP has been ${isUpdate ? "updated" : "confirmed"}.</p>
-              <p style="text-align: center; color: #3a3028; margin-bottom: 8px;">Please show this QR code at the entrance:</p>
-              <div style="text-align: center; margin: 24px 0;">
-                <img src="cid:qrcode" alt="Your Entry QR Code" width="200" style="border-radius: 12px;" />
+      if (email) {
+        if (attending && qrDataUrl) {
+          const qrBase64 = dataUrlToBase64(qrDataUrl);
+          await sendMail({
+            to: email,
+            subject: isUpdate ? "Your Updated Wedding Entry Pass 💌" : "Your Wedding Entry Pass 💌",
+            html: `
+              <div style="font-family: Georgia, serif; max-width: 500px; margin: 0 auto; padding: 32px; background: #fffbf5; color: #3a3028;">
+                <h1 style="font-size: 28px; text-align: center; margin-bottom: 8px;">We can't wait to see you!</h1>
+                <p style="text-align: center; color: #9a7d5a; margin-bottom: 24px;">Dear ${name}, your RSVP has been ${isUpdate ? "updated" : "confirmed"}.</p>
+                <p style="text-align: center; color: #3a3028; margin-bottom: 8px;">Please show this QR code at the entrance:</p>
+                <div style="text-align: center; margin: 24px 0;">
+                  <img src="cid:qrcode" alt="Your Entry QR Code" width="200" style="border-radius: 12px;" />
+                </div>
+                <p style="text-align: center; font-size: 13px; color: #9a7d5a;">
+                  You can also access your pass at:<br/>
+                  <a href="${qrUrl}" style="color: #c9a96e;">${qrUrl}</a>
+                </p>
+                ${plus_one_name ? `<p style="text-align:center; font-size:13px; color:#9a7d5a; margin-top:8px;">Plus one: ${plus_one_name}</p>` : ""}
               </div>
-              <p style="text-align: center; font-size: 13px; color: #9a7d5a;">
-                You can also access your pass at:<br/>
-                <a href="${qrUrl}" style="color: #c9a96e;">${qrUrl}</a>
-              </p>
-              ${plus_one_name ? `<p style="text-align:center; font-size:13px; color:#9a7d5a; margin-top:8px;">Plus one: ${plus_one_name}</p>` : ""}
-            </div>
-          `,
-          attachments: [{ filename: "entry-pass.png", content: qrBase64, encoding: "base64", contentType: "image/png", cid: "qrcode" }],
-        });
+            `,
+            attachments: [{ filename: "entry-pass.png", content: qrBase64, encoding: "base64", contentType: "image/png", cid: "qrcode" }],
+          });
+        } else if (!attending) {
+          await sendMail({
+            to: email,
+            subject: "Thank you for your response 💌",
+            html: `
+              <div style="font-family: Georgia, serif; max-width: 500px; margin: 0 auto; padding: 32px; background: #fffbf5; color: #3a3028;">
+                <h1 style="font-size: 28px; text-align: center; margin-bottom: 8px;">Thank you, ${name}!</h1>
+                <p style="text-align: center; color: #9a7d5a; margin-bottom: 24px;">
+                  We received your RSVP and understand that you won't be able to join us on our special day.
+                </p>
+                <p style="text-align: center; color: #3a3028; margin-bottom: 24px;">
+                  We truly appreciate you letting us know, and we hope to celebrate with you another time.
+                </p>
+                <p style="text-align: center; color: #9a7d5a; font-size: 13px;">With love 💛</p>
+              </div>
+            `,
+          });
+        }
       }
 
       const notifyEmail = process.env.GMAIL_USER!;

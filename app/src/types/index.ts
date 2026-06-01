@@ -35,6 +35,8 @@ export interface Guest {
   whatsapp_sender_number?: string | null;
   is_vip: boolean;
   created_by?: string | null;
+  rsvp_submitted_at?: string | null;
+  rsvp_submission_id?: string | null;
 }
 
 export interface ScheduleItem {
