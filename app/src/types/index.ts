@@ -54,6 +54,12 @@ export interface FaqItem {
   answer_en?: string;
 }
 
+export interface BankAccount {
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+}
+
 export interface SiteConfig {
   id: number;
   partner_one_name: string;
@@ -80,6 +86,7 @@ export interface SiteConfig {
   bank_name?: string;
   bank_account_number?: string;
   bank_account_name?: string;
+  bank_accounts_json?: BankAccount[];
   travel_info?: string;
   travel_info_en?: string;
   faq_json: FaqItem[];

@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS site_config (
   bank_name            TEXT,
   bank_account_number  TEXT,
   bank_account_name    TEXT,
+  bank_accounts_json   JSONB DEFAULT '[]',           -- array of {bank_name, account_number, account_name}
   travel_info          TEXT,
   travel_info_en       TEXT,
   spotify_playlist_url TEXT,
@@ -157,6 +158,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_session_owners (
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS bank_account_number TEXT;
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS bank_account_name TEXT;
 -- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS spotify_playlist_url TEXT;
+-- ALTER TABLE site_config ADD COLUMN IF NOT EXISTS bank_accounts_json JSONB DEFAULT '[]';
 -- ALTER TABLE wishes ADD COLUMN IF NOT EXISTS reactions JSONB DEFAULT '{}';
 
 -- ── Seed default site config row ────────────────────────────

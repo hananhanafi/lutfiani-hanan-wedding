@@ -138,10 +138,11 @@ export default async function Home({ searchParams }: Props) {
         </ScrollReveal>
       )}
 
-      {(config.gift_qr_url || config.bank_name || config.bank_account_number) && (
+      {(config.gift_qr_url || config.bank_name || config.bank_account_number || (config.bank_accounts_json && config.bank_accounts_json.length > 0)) && (
         <ScrollReveal direction="up">
           <GiftRegistry
             qrUrl={config.gift_qr_url}
+            bankAccounts={config.bank_accounts_json}
             bankName={config.bank_name}
             bankAccountNumber={config.bank_account_number}
             bankAccountName={config.bank_account_name}

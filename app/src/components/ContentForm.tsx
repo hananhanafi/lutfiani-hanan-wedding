@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SiteConfig, ScheduleItem, FaqItem } from "@/types";
+import type { SiteConfig, ScheduleItem, FaqItem, BankAccount } from "@/types";
 
 // Defined outside ContentForm so React doesn't remount them on every keystroke
 function Field({
@@ -63,9 +63,6 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     story_text: config.story_text ?? "",
     story_text_en: config.story_text_en ?? "",
     gift_qr_url: config.gift_qr_url ?? "",
-    bank_name: config.bank_name ?? "",
-    bank_account_number: config.bank_account_number ?? "",
-    bank_account_name: config.bank_account_name ?? "",
     travel_info: config.travel_info ?? "",
     travel_info_en: config.travel_info_en ?? "",
     theme_color_primary: config.theme_color_primary ?? "#c9a96e",
@@ -99,6 +96,23 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
   const removeFaqItem = (i: number) => setFaqItems((prev) => prev.filter((_, idx) => idx !== i));
   const setFaqField = (i: number, field: keyof FaqItem, value: string) =>
     setFaqItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+
+  // Bank accounts (multi)
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() => {
+    if (config.bank_accounts_json && Array.isArray(config.bank_accounts_json) && config.bank_accounts_json.length > 0) {
+      return config.bank_accounts_json;
+    }
+    // Migrate from single bank fields
+    if (config.bank_name || config.bank_account_number || config.bank_account_name) {
+      return [{ bank_name: config.bank_name ?? "", account_number: config.bank_account_number ?? "", account_name: config.bank_account_name ?? "" }];
+    }
+    return [];
+  });
+  const addBankAccount = () => setBankAccounts((prev) => [...prev, { bank_name: "", account_number: "", account_name: "" }]);
+  const removeBankAccount = (i: number) => setBankAccounts((prev) => prev.filter((_, idx) => idx !== i));
+  const setBankField = (i: number, field: keyof BankAccount, value: string) =>
+    setBankAccounts((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingPartnerOne, setUploadingPartnerOne] = useState(false);
@@ -144,6 +158,7 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           ...form,
           schedule_json,
           faq_json,
+          bank_accounts_json: bankAccounts.filter((a) => a.bank_name || a.account_number),
           gallery_photos_json: galleryUrls,
           site_password_enabled: passwordEnabled,
           site_password_plain: form.site_password_plain || undefined,
@@ -483,10 +498,28 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           <p className="text-xs text-gray-400 mt-1">GoPay, OVO, Dana, dll. · JPG atau PNG</p>
         </div>
 
-        {/* Bank Details */}
-        <Field label="Nama Bank" value={form.bank_name} onChange={(v) => set("bank_name", v)} placeholder="mis. BCA, Mandiri, BNI" />
-        <Field label="Nomor Rekening" value={form.bank_account_number} onChange={(v) => set("bank_account_number", v)} placeholder="mis. 1234567890" />
-        <Field label="Nama Pemilik Rekening" value={form.bank_account_name} onChange={(v) => set("bank_account_name", v)} placeholder="mis. Budi Santoso" />
+        {/* Bank Details (multiple) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Rekening Bank</label>
+            <button type="button" onClick={addBankAccount}
+              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors">
+              + Tambah Rekening
+            </button>
+          </div>
+          {bankAccounts.length === 0 && (
+            <p className="text-xs text-gray-400">Belum ada rekening. Klik &quot;+ Tambah Rekening&quot; untuk menambahkan.</p>
+          )}
+          {bankAccounts.map((acc, i) => (
+            <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2 relative">
+              <button type="button" onClick={() => removeBankAccount(i)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xs transition-colors">✕</button>
+              <Field label={`Bank ${i + 1}`} value={acc.bank_name} onChange={(v) => setBankField(i, "bank_name", v)} placeholder="mis. BCA, Mandiri, BNI" />
+              <Field label="Nomor Rekening" value={acc.account_number} onChange={(v) => setBankField(i, "account_number", v)} placeholder="mis. 1234567890" />
+              <Field label="Nama Pemilik" value={acc.account_name} onChange={(v) => setBankField(i, "account_name", v)} placeholder="mis. Budi Santoso" />
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Spotify Playlist */}
