@@ -1,10 +1,10 @@
-import { getServerSession } from "next-auth";
+import { getServerSession, type NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -43,17 +43,17 @@ export const authOptions = {
   session: { strategy: "jwt" as const },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }: { token: Record<string, unknown>; user?: { id?: string; role?: string } }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.role = user.role ?? "admin";
+        token.role = (user as { id?: string; role?: string }).role ?? "admin";
         token.staffId = user.id;
       }
       return token;
     },
-    async session({ session, token }: { session: { user?: Record<string, unknown> }; token: Record<string, unknown> }) {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.role = (token.role as string) ?? "admin";
-        session.user.staffId = token.staffId as string | undefined;
+        (session.user as Record<string, unknown>).role = (token.role as string) ?? "admin";
+        (session.user as Record<string, unknown>).staffId = token.staffId as string | undefined;
       }
       return session;
     },
