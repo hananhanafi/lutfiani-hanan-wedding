@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from "react";
 interface Props {
   onScan: (result: string) => void;
   active: boolean;
+  fullscreen?: boolean;
 }
 
-export default function QrScanner({ onScan, active }: Props) {
+export default function QrScanner({ onScan, active, fullscreen }: Props) {
   const scannerRef = useRef<InstanceType<typeof import("html5-qrcode").Html5Qrcode> | null>(null);
   const isRunning = useRef(false);
   const firedRef = useRef(false);
@@ -39,7 +40,7 @@ export default function QrScanner({ onScan, active }: Props) {
       html5Qrcode
         .start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: (w, h) => { const size = Math.floor(Math.min(w, h) * 0.85); return { width: size, height: size }; } },
+          { fps: 10, qrbox: (w, h) => { const size = Math.max(50, Math.floor(Math.min(w, h) * 0.85)); return { width: size, height: size }; } },
           (decodedText) => {
             if (firedRef.current) return;
             firedRef.current = true;
@@ -72,13 +73,13 @@ export default function QrScanner({ onScan, active }: Props) {
   }, [active]); // onScan intentionally excluded — accessed via ref
 
   return (
-    <div className="rounded-2xl overflow-hidden bg-black w-full">
+    <div className={fullscreen ? "w-full h-full bg-black" : "rounded-2xl overflow-hidden bg-black w-full"}>
       {cameraError ? (
         <div className="flex items-center justify-center h-64 p-4 text-center">
           <p className="text-red-400 text-sm">{cameraError}</p>
         </div>
       ) : (
-        <div id="qr-reader" className="w-full" />
+        <div id="qr-reader" className={fullscreen ? "w-full h-full" : "w-full"} />
       )}
     </div>
   );

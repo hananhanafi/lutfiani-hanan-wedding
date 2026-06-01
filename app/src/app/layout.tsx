@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Lato, Cormorant_Garamond, Cinzel, Great_Vibes } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -105,15 +106,16 @@ export default async function RootLayout({
       } as React.CSSProperties}
     >
       <head>
-        {/* Anti-flash: apply saved theme before first paint */}
-        <script
+        <meta name="facebook-domain-verification" content="ixd2nuvhf3nhulxsw9j1hry6v8i9rj" />
+      </head>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}`,
           }}
         />
-        <meta name="facebook-domain-verification" content="ixd2nuvhf3nhulxsw9j1hry6v8i9rj" />
-      </head>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
             {children}

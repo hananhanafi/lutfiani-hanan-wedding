@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 const QrScanner = dynamic(() => import("@/components/QrScanner"), { ssr: false });
@@ -48,6 +48,15 @@ export default function ScannerPage() {
   const [walkinLoading, setWalkinLoading] = useState(false);
   const [walkinResult, setWalkinResult] = useState<{ name: string; plus_one_name?: string } | null>(null);
   const [walkinError, setWalkinError] = useState("");
+
+  // Desktop layout detection
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // PIN verification
   const handleVerifyPin = async (e: React.FormEvent) => {
@@ -240,9 +249,52 @@ export default function ScannerPage() {
     );
   }
 
+  // ── Result card (shared between mobile inline + desktop overlay) ──────────
+  const ResultCard = () => !result ? null : (
+    <div className={`rounded-2xl p-6 text-center border ${
+      result.status === "success" ? "bg-green-50 border-green-200" :
+      result.status === "already_checked_in" ? "bg-amber-50 border-amber-200" :
+      "bg-red-50 border-red-200"
+    }`}>
+      <div className="text-4xl mb-3">
+        {result.status === "success" ? "✅" : result.status === "already_checked_in" ? "⚠️" : "❌"}
+      </div>
+      {result.status === "success" && (
+        <>
+          <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
+          {result.plus_one_name && <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {result.plus_one_name}</p>}
+          <p className="text-green-600 text-xs mt-3 font-[family-name:var(--font-lato)]">Berhasil check-in!</p>
+        </>
+      )}
+      {result.status === "already_checked_in" && (
+        <>
+          <p className="text-amber-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
+          <p className="text-amber-600 text-sm mt-1 font-[family-name:var(--font-lato)]">Sudah check-in sebelumnya</p>
+          {result.checked_in_at && (
+            <p className="text-amber-500 text-xs mt-1 font-[family-name:var(--font-lato)]">
+              pukul {new Date(result.checked_in_at).toLocaleTimeString("id-ID")}
+            </p>
+          )}
+        </>
+      )}
+      {result.status === "error" && (
+        <>
+          <p className="text-red-700 font-semibold font-[family-name:var(--font-lato)]">QR Code Tidak Valid</p>
+          <p className="text-red-500 text-sm mt-1 font-[family-name:var(--font-lato)]">{result.message}</p>
+        </>
+      )}
+      <button
+        onClick={reset}
+        className="mt-4 px-6 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
+      >
+        Tamu Berikutnya
+      </button>
+    </div>
+  );
+
   // ── Main scanner UI ─────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#fffbf5] px-4 py-6">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-[#fffbf5] md:flex">
 
       {/* ── Confirmation Modal ── */}
       {pendingGuest && (
@@ -276,218 +328,259 @@ export default function ScannerPage() {
         </div>
       )}
 
-      <div className="max-w-sm mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-[family-name:var(--font-wedding)] text-[#3a3028]">Scanner Tamu</h1>
-            <p className="text-xs text-[#9a7d5a] font-[family-name:var(--font-lato)]">Check-in Pernikahan</p>
-          </div>
-          <button
-            onClick={() => setPinVerified(false)}
-            className="text-xs text-[#c9b99a] hover:text-[#9a7d5a] font-[family-name:var(--font-lato)] transition-colors"
-          >
-            Kunci
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex bg-white border border-[#e8ddd0] rounded-xl p-1 mb-5 shadow-sm">
-          {(["scan", "lookup", "walkin"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => { setTab(t); setResult(null); setScanning(t === "scan"); }}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors font-[family-name:var(--font-lato)] ${
-                tab === t ? "bg-[var(--color-gold)] text-white shadow-sm" : "text-[#9a7d5a] hover:text-[#3a3028]"
-              }`}
-            >
-              {t === "scan" ? "📷 Scan" : t === "lookup" ? "🔍 Cari" : "➕ Tamu Baru"}
-            </button>
-          ))}
-        </div>
-
-        {/* ── SCAN TAB ── */}
+      {/* ── Desktop left: full-screen camera panel ── */}
+      {isDesktop && (
+      <div className="flex flex-1 relative bg-black overflow-hidden">
         {tab === "scan" && (
-          <div>
-            {/* Result screen */}
-            {result && (
-              <div className={`rounded-2xl p-6 mb-4 text-center border ${
-                result.status === "success"
-                  ? "bg-green-50 border-green-200"
-                  : result.status === "already_checked_in"
-                  ? "bg-amber-50 border-amber-200"
-                  : "bg-red-50 border-red-200"
-              }`}>
-                <div className="text-4xl mb-3">
-                  {result.status === "success" ? "✅" : result.status === "already_checked_in" ? "⚠️" : "❌"}
+          <>
+            {/* Full-screen camera */}
+            {scanning && !result && (
+              <>
+                <div className="absolute inset-0">
+                  <QrScanner onScan={handleScan} active={scanning} fullscreen />
                 </div>
-                {result.status === "success" && (
-                  <>
-                    <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
-                    {result.plus_one_name && <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {result.plus_one_name}</p>}
-                    <p className="text-green-600 text-xs mt-3 font-[family-name:var(--font-lato)]">Berhasil check-in!</p>
-                  </>
-                )}
-                {result.status === "already_checked_in" && (
-                  <>
-                    <p className="text-amber-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
-                    <p className="text-amber-600 text-sm mt-1 font-[family-name:var(--font-lato)]">Sudah check-in sebelumnya</p>
-                    {result.checked_in_at && (
-                      <p className="text-amber-500 text-xs mt-1 font-[family-name:var(--font-lato)]">
-                        pukul {new Date(result.checked_in_at).toLocaleTimeString("id-ID")}
-                      </p>
-                    )}
-                  </>
-                )}
-                {result.status === "error" && (
-                  <>
-                    <p className="text-red-700 font-semibold font-[family-name:var(--font-lato)]">QR Code Tidak Valid</p>
-                    <p className="text-red-500 text-sm mt-1 font-[family-name:var(--font-lato)]">{result.message}</p>
-                  </>
-                )}
+                <div className="absolute bottom-8 left-0 right-0 text-center pointer-events-none">
+                  <p className="text-white/50 text-sm font-[family-name:var(--font-lato)]">Arahkan kamera ke QR code tamu</p>
+                </div>
+              </>
+            )}
+            {/* Result overlay on camera */}
+            {result && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/75 p-8">
+                <div className="w-full max-w-sm">
+                  <ResultCard />
+                </div>
+              </div>
+            )}
+            {/* Start camera prompt */}
+            {!scanning && !result && (
+              <div className="absolute inset-0 flex items-center justify-center">
                 <button
-                  onClick={reset}
-                  className="mt-4 px-6 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
+                  onClick={() => setScanning(true)}
+                  disabled={processing}
+                  className="px-10 py-5 bg-[var(--color-gold)] text-white rounded-2xl text-xl font-medium hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 shadow-lg font-[family-name:var(--font-lato)]"
                 >
-                  Tamu Berikutnya
+                  {processing ? "Memproses..." : "📷 Mulai Scan"}
                 </button>
               </div>
             )}
-
-            {/* Scanner */}
-            {!result && (
-              <>
-                {scanning ? (
-                  <div>
-                    <div className="rounded-2xl overflow-hidden border border-[#e8ddd0] shadow-sm">
-                      <QrScanner onScan={handleScan} active={scanning} />
-                    </div>
-                    <p className="text-center text-[#9a7d5a] text-xs mt-3 font-[family-name:var(--font-lato)]">Arahkan kamera ke QR code tamu</p>
-                    <button
-                      onClick={() => setScanning(false)}
-                      className="w-full mt-3 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
-                    >
-                      Hentikan Kamera
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setScanning(true)}
-                    disabled={processing}
-                    className="w-full py-6 bg-[var(--color-gold)] text-white rounded-2xl text-lg font-medium hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 shadow-sm font-[family-name:var(--font-lato)]"
-                  >
-                    {processing ? "Memproses..." : "📷 Mulai Scan"}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+          </>
         )}
-
-        {/* ── LOOKUP TAB ── */}
-        {tab === "lookup" && (
-          <div>
-            <form onSubmit={handleLookup} className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={lookupName}
-                onChange={(e) => setLookupName(e.target.value)}
-                placeholder="Cari nama tamu…"
-                className="flex-1 border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
-              />
-              <button
-                type="submit"
-                disabled={lookupLoading}
-                className="px-4 py-2.5 bg-[var(--color-gold)] text-white rounded-xl text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 font-[family-name:var(--font-lato)]"
-              >
-                {lookupLoading ? "…" : "Cari"}
-              </button>
-            </form>
-
-            {lookupMessage && (
-              <p className="text-center text-sm text-[#9a7d5a] mb-3 font-[family-name:var(--font-lato)]">{lookupMessage}</p>
-            )}
-
-            <div className="space-y-3">
-              {lookupResults.map((g) => (
-                <div key={g.id} className="bg-white border border-[#e8ddd0] rounded-xl p-4 flex items-center justify-between shadow-sm">
-                  <div>
-                    <p className="text-[#3a3028] font-medium font-[family-name:var(--font-lato)]">{g.name}</p>
-                    {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">+1: {g.plus_one_name}</p>}
-                  </div>
-                  {g.checked_in ? (
-                    <span className="text-green-600 text-xs font-medium font-[family-name:var(--font-lato)]">✅ Selesai</span>
-                  ) : (
-                    <button
-                      onClick={() => handleManualCheckin(g.id)}
-                      className="px-3 py-1.5 bg-[var(--color-gold)] text-white rounded-lg text-xs hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)]"
-                    >
-                      Check In
-                    </button>
-                  )}
-                </div>
-              ))}
+        {tab !== "scan" && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center space-y-3">
+              <div className="text-7xl opacity-10">📷</div>
+              <p className="text-white/25 text-sm font-[family-name:var(--font-lato)]">Kamera tidak aktif</p>
             </div>
           </div>
         )}
+      </div>
+      )}
 
-        {/* ── WALK-IN TAB ── */}
-        {tab === "walkin" && (
-          <div>
-            {walkinResult && (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4 text-center">
-                <div className="text-4xl mb-2">✅</div>
-                <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{walkinResult.name}</p>
-                {walkinResult.plus_one_name && (
-                  <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {walkinResult.plus_one_name}</p>
-                )}
-                <p className="text-green-600 text-xs mt-2 font-[family-name:var(--font-lato)]">Berhasil ditambahkan &amp; check-in!</p>
+      {/* ── Right panel (controls) — full width on mobile, fixed sidebar on desktop ── */}
+      <div className="w-full md:w-80 lg:w-96 md:flex-shrink-0 md:overflow-y-auto md:border-l border-[#e8ddd0] bg-[#fffbf5]">
+        <div className="px-4 py-6 space-y-5">
+
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-[family-name:var(--font-wedding)] text-[#3a3028]">Scanner Tamu</h1>
+              <p className="text-xs text-[#9a7d5a] font-[family-name:var(--font-lato)]">Check-in Pernikahan</p>
+            </div>
+            <button
+              onClick={() => setPinVerified(false)}
+              className="text-xs text-[#c9b99a] hover:text-[#9a7d5a] font-[family-name:var(--font-lato)] transition-colors"
+            >
+              Kunci
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex bg-white border border-[#e8ddd0] rounded-xl p-1 shadow-sm">
+            {(["scan", "lookup", "walkin"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => { setTab(t); setResult(null); setScanning(t === "scan"); }}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors font-[family-name:var(--font-lato)] ${
+                  tab === t ? "bg-[var(--color-gold)] text-white shadow-sm" : "text-[#9a7d5a] hover:text-[#3a3028]"
+                }`}
+              >
+                {t === "scan" ? "📷 Scan" : t === "lookup" ? "🔍 Cari" : "➕ Tamu Baru"}
+              </button>
+            ))}
+          </div>
+
+          {/* ── SCAN TAB ── */}
+          {tab === "scan" && (
+            <div className="space-y-3">
+              {/* Mobile: inline camera */}
+              {!isDesktop && (
+                <>
+                  {result && <ResultCard />}
+                  {!result && scanning && (
+                    <div>
+                      <div className="rounded-2xl overflow-hidden border border-[#e8ddd0] shadow-sm">
+                        <QrScanner onScan={handleScan} active={scanning} />
+                      </div>
+                      <p className="text-center text-[#9a7d5a] text-xs mt-3 font-[family-name:var(--font-lato)]">Arahkan kamera ke QR code tamu</p>
+                      <button
+                        onClick={() => setScanning(false)}
+                        className="w-full mt-3 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
+                      >
+                        Hentikan Kamera
+                      </button>
+                    </div>
+                  )}
+                  {!result && !scanning && (
+                    <button
+                      onClick={() => setScanning(true)}
+                      disabled={processing}
+                      className="w-full py-6 bg-[var(--color-gold)] text-white rounded-2xl text-lg font-medium hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 shadow-sm font-[family-name:var(--font-lato)]"
+                    >
+                      {processing ? "Memproses..." : "📷 Mulai Scan"}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Desktop: camera is in left panel; show status + result here */}
+              {isDesktop && (
+                <>
+                  {result && <ResultCard />}
+                  {!result && (
+                    <div className="text-center py-8 space-y-4">
+                      {scanning ? (
+                        <>
+                          <div className="w-16 h-16 border-2 border-[#e8ddd0] rounded-full flex items-center justify-center mx-auto animate-pulse">
+                            <span className="text-2xl">📷</span>
+                          </div>
+                          <p className="text-[#9a7d5a] text-sm font-[family-name:var(--font-lato)]">Kamera aktif — arahkan ke QR code</p>
+                          <button
+                            onClick={() => setScanning(false)}
+                            className="px-5 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
+                          >
+                            Hentikan Kamera
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setScanning(true)}
+                          disabled={processing}
+                          className="w-full py-5 bg-[var(--color-gold)] text-white rounded-2xl text-base font-medium hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 shadow-sm font-[family-name:var(--font-lato)]"
+                        >
+                          {processing ? "Memproses..." : "📷 Mulai Scan"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── LOOKUP TAB ── */}
+          {tab === "lookup" && (
+            <div>
+              <form onSubmit={handleLookup} className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={lookupName}
+                  onChange={(e) => setLookupName(e.target.value)}
+                  placeholder="Cari nama tamu…"
+                  className="flex-1 border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
+                />
                 <button
-                  onClick={() => setWalkinResult(null)}
-                  className="mt-4 px-5 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
+                  type="submit"
+                  disabled={lookupLoading}
+                  className="px-4 py-2.5 bg-[var(--color-gold)] text-white rounded-xl text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 font-[family-name:var(--font-lato)]"
                 >
-                  Tambah Lagi
+                  {lookupLoading ? "…" : "Cari"}
                 </button>
+              </form>
+
+              {lookupMessage && (
+                <p className="text-center text-sm text-[#9a7d5a] mb-3 font-[family-name:var(--font-lato)]">{lookupMessage}</p>
+              )}
+
+              <div className="space-y-3">
+                {lookupResults.map((g) => (
+                  <div key={g.id} className="bg-white border border-[#e8ddd0] rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                      <p className="text-[#3a3028] font-medium font-[family-name:var(--font-lato)]">{g.name}</p>
+                      {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">+1: {g.plus_one_name}</p>}
+                    </div>
+                    {g.checked_in ? (
+                      <span className="text-green-600 text-xs font-medium font-[family-name:var(--font-lato)]">✅ Selesai</span>
+                    ) : (
+                      <button
+                        onClick={() => handleManualCheckin(g.id)}
+                        className="px-3 py-1.5 bg-[var(--color-gold)] text-white rounded-lg text-xs hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)]"
+                      >
+                        Check In
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {!walkinResult && (
-              <form onSubmit={handleWalkin} className="space-y-3">
-                <div>
-                  <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">
-                    Nama Tamu <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    required
-                    value={walkinName}
-                    onChange={(e) => setWalkinName(e.target.value)}
-                    maxLength={100}
-                    placeholder="Nama lengkap"
-                    className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
-                  />
+          {/* ── WALK-IN TAB ── */}
+          {tab === "walkin" && (
+            <div>
+              {walkinResult && (
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4 text-center">
+                  <div className="text-4xl mb-2">✅</div>
+                  <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{walkinResult.name}</p>
+                  {walkinResult.plus_one_name && (
+                    <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {walkinResult.plus_one_name}</p>
+                  )}
+                  <p className="text-green-600 text-xs mt-2 font-[family-name:var(--font-lato)]">Berhasil ditambahkan &amp; check-in!</p>
+                  <button
+                    onClick={() => setWalkinResult(null)}
+                    className="mt-4 px-5 py-2 border border-[#e8ddd0] text-[#9a7d5a] bg-white rounded-xl text-sm hover:bg-[#fffbf5] transition-colors font-[family-name:var(--font-lato)]"
+                  >
+                    Tambah Lagi
+                  </button>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">Pendamping</label>
-                  <input
-                    value={walkinPlusOne}
-                    onChange={(e) => setWalkinPlusOne(e.target.value)}
-                    maxLength={100}
-                    placeholder="Nama pasangan (opsional)"
-                    className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
-                  />
-                </div>
-                <div>
+              {!walkinResult && (
+                <form onSubmit={handleWalkin} className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">
+                      Nama Tamu <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      required
+                      value={walkinName}
+                      onChange={(e) => setWalkinName(e.target.value)}
+                      maxLength={100}
+                      placeholder="Nama lengkap"
+                      className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">Pendamping</label>
+                    <input
+                      value={walkinPlusOne}
+                      onChange={(e) => setWalkinPlusOne(e.target.value)}
+                      maxLength={100}
+                      placeholder="Nama pasangan (opsional)"
+                      className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">Dari / Grup</label>
                     <input
                       value={walkinGroup}
                       onChange={(e) => setWalkinGroup(e.target.value)}
                       maxLength={100}
                       placeholder="cth. Keluarga, Kampus"
-                    className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
-                  />
-                </div>
-                <div>
+                      className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">Tamu dari</label>
                     <select
                       value={walkinSide}
@@ -497,24 +590,26 @@ export default function ScannerPage() {
                       <option value="">—</option>
                       <option value="bride">Mempelai Wanita</option>
                       <option value="groom">Mempelai Pria</option>
-                  </select>
-                </div>
+                    </select>
+                  </div>
 
-                {walkinError && (
-                  <p className="text-red-500 text-sm text-center font-[family-name:var(--font-lato)]">{walkinError}</p>
-                )}
+                  {walkinError && (
+                    <p className="text-red-500 text-sm text-center font-[family-name:var(--font-lato)]">{walkinError}</p>
+                  )}
 
-                <button
-                  type="submit"
-                  disabled={walkinLoading}
-                  className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl font-medium hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-60 font-[family-name:var(--font-lato)]"
-                >
-                  {walkinLoading ? "Menambahkan…" : "➕ Tambah & Check In"}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
+                  <button
+                    type="submit"
+                    disabled={walkinLoading}
+                    className="w-full py-3 bg-[var(--color-gold)] text-white rounded-xl font-medium hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-60 font-[family-name:var(--font-lato)]"
+                  >
+                    {walkinLoading ? "Menambahkan…" : "➕ Tambah & Check In"}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
