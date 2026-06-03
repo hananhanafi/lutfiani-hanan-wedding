@@ -48,6 +48,24 @@ export default function BackgroundMusicPlayer({ mp3Url, youtubeUrl }: Props) {
     return () => window.removeEventListener("wedding:open", handleOpen);
   }, [mode, startPlaying]);
 
+  // Pause when tab is hidden, resume when visible again
+  useEffect(() => {
+    if (!mode) return;
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (mode === "mp3") audioRef.current?.pause();
+        else if (mode === "youtube") ytPlayerRef.current?.pauseVideo?.();
+      } else {
+        if (playing) {
+          if (mode === "mp3") audioRef.current?.play().catch(() => {});
+          else if (mode === "youtube") ytPlayerRef.current?.playVideo?.();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [mode, playing]);
+
   // YouTube IFrame API setup
   useEffect(() => {
     if (mode !== "youtube" || !youtubeUrl) return;
