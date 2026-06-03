@@ -55,6 +55,7 @@ const handleSealClick = () => {
 
     setStage("leaving");
     sessionStorage.setItem("welcome_seen", "1");
+    window.dispatchEvent(new CustomEvent("wedding:open"));
     setTimeout(() => setVisible(false), 800);
   };
 

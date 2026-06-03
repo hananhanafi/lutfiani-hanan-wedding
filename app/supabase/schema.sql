@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS site_config (
   partner_two_full_name TEXT,
   partner_one_parents TEXT,
   partner_two_parents TEXT,
+  background_music_url TEXT,
+  background_music_youtube_url TEXT,
   site_password_enabled BOOLEAN DEFAULT FALSE,
   site_password_hash    TEXT,
   -- Metadata

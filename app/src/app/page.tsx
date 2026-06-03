@@ -21,6 +21,7 @@ import GuestPassButton from "@/components/GuestPassButton";
 import BackgroundVideo from "@/components/BackgroundVideo";
 import CoupleProfile from "@/components/CoupleProfile";
 import SpotifyPlayer from "@/components/SpotifyPlayer";
+import BackgroundMusicPlayer from "@/components/BackgroundMusicPlayer";
 import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
 interface Props {
@@ -193,6 +194,11 @@ export default async function Home({ searchParams }: Props) {
           qrDataUrl={guestPass.qrDataUrl}
         />
       )}
+
+      <BackgroundMusicPlayer
+        mp3Url={config.background_music_url}
+        youtubeUrl={config.background_music_youtube_url}
+      />
     </main>
   );
 }

@@ -19,9 +19,16 @@ const ALLOWED_TYPES = new Set([
   "video/webm",
   "video/ogg",
   "video/quicktime",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/ogg",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/flac",
 ]);
-const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "mp4", "webm", "ogg", "mov"]);
+const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "mp4", "webm", "ogg", "mov", "mp3", "wav", "flac"]);
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
+const AUDIO_TYPES = new Set(["audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav", "audio/flac"]);
 
 /** Parse multipart/form-data from a raw Buffer via busboy */
 interface ParsedUpload {
@@ -119,8 +126,8 @@ export async function POST(req: NextRequest) {
   let uploadContentType = mimeType || "image/jpeg";
   let fileExt = ext || "jpg";
 
-  // Compress images over 10 MB — skip compression for video files
-  if (!VIDEO_TYPES.has(mimeType) && buffer.length > COMPRESS_THRESHOLD) {
+  // Compress images over 10 MB — skip compression for video/audio files
+  if (!VIDEO_TYPES.has(mimeType) && !AUDIO_TYPES.has(mimeType) && buffer.length > COMPRESS_THRESHOLD) {
     try {
       const compressed = await compressImage(buffer);
       buffer = compressed.buffer;
@@ -132,7 +139,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const filePrefix = bucketName === "gallery" ? "photo" : bucketName === "videos" ? "video" : "cover";
+  const filePrefix = bucketName === "gallery" ? "photo" : bucketName === "videos" ? "video" : bucketName === "audio" ? "music" : "cover";
   const filename = `${filePrefix}-${Date.now()}.${fileExt}`;
 
   const { error: uploadError } = await supabaseAdmin.storage

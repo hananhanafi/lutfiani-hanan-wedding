@@ -98,5 +98,7 @@ export interface SiteConfig {
   site_password_enabled: boolean;
   site_password_hash?: string;
   spotify_playlist_url?: string;
+  background_music_url?: string;
+  background_music_youtube_url?: string;
   updated_at: string;
 }

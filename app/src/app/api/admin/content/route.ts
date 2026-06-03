@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     partner_one_photo_url, partner_two_photo_url,
     partner_one_full_name, partner_two_full_name,
     partner_one_parents, partner_two_parents,
+    background_music_url, background_music_youtube_url,
   } = body;
 
   const updateData: Record<string, unknown> = {
@@ -58,6 +59,8 @@ export async function POST(req: NextRequest) {
     gallery_photos_json,
     site_password_enabled: !!site_password_enabled,
     spotify_playlist_url: spotify_playlist_url || null,
+    background_music_url: background_music_url || null,
+    background_music_youtube_url: background_music_youtube_url || null,
     updated_at: new Date().toISOString(),
   };
 

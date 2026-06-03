@@ -78,6 +78,8 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     site_password_enabled: config.site_password_enabled ? "true" : "false",
     site_password_plain: "",
     spotify_playlist_url: config.spotify_playlist_url ?? "",
+    background_music_url: config.background_music_url ?? "",
+    background_music_youtube_url: config.background_music_youtube_url ?? "",
   });
 
   const [galleryUrls, setGalleryUrls] = useState<string[]>(() => {
@@ -536,6 +538,62 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           placeholder="https://open.spotify.com/playlist/..."
         />
         <p className="text-xs text-gray-400">Tempel URL playlist Spotify untuk menampilkan pemutar musik di halaman undangan.</p>
+      </section>
+
+      {/* Background Music */}
+      <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
+        <h2 className="font-semibold text-gray-700">Musik Latar (Autoplay)</h2>
+        <p className="text-xs text-gray-400">Musik akan otomatis diputar saat tamu membuka undangan. Jika keduanya diisi, MP3 diutamakan.</p>
+
+        {/* MP3 Upload */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">File MP3</label>
+          {form.background_music_url && (
+            <div className="mb-2">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <audio controls src={form.background_music_url} className="w-full" />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer px-3 py-2 text-sm rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-gold)] hover:text-white transition-colors">
+              {form.background_music_url ? "Ganti MP3" : "Unggah MP3"}
+              <input
+                type="file"
+                accept="audio/mpeg,audio/mp3,audio/ogg,audio/wav"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setMessage(null);
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    fd.append("bucket", "audio");
+                    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
+                    set("background_music_url", data.url);
+                  } catch (err: unknown) {
+                    setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
+                  } finally { e.target.value = ""; }
+                }}
+              />
+            </label>
+            {form.background_music_url && (
+              <button type="button" onClick={() => set("background_music_url", "")} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Hapus</button>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">MP3, OGG, WAV · maks 50 MB</p>
+        </div>
+
+        {/* YouTube URL */}
+        <Field
+          label="URL Video YouTube (alternatif)"
+          value={form.background_music_youtube_url}
+          onChange={(v) => set("background_music_youtube_url", v)}
+          placeholder="https://www.youtube.com/watch?v=..."
+        />
+        <p className="text-xs text-gray-400">Gunakan jika tidak mengunggah MP3. Musik akan diputar dari YouTube (mungkin ada iklan).</p>
       </section>
 
       {/* FAQ */}
