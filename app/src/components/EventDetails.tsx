@@ -64,7 +64,7 @@ function CalendarLinks({ config }: { config: SiteConfig }) {
 export default function EventDetails({ config }: Props) {
   const { t, lang } = useLanguage();
   return (
-    <section id="details" className="py-16 px-4 bg-[#fffbf5]">
+    <section id="details" className="py-16 px-4 bg-[var(--color-cream-dark)]">
       <div className="max-w-2xl mx-auto text-center">
       <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
         {t("details_eyebrow")}
@@ -96,23 +96,15 @@ export default function EventDetails({ config }: Props) {
           )}
         </div>
 
-        {/* Dress Code */}
-        {config.dress_code && (
-          <div className="glass rounded-2xl p-6">
-            <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">{t("details_dress")}</p>
-            <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">{config.dress_code}</p>
-          </div>
-        )}
-
         {/* RSVP Deadline */}
-        {config.rsvp_deadline && (
+        {/* {config.rsvp_deadline && (
           <div className="glass rounded-2xl p-6">
             <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-2 font-[family-name:var(--font-lato)]">{t("details_deadline")}</p>
             <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
               {formatDate(config.rsvp_deadline, lang)}
             </p>
           </div>
-        )}
+        )} */}
       </div>
 
       <CalendarLinks config={config} />

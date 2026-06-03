@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import FloatingPetals from "@/components/FloatingPetals";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -10,39 +10,20 @@ interface Props {
   partnerTwoName: string;
   weddingDate?: string;
   coverPhotoUrl?: string;
-  spotifyPlaylistUrl?: string;
   guestName?: string;
 }
 
 type Stage = "sealed" | "cracking" | "opening" | "revealed" | "leaving";
 
-function toEmbedUrl(input: string): string | null {
-  const uriMatch = input.match(/spotify:playlist:([A-Za-z0-9]+)/);
-  if (uriMatch) return `https://open.spotify.com/embed/playlist/${uriMatch[1]}`;
-  const urlMatch = input.match(/open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/);
-  if (urlMatch) return `https://open.spotify.com/embed/playlist/${urlMatch[1]}`;
-  return null;
-}
-
 export default function EnvelopeModal({
   partnerOneName,
   partnerTwoName,
   weddingDate,
-  spotifyPlaylistUrl,
   guestName,
 }: Props) {
   const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
   const [stage, setStage] = useState<Stage>("sealed");
-  const [miniPlayer, setMiniPlayer] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const initialized = useRef(false);
-  const playerRef = useRef<HTMLDivElement>(null);
-  const dragOffset = useRef({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-
-  const embedUrl = spotifyPlaylistUrl ? toEmbedUrl(spotifyPlaylistUrl) : null;
 
   const formattedDate = weddingDate
     ? new Date(weddingDate).toLocaleDateString("id-ID", {
@@ -58,36 +39,7 @@ export default function EnvelopeModal({
     }
   }, []);
 
-  useEffect(() => {
-    if (miniPlayer && !initialized.current) {
-      initialized.current = true;
-      setPos({ x: window.innerWidth - 304, y: window.innerHeight - 220 });
-    }
-  }, [miniPlayer]);
-
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if ((e.target as HTMLElement).closest("button")) return;
-      isDragging.current = true;
-      dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    },
-    [pos]
-  );
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    setPos({
-      x: Math.max(0, Math.min(window.innerWidth - 292, e.clientX - dragOffset.current.x)),
-      y: Math.max(0, Math.min(window.innerHeight - 48, e.clientY - dragOffset.current.y)),
-    });
-  }, []);
-
-  const onPointerUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
-
-  const handleSealClick = () => {
+const handleSealClick = () => {
     if (stage !== "sealed") return;
     setStage("cracking");
     setTimeout(() => setStage("opening"), 350);
@@ -103,7 +55,6 @@ export default function EnvelopeModal({
 
     setStage("leaving");
     sessionStorage.setItem("welcome_seen", "1");
-    if (embedUrl) setMiniPlayer(true);
     setTimeout(() => setVisible(false), 800);
   };
 
@@ -445,67 +396,7 @@ export default function EnvelopeModal({
         </div>
       )}
 
-      {/* ── Draggable Spotify mini player ─────────────────── */}
-      {miniPlayer && embedUrl && (
-        <div
-          ref={playerRef}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          style={{
-            position: "fixed",
-            left: pos.x,
-            top: pos.y,
-            zIndex: 300,
-            width: 292,
-            borderRadius: 14,
-            overflow: "hidden",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
-            cursor: "grab",
-            userSelect: "none",
-            background: "#1a1a1a",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "6px 10px",
-              background: "#111",
-            }}
-          >
-            <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em", fontFamily: "var(--font-lato)" }}>
-              🎵 Wedding Music
-            </span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                onClick={() => setCollapsed((v) => !v)}
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "0.75rem", padding: "2px 6px" }}
-              >
-                {collapsed ? "▲" : "▼"}
-              </button>
-              <button
-                onClick={() => setMiniPlayer(false)}
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: "0.8rem", padding: "2px 6px" }}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          {!collapsed && (
-            <iframe
-              src={`${embedUrl}?utm_source=generator&theme=0`}
-              width="292"
-              height="152"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              style={{ display: "block" }}
-            />
-          )}
-        </div>
-      )}
+
     </>
   );
 }

@@ -10,6 +10,8 @@ interface Props {
   partnerTwoPhotoUrl?: string;
   partnerOneFullName?: string;
   partnerTwoFullName?: string;
+  partnerOneParents?: string;
+  partnerTwoParents?: string;
 }
 
 export default function CoupleProfile({
@@ -19,6 +21,8 @@ export default function CoupleProfile({
   partnerTwoPhotoUrl,
   partnerOneFullName,
   partnerTwoFullName,
+  partnerOneParents,
+  partnerTwoParents,
 }: Props) {
   const { t } = useLanguage();
 
@@ -54,8 +58,13 @@ export default function CoupleProfile({
               )}
             </div>
             {partnerOneFullName && (
-              <p className="text-4xl text-[#3a3028] font-[family-name:var(--font-great-vibes)] -mt-2">
+              <p className="text-3xl text-[#3a3028] font-[family-name:var(--font-great-vibes)] mt-2">
                 {partnerOneFullName}
+              </p>
+            )}
+            {partnerOneParents && (
+              <p className="text-sm text-[#6b5c4e] italic text-center leading-snug">
+                {partnerOneParents}
               </p>
             )}
           </div>
@@ -84,8 +93,13 @@ export default function CoupleProfile({
               )}
             </div>
             {partnerTwoFullName && (
-              <p className="text-4xl text-[#3a3028] font-[family-name:var(--font-great-vibes)] -mt-2">
+              <p className="text-3xl text-[#3a3028] font-[family-name:var(--font-great-vibes)] mt-2">
                 {partnerTwoFullName}
+              </p>
+            )}
+            {partnerTwoParents && (
+              <p className="text-sm text-[#6b5c4e] italic text-center leading-snug">
+                {partnerTwoParents}
               </p>
             )}
           </div>

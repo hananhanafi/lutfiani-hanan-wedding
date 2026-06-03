@@ -31,7 +31,7 @@ export default function SpotifyPlayer({ playlistUrl }: Props) {
   return (
     <section id="music" className="py-16 px-4">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 glass-bg rounded-2xl px-6 py-4">
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
             Our Playlist
           </p>

@@ -76,6 +76,8 @@ export interface SiteConfig {
   partner_two_photo_url?: string;
   partner_one_full_name?: string;
   partner_two_full_name?: string;
+  partner_one_parents?: string;
+  partner_two_parents?: string;
   theme_color_primary: string;
   theme_color_secondary: string;
   theme_font: string;

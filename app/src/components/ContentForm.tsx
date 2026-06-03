@@ -60,6 +60,8 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
     partner_two_photo_url: config.partner_two_photo_url ?? "",
     partner_one_full_name: config.partner_one_full_name ?? "",
     partner_two_full_name: config.partner_two_full_name ?? "",
+    partner_one_parents: config.partner_one_parents ?? "",
+    partner_two_parents: config.partner_two_parents ?? "",
     story_text: config.story_text ?? "",
     story_text_en: config.story_text_en ?? "",
     gift_qr_url: config.gift_qr_url ?? "",
@@ -186,6 +188,8 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
           <Field label="Nama Pasangan 2" value={form.partner_two_name} onChange={(v) => set("partner_two_name", v)} />
           <Field label="Nama Lengkap Pasangan 1" value={form.partner_one_full_name} onChange={(v) => set("partner_one_full_name", v)} placeholder="mis. Budi Santoso bin Ahmad" />
           <Field label="Nama Lengkap Pasangan 2" value={form.partner_two_full_name} onChange={(v) => set("partner_two_full_name", v)} placeholder="mis. Siti Rahayu binti Hasan" />
+          <Field label="Nama Orang Tua Pasangan 1" value={form.partner_one_parents} onChange={(v) => set("partner_one_parents", v)} placeholder="mis. Putra dari Bapak Ahmad dan Ibu Siti" />
+          <Field label="Nama Orang Tua Pasangan 2" value={form.partner_two_parents} onChange={(v) => set("partner_two_parents", v)} placeholder="mis. Putri dari Bapak Hasan dan Ibu Aminah" />
         </div>
 
         {/* Partner Photos */}

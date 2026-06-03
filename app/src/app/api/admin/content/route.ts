@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     spotify_playlist_url,
     partner_one_photo_url, partner_two_photo_url,
     partner_one_full_name, partner_two_full_name,
+    partner_one_parents, partner_two_parents,
   } = body;
 
   const updateData: Record<string, unknown> = {
@@ -37,6 +38,8 @@ export async function POST(req: NextRequest) {
     partner_two_photo_url: partner_two_photo_url || null,
     partner_one_full_name: partner_one_full_name || null,
     partner_two_full_name: partner_two_full_name || null,
+    partner_one_parents: partner_one_parents || null,
+    partner_two_parents: partner_two_parents || null,
     story_text: story_text || null,
     story_text_en: story_text_en || null,
     gift_registry_url: gift_registry_url || null,

@@ -20,6 +20,7 @@ import QuranVerse from "@/components/QuranVerse";
 import GuestPassButton from "@/components/GuestPassButton";
 import BackgroundVideo from "@/components/BackgroundVideo";
 import CoupleProfile from "@/components/CoupleProfile";
+import SpotifyPlayer from "@/components/SpotifyPlayer";
 import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
 interface Props {
@@ -73,7 +74,6 @@ export default async function Home({ searchParams }: Props) {
         partnerTwoName={config.partner_two_name}
         weddingDate={config.wedding_date}
         coverPhotoUrl={config.cover_photo_url}
-        spotifyPlaylistUrl={config.spotify_playlist_url}
         guestName={guestName}
       />
 
@@ -91,6 +91,16 @@ export default async function Home({ searchParams }: Props) {
       )}
 
       <ScrollReveal direction="up">
+        <EventDetails config={config} />
+      </ScrollReveal>
+      
+      {config.spotify_playlist_url && (
+        <ScrollReveal direction="up">
+          <SpotifyPlayer playlistUrl={config.spotify_playlist_url} />
+        </ScrollReveal>
+      )}
+
+      <ScrollReveal direction="up">
         <CoupleProfile
           partnerOneName={config.partner_one_name}
           partnerTwoName={config.partner_two_name}
@@ -98,6 +108,8 @@ export default async function Home({ searchParams }: Props) {
           partnerTwoPhotoUrl={config.partner_two_photo_url}
           partnerOneFullName={config.partner_one_full_name}
           partnerTwoFullName={config.partner_two_full_name}
+          partnerOneParents={config.partner_one_parents}
+          partnerTwoParents={config.partner_two_parents}
         />
       </ScrollReveal>
 
@@ -115,10 +127,6 @@ export default async function Home({ searchParams }: Props) {
           />
         </ScrollReveal>
       )}
-
-      <ScrollReveal direction="up">
-        <EventDetails config={config} />
-      </ScrollReveal>
 
       <ScrollReveal direction="up">
         <EventSchedule schedule={config.schedule_json} />

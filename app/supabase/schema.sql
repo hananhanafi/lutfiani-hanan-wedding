@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS site_config (
   partner_two_photo_url TEXT,
   partner_one_full_name TEXT,
   partner_two_full_name TEXT,
+  partner_one_parents TEXT,
+  partner_two_parents TEXT,
   site_password_enabled BOOLEAN DEFAULT FALSE,
   site_password_hash    TEXT,
   -- Metadata
