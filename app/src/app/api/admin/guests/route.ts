@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       message: message?.trim() || null,
       is_vip: is_vip === true,
       token: uuidv4(),
-      created_by: (token.staffId as string) ?? null,
+      created_by: typeof token.staffId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.staffId) ? token.staffId : null,
     })
     .select()
     .single();
