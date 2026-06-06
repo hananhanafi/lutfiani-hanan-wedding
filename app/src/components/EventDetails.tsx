@@ -69,9 +69,9 @@ export default function EventDetails({ config }: Props) {
       <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
         {t("details_eyebrow")}
       </p>
-      <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
+      {/* <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
         Event Details
-      </h2>
+      </h2> */}
 
       <div className="grid sm:grid-cols-2 gap-8 text-left">
         {/* Date & Time */}

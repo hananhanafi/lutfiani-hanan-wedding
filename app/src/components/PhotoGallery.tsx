@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 
 interface Props {
   photos: string[];
@@ -9,6 +8,12 @@ interface Props {
 
 export default function PhotoGallery({ photos }: Props) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
+  const [lightboxLoaded, setLightboxLoaded] = useState(false);
+
+  useEffect(() => {
+    setLightboxLoaded(false);
+  }, [lightboxIndex]);
 
   const close = useCallback(() => setLightboxIndex(null), []);
   const prev = useCallback(() => setLightboxIndex((i) => (i !== null ? (i - 1 + photos.length) % photos.length : null)), [photos.length]);
@@ -50,14 +55,20 @@ export default function PhotoGallery({ photos }: Props) {
               <button
                 key={i}
                 onClick={() => setLightboxIndex(i)}
-                className={`overflow-hidden rounded-2xl aspect-square focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] group`}
+                className={`overflow-hidden rounded-2xl aspect-square focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] group relative`}
               >
+                {!loadedImages.has(i) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#f5f0eb]">
+                    <div className="w-6 h-6 border-2 border-[var(--color-gold)] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={url}
                   alt={`Photo ${i + 1}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
+                  onLoad={() => setLoadedImages((s) => new Set(s).add(i))}
                 />
               </button>
             ))}
@@ -76,11 +87,17 @@ export default function PhotoGallery({ photos }: Props) {
             className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
+            {!lightboxLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photos[lightboxIndex]}
               alt={`Photo ${lightboxIndex + 1}`}
-              className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              className={`max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl transition-opacity duration-300 ${lightboxLoaded ? "opacity-100" : "opacity-0"}`}
+              onLoad={() => setLightboxLoaded(true)}
             />
 
             {/* Counter */}

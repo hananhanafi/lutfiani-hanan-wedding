@@ -124,6 +124,8 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const set = (field: string, value: string) =>
@@ -625,12 +627,39 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
       {/* Gallery Photos */}
       <section className="bg-white rounded-xl p-5 shadow-sm space-y-4">
         <h2 className="font-semibold text-gray-700">Galeri Foto</h2>
+        <p className="text-xs text-gray-400">Seret foto untuk mengubah urutan.</p>
         {galleryUrls.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {galleryUrls.map((url, i) => (
-              <div key={i} className="relative group rounded-lg overflow-hidden aspect-square bg-gray-100">
+              <div
+                key={url + i}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+                onDragLeave={() => setDragOverIndex(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null && dragIndex !== i) {
+                    setGalleryUrls((prev) => {
+                      const next = [...prev];
+                      const [moved] = next.splice(dragIndex, 1);
+                      next.splice(i, 0, moved);
+                      return next;
+                    });
+                  }
+                  setDragIndex(null);
+                  setDragOverIndex(null);
+                }}
+                onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                className={`relative group rounded-lg overflow-hidden aspect-square bg-gray-100 cursor-grab active:cursor-grabbing transition-all ${
+                  dragIndex === i ? "opacity-40 scale-95" : ""
+                } ${dragOverIndex === i && dragIndex !== i ? "ring-2 ring-[var(--color-gold)] scale-105" : ""}`}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
+                <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
+                <div className="absolute top-1 left-1 w-5 h-5 flex items-center justify-center rounded bg-black/50 text-white text-[10px] font-medium">
+                  {i + 1}
+                </div>
                 <button
                   type="button"
                   onClick={() => setGalleryUrls((prev) => prev.filter((_, idx) => idx !== i))}
