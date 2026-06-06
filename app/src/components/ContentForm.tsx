@@ -350,27 +350,13 @@ export default function ContentForm({ config }: { config: SiteConfig }) {
                   setUploadingVideo(true);
                   setMessage(null);
                   try {
-                    const ext = file.name.split(".").pop()?.toLowerCase() ?? "mp4";
-                    const filename = `video-${Date.now()}.${ext}`;
-
-                    // Step 1: get a Supabase signed upload URL (video never passes through Next.js)
-                    const urlRes = await fetch("/api/admin/upload-url", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ bucket: "videos", filename, contentType: file.type }),
-                    });
-                    const urlData = await urlRes.json();
-                    if (!urlRes.ok) throw new Error(urlData.error ?? "Gagal mendapatkan URL unggah");
-
-                    // Step 2: upload directly to Supabase Storage
-                    const uploadRes = await fetch(urlData.signedUrl, {
-                      method: "PUT",
-                      headers: { "Content-Type": file.type || "video/mp4" },
-                      body: file,
-                    });
-                    if (!uploadRes.ok) throw new Error("Unggah ke storage gagal");
-
-                    set("cover_video_url", urlData.publicUrl);
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    fd.append("bucket", "videos");
+                    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error ?? "Gagal mengunggah");
+                    set("cover_video_url", data.url);
                   } catch (err: unknown) {
                     setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengunggah" });
                   } finally {

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import sharp from "sharp";
-import Busboy from "busboy";
-import { PassThrough } from "stream";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { uploadToR2, isR2Configured } from "@/utils/r2";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10 MB — compress images if over this
 const HARD_LIMIT = 50 * 1024 * 1024;          // 50 MB — reject unconditionally
@@ -30,51 +32,6 @@ const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
 const AUDIO_TYPES = new Set(["audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav", "audio/flac"]);
 
-/** Parse multipart/form-data from a raw Buffer via busboy */
-interface ParsedUpload {
-  fileBuffer: Buffer;
-  fileName: string;
-  mimeType: string;
-  bucketName: string;
-}
-
-function parseMultipart(req: NextRequest, body: Buffer): Promise<ParsedUpload> {
-  return new Promise((resolve, reject) => {
-    const contentType = req.headers.get("content-type") ?? "";
-    const bb = Busboy({ headers: { "content-type": contentType }, limits: { fileSize: HARD_LIMIT } });
-
-    let fileBuffer: Buffer | null = null;
-    let fileName = "upload";
-    let mimeType = "";
-    let bucketName = "covers";
-    let truncated = false;
-
-    bb.on("file", (_field, file, info) => {
-      fileName = info.filename || "upload";
-      mimeType = info.mimeType || "";
-      const chunks: Buffer[] = [];
-      file.on("data", (chunk: Buffer) => chunks.push(chunk));
-      file.on("limit", () => { truncated = true; });
-      file.on("close", () => { if (!truncated) fileBuffer = Buffer.concat(chunks); });
-    });
-
-    bb.on("field", (name, value) => { if (name === "bucket") bucketName = value; });
-
-    bb.on("close", () => {
-      if (truncated) return reject(new Error(`File exceeds ${HARD_LIMIT / 1024 / 1024} MB limit`));
-      if (!fileBuffer) return reject(new Error("No file found in request"));
-      resolve({ fileBuffer, fileName, mimeType, bucketName });
-    });
-
-    bb.on("error", (err) => reject(err));
-
-    // Feed the pre-read buffer through a PassThrough into busboy
-    const pt = new PassThrough();
-    pt.pipe(bb);
-    pt.end(body);
-  });
-}
-
 /** Compress an image buffer to WebP, targeting under COMPRESS_THRESHOLD */
 async function compressImage(input: Buffer): Promise<{ buffer: Buffer; contentType: string; ext: string }> {
   let quality = 82;
@@ -90,39 +47,36 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Read full body as Buffer — App Router route handlers have no default body size limit
-  let bodyBuffer: Buffer;
+  // Use native formData() — the recommended approach for App Router
+  let formData: FormData;
   try {
-    bodyBuffer = Buffer.from(await req.arrayBuffer());
+    formData = await req.formData();
   } catch (e) {
-    return NextResponse.json({ error: "Failed to read request body" }, { status: 400 });
+    console.error("formData parse error:", e);
+    return NextResponse.json({ error: "Failed to parse form data" }, { status: 400 });
   }
 
-  let parsed: ParsedUpload;
-  try {
-    parsed = await parseMultipart(req, bodyBuffer);
-  } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Invalid form data" }, { status: 400 });
+  const file = formData.get("file") as File | null;
+  if (!file || typeof file === "string") {
+    return NextResponse.json({ error: "No file found in request" }, { status: 400 });
   }
 
-  const { fileName, mimeType, bucketName } = parsed;
+  const bucketName = (formData.get("bucket") as string) || "covers";
+  const fileName = file.name || "upload";
+  const mimeType = file.type || "";
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+
   const mimeOk = ALLOWED_TYPES.has(mimeType) || (mimeType === "" && ALLOWED_EXTS.has(ext));
   if (!mimeOk) {
     return NextResponse.json({ error: `File type "${mimeType || ext}" is not allowed. Use JPG, PNG, WebP, GIF, MP4, or WebM.` }, { status: 400 });
   }
 
-  // Ensure bucket exists
-  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-  if (!buckets?.find((b) => b.name === bucketName)) {
-    const { error: bucketError } = await supabaseAdmin.storage.createBucket(bucketName, { public: true });
-    if (bucketError) {
-      console.error("Bucket creation error:", bucketError);
-      return NextResponse.json({ error: "Could not create storage bucket." }, { status: 500 });
-    }
+  const arrayBuf = await file.arrayBuffer();
+  if (arrayBuf.byteLength > HARD_LIMIT) {
+    return NextResponse.json({ error: `File exceeds ${HARD_LIMIT / 1024 / 1024} MB limit` }, { status: 400 });
   }
 
-  let buffer = parsed.fileBuffer;
+  let buffer: Buffer = Buffer.from(arrayBuf);
   let uploadContentType = mimeType || "image/jpeg";
   let fileExt = ext || "jpg";
 
@@ -141,6 +95,27 @@ export async function POST(req: NextRequest) {
 
   const filePrefix = bucketName === "gallery" ? "photo" : bucketName === "videos" ? "video" : bucketName === "audio" ? "music" : "cover";
   const filename = `${filePrefix}-${Date.now()}.${fileExt}`;
+
+  // Upload to Cloudflare R2 if configured, otherwise fall back to Supabase Storage
+  if (isR2Configured()) {
+    try {
+      const publicUrl = await uploadToR2(buffer, `${bucketName}/${filename}`, uploadContentType);
+      return NextResponse.json({ url: publicUrl });
+    } catch (err) {
+      console.error("R2 upload error:", err);
+      return NextResponse.json({ error: "Upload to R2 failed" }, { status: 500 });
+    }
+  }
+
+  // Fallback: Supabase Storage
+  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+  if (!buckets?.find((b) => b.name === bucketName)) {
+    const { error: bucketError } = await supabaseAdmin.storage.createBucket(bucketName, { public: true });
+    if (bucketError) {
+      console.error("Bucket creation error:", bucketError);
+      return NextResponse.json({ error: "Could not create storage bucket." }, { status: 500 });
+    }
+  }
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(bucketName)

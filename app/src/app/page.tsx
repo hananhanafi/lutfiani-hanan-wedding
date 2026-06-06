@@ -95,11 +95,11 @@ export default async function Home({ searchParams }: Props) {
         <EventDetails config={config} />
       </ScrollReveal>
       
-      {config.spotify_playlist_url && (
+      {/* {config.spotify_playlist_url && (
         <ScrollReveal direction="up">
           <SpotifyPlayer playlistUrl={config.spotify_playlist_url} />
         </ScrollReveal>
-      )}
+      )} */}
 
       <ScrollReveal direction="up">
         <CoupleProfile

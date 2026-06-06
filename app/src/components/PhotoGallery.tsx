@@ -35,7 +35,7 @@ export default function PhotoGallery({ photos }: Props) {
     <>
       <section id="gallery" className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 glass-bg rounded-2xl px-8 py-12">
             <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
               Gallery
             </p>
