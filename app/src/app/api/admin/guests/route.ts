@@ -3,6 +3,13 @@ import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { v4 as uuidv4 } from "uuid";
 
+/** Normalize phone: strip +, spaces, dashes, parens → digits only, convert leading 0 to 62 */
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (digits.startsWith("0")) return "62" + digits.slice(1);
+  return digits;
+}
+
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,10 +25,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Phone number is required." }, { status: 400 });
   }
 
+  const normalizedPhone = normalizePhone(phone_number);
+
   // Uniqueness checks
   const orFilters: string[] = [];
   if (email?.trim()) orFilters.push(`email.eq.${email.trim()}`);
-  if (phone_number?.trim()) orFilters.push(`phone_number.eq.${phone_number.trim()}`);
+  if (normalizedPhone) orFilters.push(`phone_number.eq.${normalizedPhone}`);
   if (orFilters.length > 0) {
     const { data: existing } = await supabaseAdmin
       .from("guests")
@@ -42,7 +51,7 @@ export async function POST(req: NextRequest) {
     .insert({
       name: name.trim(),
       email: email?.trim() || null,
-      phone_number: phone_number?.trim() || null,
+      phone_number: normalizedPhone || null,
       attending: attending ?? null,
       plus_one_name: plus_one_name?.trim() || null,
       group_name: group_name?.trim() || null,
