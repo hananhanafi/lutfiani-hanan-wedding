@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD)
 ## My Digital Wedding Invitation Website
 
-**Version:** 2.1  
-**Date:** June 1, 2026  
+**Version:** 2.2  
+**Date:** June 15, 2026  
 **Status:** Live in Production  
 
 ---
@@ -121,7 +121,7 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-05 | Interactive Map | Embedded Google Maps with venue location | Must Have |
 | F-06 | Calendar Button | One-click "Add to Calendar" (Google, Apple, Outlook) | Must Have |
 | F-07 | Our Story | A section with the couple's love story (text + photos) | Should Have |
-| F-08 | Photo Gallery | A grid or carousel of couple photos | Should Have |
+| F-08 | Photo Gallery | A grid or carousel of couple photos with loading indicators and lightbox | Should Have |
 | F-09 | Gift Registry Link | Link to an external registry or wish list page | Should Have |
 | F-10 | Travel & Stay Info | Nearby hotel recommendations and travel tips | Could Have |
 | F-11 | FAQ Section | Short Q&A for common guest questions | Could Have |
@@ -158,7 +158,12 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-32 | WhatsApp Pass Link | Admin can open a WhatsApp deep-link to send the pass URL to any attending guest who has a phone number | Must Have |
 | F-33 | Password Protection Toggle | Enable/disable a site password for guests; set/change the password | Must Have |
 | F-34 | Check-in Dashboard | View real-time check-in status merged into the main Dasbor page (stats cards + attending guest list with check-in timestamps) | Must Have |
-| F-35 | Photo & File Upload | Upload cover photo and gallery images directly to Supabase Storage (max 10 MB, JPG/PNG/WebP/GIF) | Must Have |
+| F-35 | Photo & File Upload | Upload cover photo, gallery images, video, and audio to Cloudflare R2 (max 50 MB for video/audio, 10 MB for images); falls back to Supabase Storage if R2 not configured | Must Have |
+| F-76 | Gallery Reorder | Admin can drag-and-drop gallery photos to reorder them; position badges shown on each thumbnail | Should Have |
+| F-77 | Background Music | Autoplay music on envelope open — supports MP3 upload or YouTube URL; floating music toggle button (bottom-right); auto-pauses on tab switch | Should Have |
+| F-78 | Parents Names | Admin can set parents names for each partner; displayed in couple profile section | Should Have |
+| F-79 | Phone Number Normalization | On guest add, phone numbers are normalized (strip +, spaces, dashes; convert leading 0 to country code 62) to prevent duplicates | Must Have |
+| F-80 | Scanner Accepts All Guests | QR scanner allows check-in for all guests regardless of RSVP status (unconfirmed, not attending, or attending) | Must Have |
 | F-36 | QR PDF Export | Generate a printable A4 HTML page with individual QR entry-pass cards (3-column grid, dashed borders, ornament + guest name + pass QR); supports exporting all guests or a selected subset via `?ids=` param | Should Have |
 | F-52 | Bulk CSV Import | Admin can upload a CSV file to import guests in bulk. Flexible column detection (English/Indonesian aliases), duplicate phone detection, per-row error reporting, dry-run preview before commit. | Must Have |
 | F-53 | VIP Guest Flag | Admin can mark any guest as VIP; VIP badge displayed on guest card and guest list | Should Have |
@@ -200,7 +205,7 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | # | Feature | Description | Priority |
 |---|---|---|---|
 | F-37 | Scanner Page | A dedicated mobile-friendly page for the welcomer to scan guest QR codes | Must Have |
-| F-38 | QR Verification | Scan a guest's QR code and instantly show: guest name, plus-one, and attendance confirmation | Must Have |
+| F-38 | QR Verification | Scan a guest's QR code and instantly show: guest name, plus-one — accepts all RSVP statuses (attending, not attending, unconfirmed) | Must Have |
 | F-39 | Confirmation Step | Preview the guest details before marking check-in — prevents accidental check-ins | Must Have |
 | F-40 | Check-in Status | Mark a guest as "Checked In" upon confirmation; prevent duplicate check-ins | Must Have |
 | F-41 | Invalid QR Handling | Show a clear error if the QR code is invalid, already used, or not found | Must Have |
@@ -313,7 +318,7 @@ Website
 | Framework | Next.js 16 (App Router) + TypeScript |
 | Styling | Tailwind CSS v4 |
 | Database | Supabase (PostgreSQL, free tier) |
-| File Storage | Supabase Storage (public buckets: `covers`, `gallery`) |
+| File Storage | **Cloudflare R2** (primary — custom domain `wedding-media.hananhanafi.com`) with Supabase Storage fallback |
 | Email | Nodemailer via Gmail SMTP (App Password) |
 | QR Code Generation | `qrcode` npm package (shared server-side helper in `src/lib/qrcode.ts`) |
 | QR Code Scanning | `html5-qrcode` (browser-based camera scan) |
@@ -346,6 +351,12 @@ Website
 - **Session scoping for senders** — `whatsapp_session_owners` table maps `session_id → staff_id`. Sender-role users can only view/use/delete their own sessions. All WA-related API routes enforce this.
 - **Localization** — All admin, scanner, entry, and pass pages are in Bahasa Indonesia.
 - **Input validation** — All public-facing text inputs are validated server-side for length limits.
+- **Phone normalization** — On guest add/import, phone numbers are sanitized: all non-digit characters stripped, leading `0` converted to `62` (Indonesian country code). Prevents duplicates like `+62 857-1648-1111` vs `08571648111`.
+- **Cloudflare R2 media storage** — All media uploads (images, video, audio) go to Cloudflare R2 via `@aws-sdk/client-s3`. Served via custom domain (`wedding-media.hananhanafi.com`). Falls back to Supabase Storage if R2 env vars are not configured.
+- **Background music** — Autoplay background music via floating button (bottom-right corner). Supports MP3 file upload to R2 or YouTube IFrame API. Triggers on envelope open event (`wedding:open`). Auto-pauses when tab loses focus.
+- **Gallery drag-and-drop reorder** — Admin can reorder gallery photos via HTML5 Drag and Drop API. Position badges and visual feedback during drag.
+- **Photo loading indicators** — Gallery grid and lightbox show animated spinners until images finish loading.
+- **Scanner accepts all RSVP statuses** — QR scanner allows check-in for any guest regardless of attendance status (attending, not attending, or unconfirmed).
 - The scanner page works entirely in the browser using the device camera — no special hardware needed.
 
 ### Data Model
@@ -357,6 +368,8 @@ Website
 - Couple names, wedding date/time, venue, address, maps URL, dress code, RSVP deadline, cover photo URL
 - Theme: primary color, secondary color, font
 - Content: story text (ID + EN), gift registry URL, gift QR URL, bank name/account, travel info (ID + EN), FAQ (JSONB), schedule (JSONB), gallery photos (JSONB)
+- Partner parents names (`partner_one_parents`, `partner_two_parents`)
+- Background music: `background_music_url` (MP3), `background_music_youtube_url` (YouTube)
 - Spotify playlist URL, cover/partner photos, site password settings
 
 **wishes**
@@ -391,6 +404,11 @@ Website
 | `WA_SERVICE_API_KEY` | API key for the WhatsApp microservice |
 | `WA_IMAGE_URL` | *(Optional)* URL of image to attach to WA invitations |
 | `NEXT_PUBLIC_COUPLE_NAME` | Couple name string used in WA message templates |
+| `CLOUDFLARE_R2_ACCOUNT_ID` | Cloudflare account ID for R2 storage |
+| `CLOUDFLARE_R2_ACCESS_KEY_ID` | R2 API token access key |
+| `CLOUDFLARE_R2_SECRET_ACCESS_KEY` | R2 API token secret key |
+| `CLOUDFLARE_R2_BUCKET` | R2 bucket name (e.g. `mywedding`) |
+| `CLOUDFLARE_R2_PUBLIC_URL` | Public URL for R2 bucket (custom domain, e.g. `https://wedding-media.hananhanafi.com`) |
 
 | Concern | Decision |
 |---|---|

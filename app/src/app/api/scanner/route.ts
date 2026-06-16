@@ -43,10 +43,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid QR code. Guest not found." }, { status: 404 });
     }
 
-    if (!guest.attending) {
-      return NextResponse.json({ error: "This guest RSVPed as not attending." }, { status: 400 });
-    }
-
     if (guest.checked_in) {
       return NextResponse.json({
         warning: "already_checked_in",
