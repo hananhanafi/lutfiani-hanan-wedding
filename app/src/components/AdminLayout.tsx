@@ -9,6 +9,7 @@ import { useLanguage } from "./LanguageProvider";
 const ALL_NAV_ITEMS = [
   { href: "/admin", label: "Dasbor", icon: "📊", roles: ["admin"] },
   { href: "/admin/guests", label: "Tamu", icon: "👥", roles: ["admin"] },
+  { href: "/admin/groups", label: "Grup", icon: "🏷️", roles: ["admin"] },
   { href: "/admin/rsvp", label: "RSVP", icon: "📋", roles: ["admin"] },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: "💬", roles: ["admin", "sender"] },
   { href: "/admin/kirim", label: "Kirim", icon: "📤", roles: ["admin", "sender"] },

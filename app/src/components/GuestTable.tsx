@@ -9,11 +9,34 @@ const EMPTY_FORM = {
   phone_number: "",
   attending: "" as "" | "true" | "false",
   plus_one_name: "",
-  group_name: "",
+  group_id: "",
   side: "" as "" | "bride" | "groom",
   message: "",
   is_vip: false,
 };
+
+/** Dropdown sourced from the guest-group master data (/api/admin/groups). */
+function GroupSelect({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/groups")
+      .then((r) => r.json())
+      .then((d) => { if (active) setGroups(d.groups ?? []); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white"
+    >
+      <option value="">— Tanpa grup —</option>
+      {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+    </select>
+  );
+}
 
 function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (guest: Guest) => void }) {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -130,13 +153,7 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Grup</label>
-              <input
-                value={form.group_name}
-                onChange={set("group_name")}
-                maxLength={100}
-                placeholder="cth. Keluarga, Kampus"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
-              />
+              <GroupSelect value={form.group_id} onChange={(id) => setForm((prev) => ({ ...prev, group_id: id }))} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pihak</label>
@@ -210,7 +227,7 @@ export function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; on
     phone_number: guest.phone_number ?? "",
     attending: (guest.attending === true ? "true" : guest.attending === false ? "false" : "") as "" | "true" | "false",
     plus_one_name: guest.plus_one_name ?? "",
-    group_name: guest.group_name ?? "",
+    group_id: guest.group_id ?? "",
     side: (guest.side ?? "") as "" | "bride" | "groom",
     message: guest.message ?? "",
     is_vip: guest.is_vip ?? false,
@@ -297,8 +314,7 @@ export function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; on
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Grup</label>
-              <input value={form.group_name} onChange={set("group_name")} maxLength={100} placeholder="cth. Keluarga, Kampus"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]" />
+              <GroupSelect value={form.group_id} onChange={(id) => setForm((prev) => ({ ...prev, group_id: id }))} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pihak</label>

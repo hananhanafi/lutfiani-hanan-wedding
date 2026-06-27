@@ -54,6 +54,11 @@ class WhatsAppClient {
     return this.sock?.user?.id?.split(":")[0] ?? null;
   }
 
+  /** Display name of the connected WhatsApp account (own profile name), if available. */
+  getName(): string | null {
+    return this.sock?.user?.name ?? this.sock?.user?.verifiedName ?? null;
+  }
+
   on(listener: EventListener) {
     this.listeners.push(listener);
     return () => {
@@ -359,11 +364,12 @@ class SessionManager {
     return true;
   }
 
-  getAllSessions(): { sessionId: string; status: ConnectionStatus; phone: string | null }[] {
+  getAllSessions(): { sessionId: string; status: ConnectionStatus; phone: string | null; name: string | null }[] {
     return Array.from(this.sessions.entries()).map(([id, client]) => ({
       sessionId: id,
       status: client.getStatus(),
       phone: client.getPhoneNumber(),
+      name: client.getName(),
     }));
   }
 
@@ -400,6 +406,7 @@ export const waClient = {
   getStatus: () => sessionManager.getSession("default")?.getStatus() ?? "disconnected",
   getQR: () => sessionManager.getSession("default")?.getQR() ?? null,
   getPhoneNumber: () => sessionManager.getSession("default")?.getPhoneNumber() ?? null,
+  getName: () => sessionManager.getSession("default")?.getName() ?? null,
   isConnected: () => sessionManager.getSession("default")?.isConnected() ?? false,
   connect: () => { const s = sessionManager.createSession("default"); return s.connect(); },
   disconnect: () => sessionManager.getSession("default")?.disconnect() ?? Promise.resolve(),

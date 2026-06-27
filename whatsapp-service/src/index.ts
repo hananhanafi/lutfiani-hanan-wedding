@@ -34,6 +34,7 @@ app.get("/status", auth, (_req, res) => {
   res.json({
     status: waClient.getStatus(),
     phone: waClient.getPhoneNumber(),
+    name: waClient.getName(),
     connected: waClient.isConnected(),
   });
 });
@@ -377,7 +378,7 @@ app.get("/sessions/:id/status", auth, (req, res) => {
   const id = req.params.id as string;
   const client = sessionManager.getSession(id);
   if (!client) return res.status(404).json({ error: "Session not found" });
-  res.json({ sessionId: id, status: client.getStatus(), phone: client.getPhoneNumber(), connected: client.isConnected() });
+  res.json({ sessionId: id, status: client.getStatus(), phone: client.getPhoneNumber(), name: client.getName(), connected: client.isConnected() });
 });
 
 // Request pairing code (single-device phone-number pairing)

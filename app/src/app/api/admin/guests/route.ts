@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { v4 as uuidv4 } from "uuid";
 import { pgOrValue } from "@/lib/pgrest";
+import { resolveGroup } from "@/lib/groups";
 
 /** Normalize phone: strip +, spaces, dashes, parens → digits only, convert leading 0 to 62 */
 function normalizePhone(raw: string): string {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, email, phone_number, attending, plus_one_name, group_name, side, message, is_vip } = body;
+  const { name, email, phone_number, attending, plus_one_name, group_name, group_id, side, message, is_vip } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -27,6 +28,10 @@ export async function POST(req: NextRequest) {
   }
 
   const normalizedPhone = normalizePhone(phone_number);
+
+  // Resolve the group from master data when group_id is given (authoritative,
+  // keeps group_name in sync); otherwise fall back to free-text group_name.
+  const { groupId: resolvedGroupId, groupName: resolvedGroupName } = await resolveGroup(group_id, group_name);
 
   // Uniqueness checks
   const orFilters: string[] = [];
@@ -55,7 +60,8 @@ export async function POST(req: NextRequest) {
       phone_number: normalizedPhone || null,
       attending: attending ?? null,
       plus_one_name: plus_one_name?.trim() || null,
-      group_name: group_name?.trim() || null,
+      group_name: resolvedGroupName,
+      group_id: resolvedGroupId,
       side: side?.trim() || null,
       message: message?.trim() || null,
       is_vip: is_vip === true,

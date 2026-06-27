@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { pgOrValue } from "@/lib/pgrest";
+import { resolveGroup } from "@/lib/groups";
 
 export async function PATCH(
   req: NextRequest,
@@ -22,7 +23,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { name, email, phone_number, attending, plus_one_name, group_name, side, message, checked_in, email_sent, whatsapp_status, is_vip } = body;
+  const { name, email, phone_number, attending, plus_one_name, group_name, group_id, side, message, checked_in, email_sent, whatsapp_status, is_vip } = body;
 
   const updateData: Record<string, unknown> = {};
   if (name !== undefined) updateData.name = name?.trim() || null;
@@ -30,7 +31,12 @@ export async function PATCH(
   if (phone_number !== undefined) updateData.phone_number = phone_number?.trim() || null;
   if (attending !== undefined) updateData.attending = attending;
   if (plus_one_name !== undefined) updateData.plus_one_name = plus_one_name?.trim() || null;
-  if (group_name !== undefined) updateData.group_name = group_name?.trim() || null;
+  if (group_id !== undefined || group_name !== undefined) {
+    // group_id is authoritative (mirrors master name); free-text group_name is the legacy fallback
+    const resolved = await resolveGroup(group_id, group_name);
+    updateData.group_id = resolved.groupId;
+    updateData.group_name = resolved.groupName;
+  }
   if (side !== undefined) updateData.side = side?.trim() || null;
   if (message !== undefined) updateData.message = message?.trim() || null;
   if (checked_in !== undefined) {

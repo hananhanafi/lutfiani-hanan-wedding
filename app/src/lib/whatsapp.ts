@@ -170,10 +170,10 @@ export async function sendWhatsAppBulk(
 /**
  * Check WhatsApp service connection status.
  */
-export async function getWhatsAppStatus(sessionId?: string): Promise<{ status: string; phone: string | null; connected: boolean }> {
+export async function getWhatsAppStatus(sessionId?: string): Promise<{ status: string; phone: string | null; name: string | null; connected: boolean }> {
   const serviceUrl = process.env.WA_SERVICE_URL;
   if (!serviceUrl) {
-    return { status: "not_configured", phone: null, connected: false };
+    return { status: "not_configured", phone: null, name: null, connected: false };
   }
 
   const apiKey = process.env.WA_SERVICE_API_KEY ?? "";

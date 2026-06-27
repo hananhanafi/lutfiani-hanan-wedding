@@ -56,9 +56,20 @@ export default function KirimPage({
 
   // Add guest
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", phone_number: "", group_name: "", side: "" as "" | "bride" | "groom", is_vip: false });
+  const [addForm, setAddForm] = useState({ name: "", phone_number: "", group_id: "", side: "" as "" | "bride" | "groom", is_vip: false });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
+
+  // Guest-group master data (for the quick-add dropdown)
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/groups")
+      .then((r) => r.json())
+      .then((d) => { if (active) setGroups(d.groups ?? []); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   // Edit guest
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -78,7 +89,7 @@ export default function KirimPage({
         setAddError(data.error ?? "Gagal menambahkan tamu.");
       } else {
         setGuests((prev) => [data.guest, ...prev]);
-        setAddForm({ name: "", phone_number: "", group_name: "", side: "", is_vip: false });
+        setAddForm({ name: "", phone_number: "", group_id: "", side: "", is_vip: false });
         setShowAddModal(false);
       }
     } catch {
@@ -334,13 +345,14 @@ export default function KirimPage({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Grup</label>
-                  <input
-                    value={addForm.group_name}
-                    onChange={(e) => setAddForm((p) => ({ ...p, group_name: e.target.value }))}
-                    maxLength={100}
-                    placeholder="cth. Keluarga"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
-                  />
+                  <select
+                    value={addForm.group_id}
+                    onChange={(e) => setAddForm((p) => ({ ...p, group_id: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white"
+                  >
+                    <option value="">— Tanpa grup —</option>
+                    {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pihak</label>
@@ -384,7 +396,7 @@ export default function KirimPage({
           <p className="text-sm text-gray-500 mt-0.5">Kirim undangan WhatsApp ke tamu dengan mudah</p>
         </div>
         <button
-          onClick={() => { setAddForm({ name: "", phone_number: "", group_name: "", side: "", is_vip: false }); setAddError(""); setShowAddModal(true); }}
+          onClick={() => { setAddForm({ name: "", phone_number: "", group_id: "", side: "", is_vip: false }); setAddError(""); setShowAddModal(true); }}
           className="flex-shrink-0 px-3 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
         >
           + Tamu

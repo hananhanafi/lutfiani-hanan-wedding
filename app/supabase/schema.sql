@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS guests (
   phone_number     TEXT,
   attending        BOOLEAN,                          -- true = attending, false = not attending, null = pending
   plus_one_name    TEXT,
-  group_name       TEXT,                             -- where are you from / group name
+  group_name       TEXT,                             -- denormalized mirror of guest_groups.name
+  group_id         UUID,                             -- FK → guest_groups(id); added below once guest_groups exists
   side             TEXT,                             -- 'bride' or 'groom'
   message          TEXT,                             -- congratulatory message / wishes wall
   submitted_at     TIMESTAMPTZ DEFAULT NOW(),
@@ -38,6 +39,26 @@ CREATE TABLE IF NOT EXISTS guests (
 -- CREATE UNIQUE INDEX IF NOT EXISTS guests_phone_unique ON guests (phone_number) WHERE phone_number IS NOT NULL;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS rsvp_submitted_at TIMESTAMPTZ;
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS rsvp_submission_id UUID REFERENCES rsvp_submissions(id) ON DELETE SET NULL;
+
+-- ── Guest Groups (master data) ───────────────────────────────
+CREATE TABLE IF NOT EXISTS guest_groups (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  side        TEXT,                       -- optional: 'bride' | 'groom'
+  notes       TEXT,
+  position    INT NOT NULL DEFAULT 0,     -- manual sort order (see migrations/0002)
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS guest_groups_name_lower_idx ON guest_groups (lower(name));
+CREATE INDEX IF NOT EXISTS guest_groups_position_idx ON guest_groups (position);
+ALTER TABLE guest_groups ENABLE ROW LEVEL SECURITY;
+
+-- guests.group_id links to this master table; group_name is kept as a denormalized mirror.
+-- The FK is added here (after guest_groups exists, since guests is created first above).
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES guest_groups(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS guests_group_id_idx ON guests (group_id);
+-- See migrations/0001_guest_groups.sql for the backfill that seeds groups from existing data.
 
 -- ── Site Configuration ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS site_config (

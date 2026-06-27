@@ -22,6 +22,7 @@ export interface Guest {
   attending?: boolean;
   plus_one_name?: string;
   group_name?: string;
+  group_id?: string | null;
   side?: string;
   message?: string;
   submitted_at: string;
@@ -37,6 +38,17 @@ export interface Guest {
   created_by?: string | null;
   rsvp_submitted_at?: string | null;
   rsvp_submission_id?: string | null;
+}
+
+export interface GuestGroup {
+  id: string;
+  name: string;
+  side?: string | null;
+  notes?: string | null;
+  position: number;
+  created_at: string;
+  updated_at?: string;
+  guest_count?: number;
 }
 
 export interface ScheduleItem {

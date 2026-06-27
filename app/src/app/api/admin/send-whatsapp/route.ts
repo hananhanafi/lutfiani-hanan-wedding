@@ -45,14 +45,22 @@ export async function POST(req: NextRequest) {
   const coupleName = process.env.NEXT_PUBLIC_COUPLE_NAME ?? "Kami";
   const sentBy = (token.staffId as string | undefined) ?? null;
 
-  // Resolve the actual phone number for the sender session (non-fatal)
+  // Resolve the sender session's phone + account name (non-fatal)
   let senderPhone: string | null = null;
+  let senderName: string | null = null;
   try {
     const sessionStatus = await getWhatsAppStatus(sessionId);
     senderPhone = sessionStatus.phone ?? null;
+    senderName = sessionStatus.name ?? null;
   } catch {
     // ignore — store sessionId as fallback
   }
+
+  // Stored on each guest as "Phone Number (Name)", falling back gracefully:
+  // "628xxx (Wedding Official)" → "628xxx" → sessionId → null
+  const senderLabel = senderPhone
+    ? (senderName ? `${senderPhone} (${senderName})` : senderPhone)
+    : (sessionId ?? null);
 
   const results: { guestId: string; name: string; success: boolean; error?: string; messageId?: string; senderNumber?: string | null; sentBy?: string | null; dbError?: string | null }[] = [];
 
@@ -111,7 +119,7 @@ export async function POST(req: NextRequest) {
         // QR send failure is non-fatal — invitation was already sent
       }
 
-      const senderNumber = senderPhone ?? sessionId ?? null;
+      const senderNumber = senderLabel;
       const { error: dbError } = await supabaseAdmin
         .from("guests")
         .update({
