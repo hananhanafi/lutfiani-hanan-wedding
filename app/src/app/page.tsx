@@ -20,7 +20,6 @@ import QuranVerse from "@/components/QuranVerse";
 import GuestPassButton from "@/components/GuestPassButton";
 import BackgroundVideo from "@/components/BackgroundVideo";
 import CoupleProfile from "@/components/CoupleProfile";
-import SpotifyPlayer from "@/components/SpotifyPlayer";
 import BackgroundMusicPlayer from "@/components/BackgroundMusicPlayer";
 import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
@@ -94,12 +93,6 @@ export default async function Home({ searchParams }: Props) {
       <ScrollReveal direction="up">
         <EventDetails config={config} />
       </ScrollReveal>
-      
-      {/* {config.spotify_playlist_url && (
-        <ScrollReveal direction="up">
-          <SpotifyPlayer playlistUrl={config.spotify_playlist_url} />
-        </ScrollReveal>
-      )} */}
 
       <ScrollReveal direction="up">
         <CoupleProfile

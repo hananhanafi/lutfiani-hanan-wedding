@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
-import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -64,12 +64,10 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
-  // Hash and store the new password if provided
+  // Hash and store the new password if provided (bcrypt; legacy SHA-256 hashes
+  // are still accepted at verify time for backward compatibility).
   if (site_password_plain) {
-    updateData.site_password_hash = crypto
-      .createHash("sha256")
-      .update(String(site_password_plain))
-      .digest("hex");
+    updateData.site_password_hash = await bcrypt.hash(String(site_password_plain), 12);
   }
 
   const { error } = await supabaseAdmin

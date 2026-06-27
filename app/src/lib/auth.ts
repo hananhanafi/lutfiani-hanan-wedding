@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { pgOrValue } from "@/lib/pgrest";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -27,7 +28,7 @@ export const authOptions: NextAuthOptions = {
         const { data: staff } = await supabaseAdmin
           .from("staff")
           .select("id, name, email, username, password_hash, role, is_active")
-          .or(`email.eq.${credentials.username.trim().toLowerCase()},username.eq.${credentials.username.trim()}`)
+          .or(`email.eq.${pgOrValue(credentials.username.trim().toLowerCase())},username.eq.${pgOrValue(credentials.username.trim())}`)
           .single();
 
         if (!staff || !staff.is_active) return null;

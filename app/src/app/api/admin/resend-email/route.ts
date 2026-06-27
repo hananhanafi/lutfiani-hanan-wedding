@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { sendMail } from "@/lib/mailer";
 import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
+import { canModifyGuest } from "@/lib/guestAccess";
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -10,6 +11,10 @@ export async function POST(req: NextRequest) {
 
   const { guestId } = await req.json();
   if (!guestId) return NextResponse.json({ error: "guestId required" }, { status: 400 });
+
+  if (!(await canModifyGuest(guestId, token.role as string | undefined, token.staffId as string | undefined))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { data: guest, error } = await supabaseAdmin
     .from("guests")

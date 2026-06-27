@@ -15,6 +15,7 @@ type LookupGuest = {
   name: string;
   plus_one_name?: string;
   checked_in: boolean;
+  source: "guests" | "rsvp_submissions";
 };
 
 export default function ScannerPage() {
@@ -163,11 +164,11 @@ export default function ScannerPage() {
     else setLookupResults(data.guests ?? []);
   };
 
-  const handleManualCheckin = async (guestId: string) => {
+  const handleManualCheckin = async (guestId: string, source: LookupGuest["source"]) => {
     const res = await fetch("/api/scanner/lookup", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guestId, pin }),
+      body: JSON.stringify({ guestId, source, pin }),
     });
     const data = await res.json();
     if (data.success) {
@@ -262,7 +263,7 @@ export default function ScannerPage() {
       {result.status === "success" && (
         <>
           <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
-          {result.plus_one_name && <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {result.plus_one_name}</p>}
+          {result.plus_one_name && <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">Pasangan: {result.plus_one_name}</p>}
           <p className="text-green-600 text-xs mt-3 font-[family-name:var(--font-lato)]">Berhasil check-in!</p>
         </>
       )}
@@ -304,7 +305,7 @@ export default function ScannerPage() {
               <div className="text-4xl mb-3">🎟️</div>
               <h2 className="text-xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-1">{pendingGuest.name}</h2>
               {pendingGuest.plus_one_name && (
-                <p className="text-[#9a7d5a] text-sm font-[family-name:var(--font-lato)]">+1: {pendingGuest.plus_one_name}</p>
+                <p className="text-[#9a7d5a] text-sm font-[family-name:var(--font-lato)]">Pasangan: {pendingGuest.plus_one_name}</p>
               )}
               <p className="text-[#9a7d5a] text-sm mt-4 font-[family-name:var(--font-lato)]">Konfirmasi check-in tamu ini?</p>
             </div>
@@ -430,13 +431,13 @@ export default function ScannerPage() {
                       <div key={g.id} className="bg-white border border-[#e8ddd0] rounded-xl p-4 flex items-center justify-between shadow-sm">
                         <div>
                           <p className="text-[#3a3028] font-medium font-[family-name:var(--font-lato)]">{g.name}</p>
-                          {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">+1: {g.plus_one_name}</p>}
+                          {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">Pasangan: {g.plus_one_name}</p>}
                         </div>
                         {g.checked_in ? (
                           <span className="text-green-600 text-xs font-medium font-[family-name:var(--font-lato)]">✅ Selesai</span>
                         ) : (
                           <button
-                            onClick={() => handleManualCheckin(g.id)}
+                            onClick={() => handleManualCheckin(g.id, g.source)}
                             className="px-3 py-1.5 bg-[var(--color-gold)] text-white rounded-lg text-xs hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)]"
                           >
                             Check In
@@ -457,7 +458,7 @@ export default function ScannerPage() {
                       <div className="text-4xl mb-2">✅</div>
                       <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{walkinResult.name}</p>
                       {walkinResult.plus_one_name && (
-                        <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {walkinResult.plus_one_name}</p>
+                        <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">Pasangan: {walkinResult.plus_one_name}</p>
                       )}
                       <p className="text-green-600 text-xs mt-2 font-[family-name:var(--font-lato)]">Berhasil ditambahkan &amp; check-in!</p>
                       <button
@@ -629,13 +630,13 @@ export default function ScannerPage() {
                   <div key={g.id} className="bg-white border border-[#e8ddd0] rounded-xl p-4 flex items-center justify-between shadow-sm">
                     <div>
                       <p className="text-[#3a3028] font-medium font-[family-name:var(--font-lato)]">{g.name}</p>
-                      {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">+1: {g.plus_one_name}</p>}
+                      {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">Pasangan: {g.plus_one_name}</p>}
                     </div>
                     {g.checked_in ? (
                       <span className="text-green-600 text-xs font-medium font-[family-name:var(--font-lato)]">✅ Selesai</span>
                     ) : (
                       <button
-                        onClick={() => handleManualCheckin(g.id)}
+                        onClick={() => handleManualCheckin(g.id, g.source)}
                         className="px-3 py-1.5 bg-[var(--color-gold)] text-white rounded-lg text-xs hover:bg-[var(--color-gold-hover)] transition-colors font-[family-name:var(--font-lato)]"
                       >
                         Check In
@@ -655,7 +656,7 @@ export default function ScannerPage() {
                   <div className="text-4xl mb-2">✅</div>
                   <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{walkinResult.name}</p>
                   {walkinResult.plus_one_name && (
-                    <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">+1: {walkinResult.plus_one_name}</p>
+                    <p className="text-green-600 text-sm mt-1 font-[family-name:var(--font-lato)]">Pasangan: {walkinResult.plus_one_name}</p>
                   )}
                   <p className="text-green-600 text-xs mt-2 font-[family-name:var(--font-lato)]">Berhasil ditambahkan &amp; check-in!</p>
                   <button

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { pgOrValue } from "@/lib/pgrest";
 
 /**
  * POST /api/whatsapp/webhook
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     const { data: guest } = await supabaseAdmin
       .from("guests")
       .select("id, name")
-      .or(`phone_number.eq.${phone},phone_number.eq.0${phone.slice(2)},phone_number.eq.+${phone}`)
+      .or(`phone_number.eq.${pgOrValue(phone)},phone_number.eq.${pgOrValue("0" + phone.slice(2))},phone_number.eq.${pgOrValue("+" + phone)}`)
       .maybeSingle();
 
     // Log the incoming message (you could store these in a messages table)

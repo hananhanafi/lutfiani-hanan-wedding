@@ -69,9 +69,14 @@ export async function POST(req: NextRequest) {
     const heart = "\u{1F90D}";
     const pray = "\u{1F64F}";
 
+    // Address the guest and, when present, their partner (plus-one)
+    const recipient = guest.plus_one_name?.trim()
+      ? `*${guest.name}* & *${guest.plus_one_name.trim()}*`
+      : `*${guest.name}*`;
+
     const message =
       `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
-      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${guest.name}* untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk hadir dalam acara pernikahan kami.\n\n` +
       `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
       `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
       `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +

@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD)
 ## My Digital Wedding Invitation Website
 
-**Version:** 2.2  
-**Date:** June 15, 2026  
+**Version:** 2.3  
+**Date:** June 27, 2026  
 **Status:** Live in Production  
 
 ---
@@ -125,7 +125,7 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-09 | Gift Registry Link | Link to an external registry or wish list page | Should Have |
 | F-10 | Travel & Stay Info | Nearby hotel recommendations and travel tips | Could Have |
 | F-11 | FAQ Section | Short Q&A for common guest questions | Could Have |
-| F-12 | Wishes Wall | Guests can post a short congratulatory message; public to all guests; couple can delete messages from admin panel | Could Have |
+| F-12 | Wishes Wall | Guests can post a short congratulatory message (paginated, public to all guests) and add emoji reactions (❤️ 🎉 🥂 😍 🙏); couple can delete messages from admin panel | Could Have |
 
 ### 5.2 RSVP Form
 
@@ -156,7 +156,7 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-30 | Export RSVP Data | Download full guest list as CSV (includes name, email, phone, attendance, plus-one, group, side, message, check-in); supports **selective export** — admin can tick individual guests and export only those rows | Must Have |
 | F-31 | Resend Pass Email | Admin can resend the QR entry pass email to any attending guest who has an email address | Must Have |
 | F-32 | WhatsApp Pass Link | Admin can open a WhatsApp deep-link to send the pass URL to any attending guest who has a phone number | Must Have |
-| F-33 | Password Protection Toggle | Enable/disable a site password for guests; set/change the password | Must Have |
+| F-33 | Password Protection Toggle | Enable/disable a site password for guests; set/change the password (bcrypt-hashed on save) | Must Have |
 | F-34 | Check-in Dashboard | View real-time check-in status merged into the main Dasbor page (stats cards + attending guest list with check-in timestamps) | Must Have |
 | F-35 | Photo & File Upload | Upload cover photo, gallery images, video, and audio to Cloudflare R2 (max 50 MB for video/audio, 10 MB for images); falls back to Supabase Storage if R2 not configured | Must Have |
 | F-76 | Gallery Reorder | Admin can drag-and-drop gallery photos to reorder them; position badges shown on each thumbnail | Should Have |
@@ -165,7 +165,7 @@ There is **one couple** (the owner) who manages the site, and **guests** who vis
 | F-79 | Phone Number Normalization | On guest add, phone numbers are normalized (strip +, spaces, dashes; convert leading 0 to country code 62) to prevent duplicates | Must Have |
 | F-80 | Scanner Accepts All Guests | QR scanner allows check-in for all guests regardless of RSVP status (unconfirmed, not attending, or attending) | Must Have |
 | F-36 | QR PDF Export | Generate a printable A4 HTML page with individual QR entry-pass cards (3-column grid, dashed borders, ornament + guest name + pass QR); supports exporting all guests or a selected subset via `?ids=` param | Should Have |
-| F-52 | Bulk CSV Import | Admin can upload a CSV file to import guests in bulk. Flexible column detection (English/Indonesian aliases), duplicate phone detection, per-row error reporting, dry-run preview before commit. | Must Have |
+| F-52 | Bulk CSV Import | Admin can upload a CSV file to import guests in bulk. Flexible column detection (English/Indonesian aliases), intra-file duplicate email/phone detection, a 2,000-row per-import cap, per-row error reporting, dry-run preview before commit. | Must Have |
 | F-53 | VIP Guest Flag | Admin can mark any guest as VIP; VIP badge displayed on guest card and guest list | Should Have |
 | F-54 | RSVP Submissions View | Separate page listing public RSVP form submissions (distinct from admin-added guests), with search, attendance filter, and delete capability | Must Have |
 
@@ -244,8 +244,8 @@ Website
 │   ├── Gift Registry & Bank Info
 │   ├── Travel & Stay
 │   ├── FAQ
-│   ├── Wishes Wall
-│   └── Spotify Player
+│   ├── Wishes Wall (messages + emoji reactions)
+│   └── Background Music (floating player — MP3 or YouTube; Spotify playlist field retained in config but the inline Spotify player is currently disabled)
 ├── Entry Page (/enter — site password unlock)
 ├── Guest Pass (/pass?token=… — public, exempt from site lock)
 ├── Scanner Page (Welcomer — PIN protected)
@@ -323,8 +323,8 @@ Website
 | QR Code Generation | `qrcode` npm package (shared server-side helper in `src/lib/qrcode.ts`) |
 | QR Code Scanning | `html5-qrcode` (browser-based camera scan) |
 | Maps | Google Maps Embed (via venue URL in site config) |
-| Authentication | NextAuth.js v4 (credentials, JWT) — env-var admin + DB-backed staff with bcrypt; HMAC-signed cookie for site lock; PIN for scanner |
-| Password Hashing | `bcryptjs` (staff account passwords, cost factor 12) |
+| Authentication | NextAuth.js v4 (credentials, JWT) — env-var admin + DB-backed staff with bcrypt; expiring HMAC-signed cookie for site lock; constant-time PIN check for scanner |
+| Password Hashing | `bcryptjs` (cost factor 12) for staff account passwords **and** the site password; legacy unsalted SHA-256 site-password hashes are still accepted at verify time for backward compatibility |
 | WhatsApp | Self-hosted **Baileys microservice** (`whatsapp-service/`) — supports multi-session, QR pairing, phone pairing, send text/image |
 | Hosting | Vercel (Next.js app) + separate Node.js server for WhatsApp microservice |
 
@@ -334,10 +334,10 @@ Website
 - **Database: Supabase** — PostgreSQL hosted on Supabase free tier.
 - **Email: Nodemailer + Gmail SMTP** — QR code delivery (as embedded image attachment) and RSVP notifications to the couple. Requires a Gmail App Password (`GMAIL_APP_PASSWORD` env var).
 - **Admin content editing** — All editable content is stored in a single `site_config` row and edited via the admin panel.
-- **Site password gate** — Middleware enforces an HMAC-signed cookie (`site_unlocked`) on all non-exempt routes. Guests visit `/enter` to unlock.
+- **Site password gate** — Middleware enforces an expiring HMAC-signed cookie (`site_unlocked`, format `${expiry}.${sig}`, 7-day TTL validated server-side) on all non-exempt routes. The embedded expiry means a leaked cookie value stops working after the TTL and the value changes on every unlock. Guests visit `/enter` to unlock. The site password itself is bcrypt-hashed (legacy SHA-256 hashes still verified).
 - **QR tokens** — Each guest has a unique UUID `token` stored in the DB, encoded into their pass URL (`/pass?token=…`). The scanner validates this token and marks check-in.
 - **Admin guest management** — Admin can add guests manually, edit any field via `PATCH /api/admin/guests/[id]`, or delete via `DELETE`.
-- **Bulk CSV import** — `POST /api/admin/guests/import` accepts multipart CSV upload with flexible header detection (English + Indonesian aliases), duplicate-phone reporting, and per-row error detail.
+- **Bulk CSV import** — `POST /api/admin/guests/import` accepts multipart CSV upload with flexible header detection (English + Indonesian aliases), intra-file duplicate email/phone detection (duplicate rows skipped and reported rather than aborting the batch), a 2,000-row per-import cap, and per-row error detail. *(Note: import stores phone numbers as-entered — only the manual add-guest path normalizes them; see below.)*
 - **Selective export** — Guest table supports multi-checkbox selection; the unified "Ekspor" dropdown exports only selected guests as CSV or a printable QR PDF card sheet. The button is disabled when nothing is selected.
 - **QR PDF export** — `GET /api/admin/export-qr[?ids=…]` returns a self-contained printable HTML page with 3-column A4 QR cards.
 - **Walk-in registration** — `POST /api/scanner/walkin` (PIN-protected) adds a new guest and immediately sets `attending:true, checked_in:true`.
@@ -351,7 +351,12 @@ Website
 - **Session scoping for senders** — `whatsapp_session_owners` table maps `session_id → staff_id`. Sender-role users can only view/use/delete their own sessions. All WA-related API routes enforce this.
 - **Localization** — All admin, scanner, entry, and pass pages are in Bahasa Indonesia.
 - **Input validation** — All public-facing text inputs are validated server-side for length limits.
-- **Phone normalization** — On guest add/import, phone numbers are sanitized: all non-digit characters stripped, leading `0` converted to `62` (Indonesian country code). Prevents duplicates like `+62 857-1648-1111` vs `08571648111`.
+- **Abuse / rate limiting** — Public write endpoints are IP-rate-limited via a Supabase-backed limiter (`rate_limits` table): RSVP (5 / 10 min), wishes (10 / 10 min), and wish reactions (60 / 10 min). The limiter records each request before counting to avoid a check-then-act race.
+- **Query-injection hardening** — User input concatenated into PostgREST `.or()` filters (login email/username lookup, guest email/phone uniqueness checks, RSVP auto-link, WhatsApp inbound matching) is escaped via a shared `pgOrValue()` helper; `.ilike()` dedup lookups escape LIKE wildcards via `escapeLike()`.
+- **Scanner PIN check** — `SCANNER_PIN` is verified in constant time (`crypto.timingSafeEqual`) through a shared helper; an unset PIN denies access rather than allowing an empty PIN.
+- **CSV export safety** — `GET /api/admin/export` escapes embedded quotes (RFC-4180) and prefixes formula-trigger characters (`= + - @`) to neutralize spreadsheet formula injection.
+- **RSVP edit / token stability** — When a guest re-submits with the same email, the existing submission is updated in place: the original QR `token` is preserved (previously issued passes remain valid) and check-in status is retained. A successful attending-pass email marks `email_sent` on the linked guest.
+- **Phone normalization** — On **manual guest add** (`POST /api/admin/guests`), phone numbers are sanitized: all non-digit characters stripped, leading `0` converted to `62` (Indonesian country code). Prevents duplicates like `+62 857-1648-1111` vs `08571648111`. *(Bulk CSV import currently stores phone numbers as-entered and does not apply this normalization.)*
 - **Cloudflare R2 media storage** — All media uploads (images, video, audio) go to Cloudflare R2 via `@aws-sdk/client-s3`. Served via custom domain (`wedding-media.hananhanafi.com`). Falls back to Supabase Storage if R2 env vars are not configured.
 - **Background music** — Autoplay background music via floating button (bottom-right corner). Supports MP3 file upload to R2 or YouTube IFrame API. Triggers on envelope open event (`wedding:open`). Auto-pauses when tab loses focus.
 - **Gallery drag-and-drop reorder** — Admin can reorder gallery photos via HTML5 Drag and Drop API. Position badges and visual feedback during drag.
@@ -442,6 +447,7 @@ Website
 | 15 | Staff management — Role-based accounts (Admin / Pengirim), guest scoping, session scoping | ✅ Done |
 | 16 | Username login for staff — Optional username field; login accepts email or username | ✅ Done |
 | 17 | WA sent-by tracking — `whatsapp_sent_by` (FK) and `whatsapp_sender_number` (real phone) saved on send; "WA Oleh" column in guest list; instant client-side update | ✅ Done |
+| 18 | Security & data-integrity hardening — PostgREST `.or()` injection escaping, constant-time scanner PIN, bcrypt site password (legacy fallback), expiring site-unlock cookie, sender-ownership checks on mark/resend-email, stable RSVP tokens on re-submit, race-resistant rate limiter (+ wish-reaction limit), CSV export injection guard, CSV import row cap + intra-file dedupe | ✅ Done |
 
 ---
 
@@ -450,7 +456,7 @@ Website
 1. ~~What is the wedding date and venue?~~ **Configured in admin panel.**
 2. How many guests are expected? *(Supabase free tier supports up to 50,000 rows — sufficient for any wedding)*
 3. ~~Do we want a password so only invited guests can view the site?~~ **Decided: Yes — implemented (F-33). Enabled via admin panel.**
-4. ~~Should guests be able to edit their RSVP after submitting?~~ **Decided: Yes — guests can re-submit with the same email; the old QR token is invalidated and a new one generated and re-sent.**
+4. ~~Should guests be able to edit their RSVP after submitting?~~ **Decided: Yes — guests can re-submit with the same email; the submission is updated in place, the original QR token is preserved (so previously issued passes stay valid), and check-in status is retained.**
 5. ~~Do we want email notifications when a guest RSVPs?~~ **Decided: Yes — the couple receives an email notification via Gmail on each new RSVP.**
 6. ~~Should the QR code be delivered via email, shown on screen only, or both?~~ **Decided: Both — displayed on the confirmation screen AND sent via email.**
 7. How many welcomers/door staff will there be? *(each needs the scanner PIN — currently one shared PIN)*
@@ -458,9 +464,9 @@ Website
 9. ~~Should the Wishes Wall be public or private?~~ **Decided: Public — visible to all guests; couple can delete messages from admin panel.**
 10. Should the WhatsApp microservice be deployed to the same server as the Next.js app or a dedicated machine? *(Currently runs as a separate Node.js process; must remain reachable via `WA_SERVICE_URL`)*
 11. Should staff (Pengirim) be able to see the RSVP summary / Dasbor page? *(Currently restricted to admin only)*
-12. Should there be a per-sender send quota or rate limiting?
+12. Should there be a per-sender WhatsApp send quota? *(Public RSVP, wishes, and reactions are already IP-rate-limited; there is no per-sender WhatsApp send quota yet.)*
 
 ---
 
 *Owner: The Couple*  
-*Last Updated: June 1, 2026 — v2.1*
+*Last Updated: June 27, 2026 — v2.3*

@@ -1691,7 +1691,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                 </div>
                 {statusBadge(g.attending)}
               </div>
-              {g.plus_one_name && <p className="text-xs text-gray-500">+1: {g.plus_one_name}</p>}
+              {g.plus_one_name && <p className="text-xs text-gray-500">Pasangan: {g.plus_one_name}</p>}
               {g.group_name && <p className="text-xs text-gray-500">Grup: {g.group_name}</p>}
               {g.side && <p className="text-xs text-gray-500 capitalize">Pihak: {g.side}</p>}
               {g.email && <p className="text-xs text-gray-400">{g.email}</p>}
@@ -1737,7 +1737,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
                   />
                 </th>
-                {["Nama", "VIP", "Email", "Telepon", "Status", "RSVP", "+1", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "WA Oleh", "Kirim Email/WA", ""].map((h) => (
+                {["Nama", "VIP", "Email", "Telepon", "Status", "RSVP", "Pasangan", "Grup", "Pihak", "Pesan", "Dikirim", "Check-in", "Email Terkirim", "WA Terkirim", "WA Oleh", "Kirim Email/WA", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { v4 as uuidv4 } from "uuid";
+import { verifyScannerPin } from "@/lib/scannerAuth";
 
 export async function POST(req: NextRequest) {
   try {
     const { pin, name, plus_one_name, group_name, side } = await req.json();
 
-    if (pin !== process.env.SCANNER_PIN) {
+    if (!verifyScannerPin(pin)) {
       return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
     }
 
@@ -18,6 +19,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name must be 100 characters or fewer." }, { status: 400 });
     }
 
+    // Normalize side to the canonical values used elsewhere ("bride" | "groom").
+    const normalizedSide = side?.trim().toLowerCase();
+    const safeSide = normalizedSide === "bride" || normalizedSide === "groom" ? normalizedSide : null;
+
     const now = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
@@ -26,8 +31,9 @@ export async function POST(req: NextRequest) {
         name: name.trim(),
         plus_one_name: plus_one_name?.trim() || null,
         group_name: group_name?.trim() || null,
-        side: side?.trim() || null,
+        side: safeSide,
         attending: true,
+        is_vip: false,
         token: uuidv4(),
         checked_in: true,
         checked_in_at: now,

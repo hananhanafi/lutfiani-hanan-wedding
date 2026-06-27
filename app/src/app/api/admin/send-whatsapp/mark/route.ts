@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { canModifyGuest } from "@/lib/guestAccess";
 
 /**
  * POST /api/admin/send-whatsapp/mark
@@ -12,6 +13,10 @@ export async function POST(req: NextRequest) {
 
   const { guestId } = await req.json();
   if (!guestId) return NextResponse.json({ error: "guestId required" }, { status: 400 });
+
+  if (!(await canModifyGuest(guestId, token.role as string | undefined, token.staffId as string | undefined))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { error } = await supabaseAdmin
     .from("guests")

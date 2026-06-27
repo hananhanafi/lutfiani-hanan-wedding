@@ -127,7 +127,7 @@ export default async function AdminDashboard() {
                   <div key={g.id} className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-800 text-sm">{g.name}</p>
-                      {g.plus_one_name && <p className="text-xs text-gray-400">+1: {g.plus_one_name}</p>}
+                      {g.plus_one_name && <p className="text-xs text-gray-400">Pasangan: {g.plus_one_name}</p>}
                     </div>
                     <span className="text-xs text-gray-400">{g.checked_in_at ? formatTime(g.checked_in_at) : ""}</span>
                   </div>
@@ -142,7 +142,7 @@ export default async function AdminDashboard() {
                 ) : notArrived.map((g) => (
                   <div key={g.id} className="bg-white rounded-xl px-4 py-3 shadow-sm">
                     <p className="font-medium text-gray-800 text-sm">{g.name}</p>
-                    {g.plus_one_name && <p className="text-xs text-gray-400">+1: {g.plus_one_name}</p>}
+                    {g.plus_one_name && <p className="text-xs text-gray-400">Pasangan: {g.plus_one_name}</p>}
                   </div>
                 ))}
               </div>

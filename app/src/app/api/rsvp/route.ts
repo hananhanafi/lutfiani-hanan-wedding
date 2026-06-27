@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { v4 as uuidv4 } from "uuid";
 import { sendMail } from "@/lib/mailer";
 import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
+import { pgOrValue, escapeLike } from "@/lib/pgrest";
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +43,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Message must be 500 characters or fewer." }, { status: 400 });
     }
 
-    const token = uuidv4();
+    // Detect an existing submission (same email) so we can update in place.
+    let existingId: string | null = null;
+    let existingToken: string | null = null;
+    if (email?.trim()) {
+      const { data: existing } = await supabaseAdmin
+        .from("rsvp_submissions")
+        .select("id, token")
+        .ilike("email", escapeLike(email.trim()))
+        .maybeSingle();
+      if (existing) {
+        existingId = existing.id as string;
+        existingToken = (existing.token as string | null) ?? null;
+      }
+    }
+
+    // Reuse the existing token on update so QR codes already issued (email /
+    // WhatsApp) keep resolving. Only mint a new token for brand-new submissions.
+    const token = existingToken ?? uuidv4();
     const qrUrl = buildPassUrl(token);
     const qrDataUrl = attending ? await generatePassQrDataUrl(qrUrl) : null;
 
@@ -51,41 +69,30 @@ export async function POST(req: NextRequest) {
     let submission = null;
     let dbError = null;
 
-    if (email?.trim()) {
-      const { data: existing } = await supabaseAdmin
+    if (existingId) {
+      isUpdate = true;
+      const { data: updated, error: updateError } = await supabaseAdmin
         .from("rsvp_submissions")
-        .select("id")
-        .ilike("email", email.trim())
-        .maybeSingle();
+        .update({
+          name: name.trim(),
+          email: email?.trim() || null,
+          phone_number: phone_number?.trim() || null,
+          attending,
+          plus_one_name: plus_one_name?.trim() || null,
+          group_name: group_name?.trim() || null,
+          side: side?.trim() || null,
+          message: message?.trim() || null,
+          submitted_at: new Date().toISOString(),
+        })
+        .eq("id", existingId)
+        .select()
+        .single();
 
-      if (existing) {
-        isUpdate = true;
-        const { data: updated, error: updateError } = await supabaseAdmin
-          .from("rsvp_submissions")
-          .update({
-            name: name.trim(),
-            email: email?.trim() || null,
-            phone_number: phone_number?.trim() || null,
-            attending,
-            plus_one_name: plus_one_name?.trim() || null,
-            group_name: group_name?.trim() || null,
-            side: side?.trim() || null,
-            message: message?.trim() || null,
-            token,
-            checked_in: false,
-            checked_in_at: null,
-            submitted_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error("Supabase update error:", updateError);
-          return NextResponse.json({ error: "Failed to update RSVP." }, { status: 500 });
-        }
-        submission = updated;
+      if (updateError) {
+        console.error("Supabase update error:", updateError);
+        return NextResponse.json({ error: "Failed to update RSVP." }, { status: 500 });
       }
+      submission = updated;
     }
 
     if (!submission) {
@@ -114,10 +121,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Auto-link to guest list by email or phone
+    let linkedGuestId: string | null = null;
     try {
       const lookupFilters: string[] = [];
-      if (email?.trim()) lookupFilters.push(`email.eq.${email.trim()}`);
-      if (phone_number?.trim()) lookupFilters.push(`phone_number.eq.${phone_number.trim()}`);
+      if (email?.trim()) lookupFilters.push(`email.eq.${pgOrValue(email.trim())}`);
+      if (phone_number?.trim()) lookupFilters.push(`phone_number.eq.${pgOrValue(phone_number.trim())}`);
       if (lookupFilters.length > 0) {
         const { data: matchedGuest } = await supabaseAdmin
           .from("guests")
@@ -126,6 +134,7 @@ export async function POST(req: NextRequest) {
           .limit(1)
           .maybeSingle();
         if (matchedGuest) {
+          linkedGuestId = matchedGuest.id as string;
           await supabaseAdmin
             .from("guests")
             .update({
@@ -167,6 +176,10 @@ export async function POST(req: NextRequest) {
             `,
             attachments: [{ filename: "entry-pass.png", content: qrBase64, encoding: "base64", contentType: "image/png", cid: "qrcode" }],
           });
+          // Reflect that the pass email was delivered on the linked guest row.
+          if (linkedGuestId) {
+            await supabaseAdmin.from("guests").update({ email_sent: true }).eq("id", linkedGuestId);
+          }
         } else if (!attending) {
           await sendMail({
             to: email,

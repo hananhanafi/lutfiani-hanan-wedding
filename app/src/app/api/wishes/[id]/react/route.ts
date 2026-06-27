@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const ALLOWED_EMOJIS = ["❤️", "🎉", "🥂", "😍", "🙏"];
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { limited } = await checkRateLimit(getClientIp(req), "wish_react", 60, 600); // 60 per 10 min
+  if (limited) {
+    return NextResponse.json(
+      { error: "Terlalu banyak permintaan. Coba lagi dalam beberapa menit." },
+      { status: 429 }
+    );
+  }
+
   const { id } = await params;
   const { emoji, remove } = await req.json();
 

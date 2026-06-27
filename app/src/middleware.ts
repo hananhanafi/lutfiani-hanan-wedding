@@ -12,7 +12,7 @@ function isExempt(pathname: string) {
   return EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
-async function computeUnlockToken(secret: string): Promise<string> {
+async function hmacHex(secret: string, data: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -20,10 +20,26 @@ async function computeUnlockToken(secret: string): Promise<string> {
     false,
     ["sign"]
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("site_unlocked"));
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
   return Array.from(new Uint8Array(sig))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+/**
+ * Validate the expiring unlock cookie (`${expiry}.${sig}`): the signature must
+ * match and the embedded expiry must be in the future.
+ */
+async function isUnlockCookieValid(cookie: string | undefined, secret: string): Promise<boolean> {
+  if (!cookie) return false;
+  const dot = cookie.lastIndexOf(".");
+  if (dot < 0) return false;
+  const expiryStr = cookie.slice(0, dot);
+  const sig = cookie.slice(dot + 1);
+  const expiry = Number(expiryStr);
+  if (!Number.isFinite(expiry) || expiry < Date.now()) return false;
+  const expected = await hmacHex(secret, `site_unlocked:${expiryStr}`);
+  return sig === expected;
 }
 
 export async function middleware(request: NextRequest) {
@@ -33,8 +49,7 @@ export async function middleware(request: NextRequest) {
   // Site password gate: redirect to /enter if cookie is missing or invalid
   if (!isExempt(pathname) && secret) {
     const cookieToken = request.cookies.get("site_unlocked")?.value;
-    const expected = await computeUnlockToken(secret);
-    if (cookieToken !== expected) {
+    if (!(await isUnlockCookieValid(cookieToken, secret))) {
       const enterUrl = new URL("/enter", request.url);
       enterUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(enterUrl);

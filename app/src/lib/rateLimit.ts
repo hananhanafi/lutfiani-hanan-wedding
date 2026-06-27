@@ -21,7 +21,18 @@ export async function checkRateLimit(
     .lt("created_at", windowStart)
     .then(() => {});
 
-  // Count recent requests from this IP
+  // Record this request FIRST, then count. Inserting before counting closes the
+  // check-then-act race: concurrent requests each persist their own row before
+  // counting, so they observe one another. This can over-count slightly, which
+  // is the safe direction (it never under-counts and lets abuse through).
+  const { error: insertError } = await supabaseAdmin.from("rate_limits").insert({ ip, action });
+  if (insertError) {
+    // If we can't record the request, fail open rather than block legitimate users.
+    console.error("Rate limit insert error:", insertError);
+    return { limited: false };
+  }
+
+  // Count recent requests from this IP (includes the row we just inserted)
   const { count } = await supabaseAdmin
     .from("rate_limits")
     .select("id", { count: "exact", head: true })
@@ -29,14 +40,9 @@ export async function checkRateLimit(
     .eq("action", action)
     .gte("created_at", windowStart);
 
-  if ((count ?? 0) >= max) {
-    return { limited: true };
-  }
-
-  // Record this request
-  await supabaseAdmin.from("rate_limits").insert({ ip, action });
-
-  return { limited: false };
+  // `max` is the allowed number of requests per window; our own row is counted,
+  // so the limit is exceeded once the count goes past max.
+  return { limited: (count ?? 0) > max };
 }
 
 /**

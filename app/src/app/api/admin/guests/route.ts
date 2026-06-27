@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { v4 as uuidv4 } from "uuid";
+import { pgOrValue } from "@/lib/pgrest";
 
 /** Normalize phone: strip +, spaces, dashes, parens → digits only, convert leading 0 to 62 */
 function normalizePhone(raw: string): string {
@@ -29,8 +30,8 @@ export async function POST(req: NextRequest) {
 
   // Uniqueness checks
   const orFilters: string[] = [];
-  if (email?.trim()) orFilters.push(`email.eq.${email.trim()}`);
-  if (normalizedPhone) orFilters.push(`phone_number.eq.${normalizedPhone}`);
+  if (email?.trim()) orFilters.push(`email.eq.${pgOrValue(email.trim())}`);
+  if (normalizedPhone) orFilters.push(`phone_number.eq.${pgOrValue(normalizedPhone)}`);
   if (orFilters.length > 0) {
     const { data: existing } = await supabaseAdmin
       .from("guests")

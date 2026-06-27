@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { pgOrValue } from "@/lib/pgrest";
 
 export async function PATCH(
   req: NextRequest,
@@ -46,8 +47,8 @@ export async function PATCH(
 
   // Uniqueness checks (exclude self)
   const orFilters: string[] = [];
-  if (updateData.email) orFilters.push(`email.eq.${updateData.email}`);
-  if (updateData.phone_number) orFilters.push(`phone_number.eq.${updateData.phone_number}`);
+  if (updateData.email) orFilters.push(`email.eq.${pgOrValue(updateData.email as string)}`);
+  if (updateData.phone_number) orFilters.push(`phone_number.eq.${pgOrValue(updateData.phone_number as string)}`);
   if (orFilters.length > 0) {
     const { data: conflict } = await supabaseAdmin
       .from("guests")

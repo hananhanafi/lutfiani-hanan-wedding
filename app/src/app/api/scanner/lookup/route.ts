@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { verifyScannerPin } from "@/lib/scannerAuth";
 
 export async function POST(req: NextRequest) {
   try {
     const { name, pin } = await req.json();
 
-    if (pin !== process.env.SCANNER_PIN) {
+    if (!verifyScannerPin(pin)) {
       return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
     }
 
@@ -44,7 +45,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const { guestId, source, pin } = await req.json();
 
-    if (pin !== process.env.SCANNER_PIN) {
+    if (!verifyScannerPin(pin)) {
       return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
     }
 

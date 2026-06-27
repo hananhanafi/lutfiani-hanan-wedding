@@ -102,8 +102,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const MAX_ROWS = 2000;
+  if (rows.length - 1 > MAX_ROWS) {
+    return NextResponse.json(
+      { error: `Too many rows. Maximum ${MAX_ROWS} guests per import.` },
+      { status: 400 }
+    );
+  }
+
   const toInsert: Record<string, unknown>[] = [];
   const skipped: { row: number; reason: string }[] = [];
+  // Track email/phone seen earlier in THIS file to avoid duplicate inserts that
+  // would otherwise abort the whole batch on a unique-constraint violation.
+  const seenEmails = new Set<string>();
+  const seenPhones = new Set<string>();
 
   for (let r = 1; r < rows.length; r++) {
     const cols = rows[r];
@@ -117,15 +129,31 @@ export async function POST(req: NextRequest) {
     const name = (record.name as string | undefined)?.trim();
     if (!name) { skipped.push({ row: r + 1, reason: "Missing name" }); continue; }
 
+    const email = (record.email as string | undefined)?.trim() || null;
+    const phone = (record.phone_number as string | undefined)?.trim() || null;
+
+    const emailKey = email?.toLowerCase();
+    if (emailKey && seenEmails.has(emailKey)) {
+      skipped.push({ row: r + 1, reason: `Duplicate email in file: ${email}` });
+      continue;
+    }
+    if (phone && seenPhones.has(phone)) {
+      skipped.push({ row: r + 1, reason: `Duplicate phone in file: ${phone}` });
+      continue;
+    }
+    if (emailKey) seenEmails.add(emailKey);
+    if (phone) seenPhones.add(phone);
+
     toInsert.push({
       name,
-      email:          (record.email as string | undefined)?.trim() || null,
-      phone_number:   (record.phone_number as string | undefined)?.trim() || null,
+      email,
+      phone_number:   phone,
       group_name:     (record.group_name as string | undefined)?.trim() || null,
       side:           record.side ? parseSide(record.side as string) : null,
       attending:      record.attending ? parseAttending(record.attending as string) : null,
       plus_one_name:  (record.plus_one_name as string | undefined)?.trim() || null,
       message:        (record.message as string | undefined)?.trim() || null,
+      is_vip:         false,
       token:          uuidv4(),
     });
   }

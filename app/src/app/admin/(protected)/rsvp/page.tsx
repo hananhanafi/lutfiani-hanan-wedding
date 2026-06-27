@@ -92,7 +92,7 @@ export default function RsvpPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                  {["Nama", "Email", "Telepon", "Kehadiran", "+1", "Grup", "Pihak", "Pesan", "Check-in", "Dikirim", ""].map((h) => (
+                  {["Nama", "Email", "Telepon", "Kehadiran", "Pasangan", "Grup", "Pihak", "Pesan", "Check-in", "Dikirim", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -147,7 +147,7 @@ export default function RsvpPage() {
                 </div>
                 {s.email && <p className="text-xs text-gray-400">{s.email}</p>}
                 {s.phone_number && <p className="text-xs text-gray-400">{s.phone_number}</p>}
-                {s.plus_one_name && <p className="text-xs text-gray-500">+1: {s.plus_one_name}</p>}
+                {s.plus_one_name && <p className="text-xs text-gray-500">Pasangan: {s.plus_one_name}</p>}
                 {s.group_name && <p className="text-xs text-gray-500">Grup: {s.group_name}</p>}
                 {s.side && <p className="text-xs text-gray-500 capitalize">Pihak: {SIDE_LABEL[s.side] ?? s.side}</p>}
                 {s.message && <p className="text-xs text-gray-500 italic">"{s.message}"</p>}
