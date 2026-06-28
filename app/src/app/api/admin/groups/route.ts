@@ -38,12 +38,11 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST /api/admin/groups — create a group (admin only).
+ * POST /api/admin/groups — create a group (any staff).
  */
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (token.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const name = typeof body.name === "string" ? body.name.trim() : "";

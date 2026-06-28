@@ -6,7 +6,7 @@ import { getToken } from "next-auth/jwt";
 const EXEMPT_PREFIXES = ["/admin", "/scanner", "/api", "/pass", "/enter", "/_next"];
 
 // Routes a "sender" role is allowed to visit
-const SENDER_ALLOWED = ["/admin/whatsapp", "/admin/kirim", "/admin/login"];
+const SENDER_ALLOWED = ["/admin/whatsapp", "/admin/kirim", "/admin/groups", "/admin/login"];
 
 function isExempt(pathname: string) {
   return EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));

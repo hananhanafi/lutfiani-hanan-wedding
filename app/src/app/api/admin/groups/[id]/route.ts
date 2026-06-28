@@ -9,18 +9,17 @@ function normalizeSide(side: unknown): string | null {
   return SIDES.includes(s) ? s : null;
 }
 
-async function requireAdmin(req: NextRequest) {
+async function requireAuth(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (token.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   return null;
 }
 
 /**
- * GET /api/admin/groups/[id] — list the guests in this group (admin only).
+ * GET /api/admin/groups/[id] — list the guests in this group (any staff).
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const err = await requireAdmin(req);
+  const err = await requireAuth(req);
   if (err) return err;
 
   const { id } = await params;
@@ -39,11 +38,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 /**
- * PATCH /api/admin/groups/[id] — rename / edit a group (admin only).
+ * PATCH /api/admin/groups/[id] — rename / edit a group (any staff).
  * A rename propagates to the denormalized guests.group_name mirror.
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const err = await requireAdmin(req);
+  const err = await requireAuth(req);
   if (err) return err;
 
   const { id } = await params;
@@ -99,12 +98,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 /**
- * DELETE /api/admin/groups/[id] — delete a group (admin only).
+ * DELETE /api/admin/groups/[id] — delete a group (any staff).
  * Guests in this group are unassigned: group_id is nulled by the FK (ON DELETE
  * SET NULL) and we also clear the denormalized group_name so the list stays consistent.
  */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const err = await requireAdmin(req);
+  const err = await requireAuth(req);
   if (err) return err;
 
   const { id } = await params;
