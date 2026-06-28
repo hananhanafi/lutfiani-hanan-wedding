@@ -10,7 +10,7 @@ import { useLanguage } from "./LanguageProvider";
 const ALL_NAV_ITEMS = [
   { href: "/admin", label: "Dasbor", icon: "📊", roles: ["admin"] },
   { href: "/admin/guests", label: "Tamu", icon: "👥", roles: ["admin"] },
-  { href: "/admin/groups", label: "Grup", icon: "🏷️", roles: ["admin"] },
+  { href: "/admin/groups", label: "Grup", icon: "🏷️", roles: ["admin", "sender"] },
   { href: "/admin/rsvp", label: "RSVP", icon: "📋", roles: ["admin"] },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: "💬", roles: ["admin", "sender"] },
   { href: "/admin/kirim", label: "Kirim", icon: "📤", roles: ["admin", "sender"] },
@@ -98,18 +98,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Mobile bottom nav */}
         <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50">
-          {navItems.map(({ href, label, icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex-1 flex flex-col items-center py-2 text-xs transition-colors ${
-                pathname === href ? "text-[var(--color-gold)]" : "text-gray-500"
-              }`}
-            >
-              <span className="text-lg">{icon}</span>
-              {label}
-            </Link>
-          ))}
+          {navItems.map(({ href, label, icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex-1 flex flex-col items-center gap-0.5 py-2 text-xs transition-colors ${
+                  active
+                    ? "text-[var(--color-gold)] font-semibold bg-[var(--color-cream-dark)]"
+                    : "text-gray-500"
+                }`}
+              >
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-[var(--color-gold)]" />
+                )}
+                <span className={`text-lg transition-transform ${active ? "scale-110" : ""}`}>{icon}</span>
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6 overflow-auto">{children}</main>
