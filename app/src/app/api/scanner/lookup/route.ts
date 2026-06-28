@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { verifyScannerPin } from "@/lib/scannerAuth";
+import { escapeLike } from "@/lib/pgrest";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,19 +15,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Please enter a name." }, { status: 400 });
     }
 
+    // Search ALL guests regardless of RSVP status — the scanner can check in
+    // anyone (attending, declined, or unconfirmed), matching the QR-scan flow.
+    const pattern = `%${escapeLike(name.trim())}%`;
     const [{ data: adminGuests }, { data: rsvpGuests }] = await Promise.all([
       supabaseAdmin
         .from("guests")
         .select("id, name, attending, plus_one_name, checked_in, token")
-        .ilike("name", `%${name.trim()}%`)
-        .eq("attending", true)
-        .limit(5),
+        .ilike("name", pattern)
+        .limit(8),
       supabaseAdmin
         .from("rsvp_submissions")
         .select("id, name, attending, plus_one_name, checked_in, token")
-        .ilike("name", `%${name.trim()}%`)
-        .eq("attending", true)
-        .limit(5),
+        .ilike("name", pattern)
+        .limit(8),
     ]);
 
     const guests = [
