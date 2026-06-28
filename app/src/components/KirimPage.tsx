@@ -42,6 +42,7 @@ export default function KirimPage({
   // Send flow
   const [sendStep, setSendStep] = useState<SendStep>("idle");
   const [selectedSession, setSelectedSession] = useState("");
+  const [messageType, setMessageType] = useState<"muslim" | "general">("muslim");
   const [otpCode, setOtpCode] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const [otpPhoneLast4, setOtpPhoneLast4] = useState("");
@@ -256,6 +257,7 @@ export default function KirimPage({
           body: JSON.stringify({
             guestIds: chunk.map((g) => g.id),
             sessionId: selectedSession,
+            messageType,
           }),
         });
         const data = await res.json();
@@ -566,7 +568,25 @@ export default function KirimPage({
 
       {/* Fixed bottom send bar */}
       {selectedIds.size > 0 && sendStep === "idle" && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-3 sm:relative sm:bottom-auto sm:border-0 sm:bg-transparent sm:p-0 sm:mt-4">
+        <div className="fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 flex flex-col gap-2 sm:relative sm:bottom-auto sm:border-0 sm:bg-transparent sm:p-0 sm:mt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Tipe pesan:</span>
+            <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+              {([["muslim", "🕌 Muslim"], ["general", "Umum"]] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setMessageType(val)}
+                  className={`px-3 py-1 text-xs transition-colors ${
+                    messageType === val ? "bg-[var(--color-gold)] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-800">{selectedIds.size} tamu dipilih</p>
             <p className="text-xs text-gray-400 truncate">
@@ -593,6 +613,7 @@ export default function KirimPage({
               Kirim WA →
             </button>
           )}
+          </div>
         </div>
       )}
 

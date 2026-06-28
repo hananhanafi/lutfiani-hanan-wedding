@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
   const guestIds: string[] = body.guestIds ?? (body.guestId ? [body.guestId] : []);
   const sessionId: string | undefined = body.sessionId;
   const imageUrl: string | undefined = body.imageUrl || process.env.WA_IMAGE_URL || undefined;
+  // Which invitation template to use: "muslim" (Islamic greeting) or "general"/national.
+  const messageType: "muslim" | "general" = body.messageType === "general" ? "general" : "muslim";
 
   if (guestIds.length === 0) {
     return NextResponse.json({ error: "guestIds required" }, { status: 400 });
@@ -91,13 +93,23 @@ export async function POST(req: NextRequest) {
       ? `*${guest.name}* & *${guest.plus_one_name.trim()}*`
       : `*${guest.name}*`;
 
-    const message =
+    const muslimMessage =
       `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
-      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i ${recipient} untuk hadir dalam acara pernikahan kami.\n\n` +
       `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
       `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
       `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
       `Hormat Kami,\n${signOffName}`;
+
+    const generalMessage =
+      `Kepada Yth. Bapak/Ibu/Saudara/i ${recipient} ${heart}\n\n` +
+      `Dengan hormat, perkenankan kami mengundang Anda untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
+      `Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
+      `Terima kasih.\n\n` +
+      `Hormat Kami,\n${signOffName}`;
+
+    const message = messageType === "general" ? generalMessage : muslimMessage;
 
     try {
       let messageId: string;

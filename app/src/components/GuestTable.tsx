@@ -425,6 +425,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [otpPhoneLast4, setOtpPhoneLast4] = useState("");
+  const [messageType, setMessageType] = useState<"muslim" | "general">("muslim");
 
   if (!guest.phone_number) return <span className="text-gray-300 text-xs">&mdash;</span>;
 
@@ -463,7 +464,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
           const res = await fetch("/api/admin/send-whatsapp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ guestId: guest.id, sessionId }),
+            body: JSON.stringify({ guestId: guest.id, sessionId, messageType }),
           });
           const data = await res.json();
           if (data.sent > 0) {
@@ -501,7 +502,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
           const res2 = await fetch("/api/admin/send-whatsapp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ guestId: guest.id, sessionId }),
+            body: JSON.stringify({ guestId: guest.id, sessionId, messageType }),
           });
           const data2 = await res2.json();
           if (data2.sent > 0) {
@@ -559,7 +560,7 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
       const res = await fetch("/api/admin/send-whatsapp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestId: guest.id, sessionId: selectedSession }),
+        body: JSON.stringify({ guestId: guest.id, sessionId: selectedSession, messageType }),
       });
       const data = await res.json();
       if (data.sent > 0) {
@@ -609,6 +610,23 @@ function WhatsAppButton({ guest, onSent, sessions }: { guest: Guest; coupleName:
 
             {step === "pick" && (
               <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Tipe pesan:</span>
+                  <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+                    {([["muslim", "🕌 Muslim"], ["general", "Umum"]] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setMessageType(val)}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          messageType === val ? "bg-[var(--color-gold)] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {connectedSessions.length === 0 ? (
                   <p className="text-sm text-amber-600">Tidak ada sesi WA yang terhubung. Hubungkan di menu WhatsApp.</p>
                 ) : (
@@ -920,6 +938,7 @@ function WhatsAppBatchModal({
 
   const [step, setStep] = useState<"pick-sender" | "otp" | "confirm" | "sending" | "done">("pick-sender");
   const [selectedSession, setSelectedSession] = useState<string>("");
+  const [messageType, setMessageType] = useState<"muslim" | "general">("muslim");
   const [sentSoFar, setSentSoFar] = useState(0);
   const [sessions, setSessions] = useState(initialSessions ?? []);
   const [results, setResults] = useState<{ guestId: string; name: string; success: boolean; error?: string; senderNumber?: string | null; sentBy?: string | null }[]>([]);
@@ -1025,6 +1044,7 @@ function WhatsAppBatchModal({
           body: JSON.stringify({
             guestIds: chunk.map((g) => g.id),
             sessionId: selectedSession,
+            messageType,
           }),
         });
         const data = await res.json();
@@ -1171,6 +1191,23 @@ function WhatsAppBatchModal({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-300">Akan dikirim</span>
                   <span className="font-medium text-gray-800 dark:text-white">{toSend.length} tamu</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">Tipe pesan</span>
+                  <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+                    {([["muslim", "🕌 Muslim"], ["general", "Umum"]] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setMessageType(val)}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          messageType === val ? "bg-[var(--color-gold)] text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {skipped.length > 0 && (
                   <div className="flex items-center justify-between text-sm">
