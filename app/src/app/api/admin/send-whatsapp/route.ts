@@ -45,6 +45,15 @@ export async function POST(req: NextRequest) {
   const coupleName = process.env.NEXT_PUBLIC_COUPLE_NAME ?? "Kami";
   const sentBy = (token.staffId as string | undefined) ?? null;
 
+  // Sign-off name: when sent from a staff account, use that staff member's name;
+  // otherwise (primary/env admin) fall back to the couple name.
+  let signOffName = coupleName;
+  const staffId = token.staffId as string | undefined;
+  if (staffId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(staffId)) {
+    const { data: staff } = await supabaseAdmin.from("staff").select("name").eq("id", staffId).maybeSingle();
+    if (staff?.name) signOffName = staff.name as string;
+  }
+
   // Resolve the sender session's phone + account name (non-fatal)
   let senderPhone: string | null = null;
   let senderName: string | null = null;
@@ -88,7 +97,7 @@ export async function POST(req: NextRequest) {
       `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
       `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
       `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
-      `Hormat Kami,\n${coupleName}`;
+      `Hormat Kami,\n${signOffName}`;
 
     try {
       let messageId: string;
