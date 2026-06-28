@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { canUseSession } from "@/lib/sessionOwnership";
 
+// How long a verified session stays authorized to send (re-OTP after this).
+const VERIFIED_WINDOW_MS = 24 * 60 * 60 * 1000; // 1 day
+
 /**
  * In-memory OTP store: sessionId -> { code, phone, expiresAt, verified, verifiedUntil }
  * - code/expiresAt: the one-time code sent to the user (short-lived)
- * - verified/verifiedUntil: once verified, stays valid for 1 hour bound to the session's phone
+ * - verified/verifiedUntil: once verified, stays valid for 1 day bound to the session's phone
  */
 const otpStore = new Map<string, {
   code: string;
   expiresAt: number;       // code expiry (10 min)
   phone: string;           // sender phone — verification is tied to this
   verified: boolean;
-  verifiedUntil: number;   // verified-state expiry (1 hour)
+  verifiedUntil: number;   // verified-state expiry (1 day)
 }>();
 
 function generateOTP(): string {
@@ -61,7 +64,7 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/admin/whatsapp-otp
  * Body: { sessionId: string }
- * If already verified within 1 h, returns { alreadyVerified: true, phoneLast4 }.
+ * If already verified within the verification window, returns { alreadyVerified: true, phoneLast4 }.
  * Otherwise sends a new OTP (valid 10 min) to the sender's own number.
  */
 export async function POST(req: NextRequest) {
@@ -131,7 +134,7 @@ export async function POST(req: NextRequest) {
 /**
  * PUT /api/admin/whatsapp-otp
  * Body: { sessionId: string, code: string }
- * Verifies the OTP. On success, marks session as verified for 1 hour.
+ * Verifies the OTP. On success, marks session as verified for 1 day.
  */
 export async function PUT(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -163,12 +166,12 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Invalid OTP code" }, { status: 400 });
   }
 
-  // Mark as verified for 1 hour, bound to the sender's phone
+  // Mark as verified for the verification window, bound to the sender's phone
   otpStore.set(sessionId, {
     ...stored,
     code: "",
     verified: true,
-    verifiedUntil: Date.now() + 60 * 60 * 1000,
+    verifiedUntil: Date.now() + VERIFIED_WINDOW_MS,
   });
 
   return NextResponse.json({ verified: true });
