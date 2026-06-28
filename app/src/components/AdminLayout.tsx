@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -25,6 +26,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { data: session } = useSession();
   const role = (session?.user as { role?: string })?.role ?? "admin";
   const navItems = ALL_NAV_ITEMS.filter((item) => item.roles.includes(role));
+  const isSender = role === "sender";
+
+  // Staff (sender) panel is Bahasa Indonesia only — force ID if a stale EN preference is set
+  useEffect(() => {
+    if (isSender && lang === "en") toggleLang();
+  }, [isSender, lang, toggleLang]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -38,13 +45,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleLang}
-            title={lang === "id" ? "Ganti ke English" : "Ganti ke Bahasa Indonesia"}
-            className="text-xs font-bold tracking-widest uppercase px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
-          >
-            {lang === "id" ? "EN" : "ID"}
-          </button>
+          {!isSender && (
+            <button
+              onClick={toggleLang}
+              title={lang === "id" ? "Ganti ke English" : "Ganti ke Bahasa Indonesia"}
+              className="text-xs font-bold tracking-widest uppercase px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
+            >
+              {lang === "id" ? "EN" : "ID"}
+            </button>
+          )}
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Mode Terang" : "Mode Gelap"}
@@ -52,9 +61,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
-          <Link href="/" target="_blank" className="text-sm text-gray-500 hover:text-gray-800">
-            Lihat Situs ↗
-          </Link>
+          {!isSender && (
+            <Link href="/" target="_blank" className="text-sm text-gray-500 hover:text-gray-800">
+              Lihat Situs ↗
+            </Link>
+          )}
           <button
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
             className="text-sm text-red-500 hover:text-red-700"
