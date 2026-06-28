@@ -381,6 +381,29 @@ app.get("/sessions/:id/status", auth, (req, res) => {
   res.json({ sessionId: id, status: client.getStatus(), phone: client.getPhoneNumber(), name: client.getName(), connected: client.isConnected() });
 });
 
+// Read the connected account's address-book contacts (no chat history involved)
+app.get("/sessions/:id/contacts", auth, (req, res) => {
+  const id = req.params.id as string;
+  const client = sessionManager.getSession(id);
+  if (!client) return res.status(404).json({ error: "Session not found" });
+  if (!client.isConnected()) return res.status(400).json({ error: "Session not connected" });
+  res.json({ sessionId: id, contacts: client.getContacts() });
+});
+
+// Force a contact re-sync (user-triggered), then return the refreshed list
+app.post("/sessions/:id/contacts/refresh", auth, async (req, res) => {
+  const id = req.params.id as string;
+  const client = sessionManager.getSession(id);
+  if (!client) return res.status(404).json({ error: "Session not found" });
+  if (!client.isConnected()) return res.status(400).json({ error: "Session not connected" });
+  try {
+    await client.refreshContacts();
+    res.json({ sessionId: id, contacts: client.getContacts() });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Refresh failed" });
+  }
+});
+
 // Request pairing code (single-device phone-number pairing)
 app.post("/sessions/:id/pairing-code", auth, async (req, res) => {
   const id = req.params.id as string;

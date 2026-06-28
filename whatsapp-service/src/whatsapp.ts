@@ -36,10 +36,49 @@ class WhatsAppClient {
   private listeners: EventListener[] = [];
   private retryCount = 0;
   private maxRetries = 5;
+  // Passive address-book store (phone -> name). Populated only from WhatsApp's
+  // contact app-state sync — never from message content.
+  private contacts = new Map<string, string>();
 
   constructor(sessionId: string) {
     this.sessionId = sessionId;
     this.authDir = path.join(AUTH_BASE_DIR, sessionId);
+  }
+
+  /** Merge a batch of WhatsApp contacts into the store (individuals only, no groups). */
+  private upsertContacts(list: Array<{ id?: string; name?: string; notify?: string; verifiedName?: string }> | undefined) {
+    for (const c of list ?? []) {
+      const jid = c?.id ?? "";
+      if (!jid.endsWith("@s.whatsapp.net")) continue; // skip groups / broadcast / status
+      const phone = jid.split("@")[0].split(":")[0];
+      if (!/^\d{6,}$/.test(phone)) continue;
+      const name = (c.name || c.notify || c.verifiedName || "").trim();
+      const existing = this.contacts.get(phone);
+      // Prefer a real name; keep an existing name if the update has none.
+      this.contacts.set(phone, name || existing || "");
+    }
+  }
+
+  /** Return the connected account's address-book contacts (excludes self). */
+  getContacts(): { phone: string; name: string }[] {
+    const self = this.getPhoneNumber();
+    return Array.from(this.contacts.entries())
+      .filter(([phone]) => phone !== self)
+      .map(([phone, name]) => ({ phone, name }))
+      .sort((a, b) => (a.name || "~").localeCompare(b.name || "~"));
+  }
+
+  /** Force WhatsApp to re-push app-state (incl. contacts). Best-effort, user-triggered. */
+  async refreshContacts(): Promise<void> {
+    if (!this.sock || this.status !== "connected") throw new Error("Session not connected");
+    try {
+      await this.sock.resyncAppState(
+        ["critical_block", "critical_unblock_low", "regular_high", "regular_low", "regular"],
+        false
+      );
+    } catch {
+      // keys may not be ready yet — store still reflects whatever synced on connect
+    }
   }
 
   getStatus(): ConnectionStatus {
@@ -95,9 +134,17 @@ class WhatsAppClient {
       logger,
       browser: Browsers.windows("Chrome"),
       version,
+      // Contacts only — do not pull or process message history.
+      syncFullHistory: false,
+      shouldSyncHistoryMessage: () => false,
     });
 
     this.sock.ev.on("creds.update", saveCreds);
+
+    // Capture the address book from app-state sync (contacts only, never messages).
+    this.sock.ev.on("contacts.upsert", (contacts) => this.upsertContacts(contacts));
+    this.sock.ev.on("contacts.update", (updates) => this.upsertContacts(updates));
+    this.sock.ev.on("messaging-history.set", ({ contacts }) => this.upsertContacts(contacts));
 
     this.sock.ev.on("connection.update", (update) => {
       console.log(`[${this.sessionId}] Connection update`);
