@@ -18,6 +18,7 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -39,23 +40,48 @@ export default function StaffPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const openAdd = () => { setEditingId(null); setForm(EMPTY_FORM); setFormError(""); setShowAdd(true); };
+  const openEdit = (member: StaffMember) => {
+    setEditingId(member.id);
+    setForm({ name: member.name, username: member.username ?? "", email: member.email, password: "", role: member.role });
+    setFormError("");
+    setShowAdd(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/staff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setFormError(data.error ?? "Gagal membuat akun.");
+      if (editingId) {
+        // Edit: only send password if a new one was typed
+        const body: Record<string, unknown> = { name: form.name, email: form.email, username: form.username, role: form.role };
+        if (form.password) body.password = form.password;
+        const res = await fetch(`/api/admin/staff/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setFormError(data.error ?? "Gagal menyimpan perubahan.");
+        } else {
+          setStaff((prev) => prev.map((s) => (s.id === editingId ? data.staff : s)));
+          setShowAdd(false);
+        }
       } else {
-        setStaff((prev) => [data.staff, ...prev]);
-        setForm(EMPTY_FORM);
-        setShowAdd(false);
+        const res = await fetch("/api/admin/staff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setFormError(data.error ?? "Gagal membuat akun.");
+        } else {
+          setStaff((prev) => [data.staff, ...prev]);
+          setShowAdd(false);
+        }
       }
     } catch {
       setFormError("Koneksi error. Coba lagi.");
@@ -104,7 +130,7 @@ export default function StaffPage() {
           <p className="text-sm text-gray-500 mt-0.5">Kelola akun staf dan hak aksesnya</p>
         </div>
         <button
-          onClick={() => { setForm(EMPTY_FORM); setFormError(""); setShowAdd(true); }}
+          onClick={openAdd}
           className="px-4 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
         >
           + Tambah Staf
@@ -156,6 +182,12 @@ export default function StaffPage() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
+                  onClick={() => openEdit(member)}
+                  className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
+                >
+                  Ubah
+                </button>
+                <button
                   onClick={() => toggleActive(member)}
                   className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
                     member.is_active
@@ -200,10 +232,10 @@ export default function StaffPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-800">Tambah Staf Baru</h2>
+              <h2 className="text-base font-semibold text-gray-800">{editingId ? "Edit Staf" : "Tambah Staf Baru"}</h2>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
             </div>
-            <form onSubmit={handleAdd} className="px-5 py-5 space-y-4">
+            <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Nama <span className="text-red-400">*</span></label>
                 <input
@@ -240,14 +272,16 @@ export default function StaffPage() {
                 <p className="text-xs text-gray-400 mt-1">Bisa login dengan email atau username ini</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Kata Sandi <span className="text-red-400">*</span></label>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  {editingId ? "Kata Sandi Baru" : "Kata Sandi"} {editingId ? <span className="text-gray-400 text-[10px] normal-case">(opsional)</span> : <span className="text-red-400">*</span>}
+                </label>
                 <input
-                  required
+                  required={!editingId}
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                   minLength={8}
-                  placeholder="Min. 8 karakter"
+                  placeholder={editingId ? "Kosongkan jika tidak diubah" : "Min. 8 karakter"}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
                 />
               </div>
@@ -266,7 +300,7 @@ export default function StaffPage() {
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Batal</button>
                 <button type="submit" disabled={saving} className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors">
-                  {saving ? "Menyimpan..." : "Buat Akun"}
+                  {saving ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Buat Akun"}
                 </button>
               </div>
             </form>

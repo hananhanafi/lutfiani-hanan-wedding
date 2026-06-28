@@ -16,13 +16,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await req.json();
-  const { name, username, role, is_active, password } = body;
+  const { name, email, username, role, is_active, password } = body;
 
   // Prevent modifying the env-based admin
   if (id === "admin-env") return NextResponse.json({ error: "Cannot modify the primary admin." }, { status: 400 });
 
   const updates: Record<string, unknown> = {};
-  if (name !== undefined) updates.name = name.trim();
+  if (name !== undefined) {
+    if (!name?.trim()) return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    updates.name = name.trim();
+  }
+  if (email !== undefined) {
+    const cleanEmail = email?.trim().toLowerCase();
+    if (!cleanEmail) return NextResponse.json({ error: "Email is required." }, { status: 400 });
+    // Check uniqueness, excluding self
+    const { data: existingEmail } = await supabaseAdmin
+      .from("staff")
+      .select("id")
+      .eq("email", cleanEmail)
+      .neq("id", id)
+      .maybeSingle();
+    if (existingEmail) return NextResponse.json({ error: "Email already in use." }, { status: 409 });
+    updates.email = cleanEmail;
+  }
   if (username !== undefined) {
     const cleanUsername = username?.trim() || null;
     if (cleanUsername) {
