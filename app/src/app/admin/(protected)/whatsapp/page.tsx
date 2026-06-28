@@ -197,6 +197,12 @@ export default function WhatsAppPage() {
     setWizardError("");
     setWizardBusy(true);
     try {
+      // Ensure the session exists and ownership is recorded (mirrors the QR path)
+      await fetch("/api/admin/whatsapp-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: id }),
+      });
       const res = await fetch(`/api/admin/whatsapp-sessions/${id}/pairing-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

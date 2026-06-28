@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getSessionOwner, recordSessionOwner } from "@/lib/sessionOwnership";
 
 function getServiceUrl() {
   const url = process.env.WA_SERVICE_URL;
@@ -28,6 +29,22 @@ export async function POST(
   if (!body.phoneNumber) {
     return NextResponse.json({ error: "Missing phoneNumber" }, { status: 400 });
   }
+
+  // Record session ownership at pairing time so this session shows up for the
+  // staff who connected it. (The QR path does this via POST /whatsapp-sessions;
+  // the phone-pairing path previously skipped it, hiding the session from senders.)
+  const user = session.user as { role?: string; staffId?: string } | undefined;
+  const role = user?.role ?? "admin";
+  const staffId = user?.staffId;
+  if (role === "sender") {
+    if (!staffId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // A sender may pair an unowned (new) session — claiming it — but not one owned by someone else.
+    const owner = await getSessionOwner(id);
+    if (owner && owner !== staffId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+  await recordSessionOwner(id, staffId ?? null);
 
   try {
     const res = await fetch(`${getServiceUrl()}/sessions/${id}/pairing-code`, {
