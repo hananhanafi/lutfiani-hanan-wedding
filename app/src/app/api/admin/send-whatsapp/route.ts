@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     const muslimMessage =
       `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
-      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i ${recipient} untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i ${recipient} untuk hadir dalam acara pernikahan ${coupleName}.\n\n` +
       `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
       `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
       `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     const generalMessage =
       `Kepada Yth. Bapak/Ibu/Saudara/i ${recipient} ${heart}\n\n` +
-      `Dengan hormat, perkenankan kami mengundang Anda untuk hadir dalam acara pernikahan kami.\n\n` +
+      `Dengan hormat, perkenankan kami mengundang Anda untuk hadir dalam acara pernikahan ${coupleName}.\n\n` +
       `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
       `Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
       `Terima kasih.\n\n` +
