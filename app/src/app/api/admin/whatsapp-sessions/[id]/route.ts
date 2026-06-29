@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { canUseSession } from "@/lib/sessionOwnership";
+import { ensureConnectorCookie, recordSessionConnector } from "@/lib/sessionConnector";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 
 function getServiceUrl() {
@@ -66,7 +67,13 @@ export async function POST(
       headers: { "x-api-key": getApiKey() },
     });
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const response = NextResponse.json(data, { status: res.status });
+    // Bind this session to the browser that initiated the connection (for contact access)
+    if (action === "connect" && res.ok) {
+      const connectorId = ensureConnectorCookie(req, response);
+      await recordSessionConnector(id, connectorId);
+    }
+    return response;
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });
   }

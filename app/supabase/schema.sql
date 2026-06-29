@@ -165,6 +165,15 @@ CREATE TABLE IF NOT EXISTS whatsapp_session_owners (
   staff_id    UUID REFERENCES staff(id) ON DELETE CASCADE,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Binds a session to the browser that connected it (see migrations/0003).
+-- Restricts contact fetch/sync to that browser via the "wa_connector" cookie.
+CREATE TABLE IF NOT EXISTS whatsapp_session_connectors (
+  session_id   TEXT PRIMARY KEY,
+  connector_id TEXT NOT NULL,
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE whatsapp_session_connectors ENABLE ROW LEVEL SECURITY;
 -- Migration: run if guests table already exists
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES staff(id) ON DELETE SET NULL;
 

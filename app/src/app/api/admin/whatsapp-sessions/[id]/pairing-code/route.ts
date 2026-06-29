@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSessionOwner, recordSessionOwner } from "@/lib/sessionOwnership";
+import { ensureConnectorCookie, recordSessionConnector } from "@/lib/sessionConnector";
 
 function getServiceUrl() {
   const url = process.env.WA_SERVICE_URL;
@@ -53,7 +54,13 @@ export async function POST(
       body: JSON.stringify({ phoneNumber: body.phoneNumber }),
     });
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const response = NextResponse.json(data, { status: res.status });
+    // Bind this session to the browser that initiated the pairing (for contact access)
+    if (res.ok) {
+      const connectorId = ensureConnectorCookie(req, response);
+      await recordSessionConnector(id, connectorId);
+    }
+    return response;
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed" },
