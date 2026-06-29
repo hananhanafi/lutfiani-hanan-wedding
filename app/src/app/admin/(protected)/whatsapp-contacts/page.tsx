@@ -11,6 +11,10 @@ export default function WhatsAppContactsPage() {
   const [selectedSession, setSelectedSession] = useState("");
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
   const [targetGroup, setTargetGroup] = useState("");
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [groupSaving, setGroupSaving] = useState(false);
+  const [groupError, setGroupError] = useState("");
 
   const [contacts, setContacts] = useState<WAContact[] | null>(null); // null = not loaded yet
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,8 @@ export default function WhatsAppContactsPage() {
 
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ created: number; skipped: { name: string; reason: string }[] } | null>(null);
+  // Review/edit step: editable names before they're saved as guests
+  const [reviewList, setReviewList] = useState<{ phone: string; name: string }[] | null>(null);
 
   // Session list + groups load on mount (these are NOT contact reads).
   useEffect(() => {
@@ -67,6 +73,33 @@ export default function WhatsAppContactsPage() {
     }
   }, [selectedSession]);
 
+  const createGroup = async () => {
+    const name = newGroupName.trim();
+    if (!name) return;
+    setGroupSaving(true);
+    setGroupError("");
+    try {
+      const res = await fetch("/api/admin/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setGroupError(data.error ?? "Gagal membuat grup.");
+      } else {
+        setGroups((prev) => [...prev, { id: data.group.id, name: data.group.name }].sort((a, b) => a.name.localeCompare(b.name)));
+        setTargetGroup(data.group.id);
+        setNewGroupName("");
+        setCreatingGroup(false);
+      }
+    } catch {
+      setGroupError("Koneksi error. Coba lagi.");
+    } finally {
+      setGroupSaving(false);
+    }
+  };
+
   const filtered = (contacts ?? []).filter((c) => {
     const q = search.trim().toLowerCase();
     return !q || c.name.toLowerCase().includes(q) || c.phone.includes(q);
@@ -88,13 +121,24 @@ export default function WhatsAppContactsPage() {
       return next;
     });
 
-  const doImport = async () => {
+  // Open the editable review step with the selected contacts' names prefilled.
+  const openReview = () => {
     const chosen = (contacts ?? []).filter((c) => selected.has(c.phone));
     if (chosen.length === 0) return;
+    setError("");
+    setResult(null);
+    setReviewList(chosen.map((c) => ({ phone: c.phone, name: c.name })));
+  };
+
+  const doImport = async () => {
+    if (!reviewList) return;
+    const guests = reviewList
+      .filter((c) => c.phone)
+      .map((c) => ({ name: c.name.trim() || c.phone, phone_number: c.phone }));
+    if (guests.length === 0) { setReviewList(null); return; }
     setImporting(true);
     setError("");
     try {
-      const guests = chosen.map((c) => ({ name: c.name.trim() || c.phone, phone_number: c.phone }));
       const res = await fetch("/api/admin/guests/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,6 +151,7 @@ export default function WhatsAppContactsPage() {
         setResult({ created: data.created ?? 0, skipped: data.skipped ?? [] });
         // Drop the imported ones from the selection so they're not re-added
         setSelected(new Set());
+        setReviewList(null);
       }
     } catch {
       setError("Koneksi error. Coba lagi.");
@@ -122,7 +167,7 @@ export default function WhatsAppContactsPage() {
       <div>
         <h1 className="text-2xl font-semibold text-gray-800">Kontak WhatsApp</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Ambil kontak dari nomor WhatsApp yang terhubung lalu tambahkan sebagai tamu. Hanya kontak (nama &amp; nomor) yang dibaca — riwayat chat tidak diakses.
+          Ambil kontak dari nomor WhatsApp yang terhubung lalu tambahkan sebagai tamu. Hanya kontak (nama &amp; nomor) yang dibaca — riwayat chat tidak diakses. Kontak hanya bisa diambil dari browser yang menghubungkan WhatsApp tersebut.
         </p>
       </div>
 
@@ -156,14 +201,51 @@ export default function WhatsAppContactsPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tambah ke grup (opsional)</label>
-                <select
-                  value={targetGroup}
-                  onChange={(e) => setTargetGroup(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white"
-                >
-                  <option value="">— Tanpa grup —</option>
-                  {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
+                {creatingGroup ? (
+                  <div className="flex gap-2">
+                    <input
+                      value={newGroupName}
+                      onChange={(e) => { setNewGroupName(e.target.value); setGroupError(""); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createGroup(); } }}
+                      placeholder="Nama grup baru"
+                      maxLength={100}
+                      autoFocus
+                      className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
+                    />
+                    <button
+                      onClick={createGroup}
+                      disabled={groupSaving || !newGroupName.trim()}
+                      className="px-3 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors flex-shrink-0"
+                    >
+                      {groupSaving ? "…" : "Simpan"}
+                    </button>
+                    <button
+                      onClick={() => { setCreatingGroup(false); setNewGroupName(""); setGroupError(""); }}
+                      className="px-3 py-2 border border-gray-200 text-gray-500 rounded-lg text-sm hover:bg-gray-50 transition-colors flex-shrink-0"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <select
+                      value={targetGroup}
+                      onChange={(e) => setTargetGroup(e.target.value)}
+                      className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white"
+                    >
+                      <option value="">— Tanpa grup —</option>
+                      {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
+                    <button
+                      onClick={() => { setCreatingGroup(true); setGroupError(""); }}
+                      className="px-3 py-2 border border-[var(--color-gold)] text-[var(--color-gold)] rounded-lg text-sm hover:bg-[var(--color-cream-dark)] transition-colors flex-shrink-0 whitespace-nowrap"
+                      title="Buat grup baru"
+                    >
+                      + Baru
+                    </button>
+                  </div>
+                )}
+                {groupError && <p className="text-xs text-red-500 mt-1">{groupError}</p>}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -251,12 +333,69 @@ export default function WhatsAppContactsPage() {
             <div className="sticky bottom-16 sm:bottom-0 bg-white border border-gray-200 rounded-xl shadow-lg p-3 flex items-center justify-between gap-3">
               <span className="text-sm text-gray-700">{selectedCount} kontak dipilih</span>
               <button
-                onClick={doImport}
-                disabled={importing}
-                className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors"
+                onClick={openReview}
+                className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
               >
-                {importing ? "Menambahkan…" : `Tambah ${selectedCount} ke Tamu`}
+                Tinjau &amp; Tambah ({selectedCount})
               </button>
+            </div>
+          )}
+
+          {/* Review & edit names before saving */}
+          {reviewList && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-800">Tinjau &amp; Edit Nama</h2>
+                    <p className="text-xs text-gray-500">
+                      Sesuaikan nama sebelum disimpan{targetGroup ? <> ke grup <span className="font-medium text-[var(--color-gold)]">{groups.find((g) => g.id === targetGroup)?.name}</span></> : ""}.
+                    </p>
+                  </div>
+                  <button onClick={() => setReviewList(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                </div>
+
+                <div className="px-5 py-3 overflow-y-auto flex-1">
+                  {reviewList.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-6">Semua kontak dihapus dari daftar.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {reviewList.map((c, i) => (
+                        <li key={c.phone} className="flex items-center gap-2">
+                          <input
+                            value={c.name}
+                            onChange={(e) => setReviewList((prev) => prev!.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))}
+                            placeholder={c.phone}
+                            maxLength={100}
+                            className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
+                          />
+                          <span className="text-xs text-gray-400 w-28 truncate text-right flex-shrink-0">{c.phone}</span>
+                          <button
+                            onClick={() => setReviewList((prev) => prev!.filter((_, idx) => idx !== i))}
+                            className="text-gray-300 hover:text-red-500 text-lg leading-none flex-shrink-0"
+                            title="Hapus dari daftar"
+                          >
+                            &times;
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="text-[11px] text-gray-400 mt-3">Nama yang dikosongkan akan memakai nomor telepon.</p>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100">
+                  <button type="button" onClick={() => setReviewList(null)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Batal</button>
+                  <button
+                    type="button"
+                    onClick={doImport}
+                    disabled={importing || reviewList.length === 0}
+                    className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors"
+                  >
+                    {importing ? "Menyimpan…" : `Simpan ${reviewList.length} ke Tamu`}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </>
