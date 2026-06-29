@@ -287,11 +287,12 @@ export default function GroupsPage() {
               onDragLeave={() => setDragOverIndex(null)}
               onDrop={(e) => { e.preventDefault(); handleDrop(i); }}
               onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
-              className={`flex items-center gap-3 p-4 rounded-xl border bg-white border-gray-200 transition-all ${
+              className={`flex flex-col gap-3 sm:flex-row sm:items-center p-4 rounded-xl border bg-white border-gray-200 transition-all ${
                 dragIndex === i ? "opacity-40" : ""
               } ${dragOverIndex === i && dragIndex !== i ? "ring-2 ring-[var(--color-gold)]" : ""}`}
             >
-              <span className="text-gray-300 cursor-grab active:cursor-grabbing select-none flex-shrink-0" title="Seret untuk mengubah urutan">⠿</span>
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+              <span className="text-gray-300 cursor-grab active:cursor-grabbing select-none flex-shrink-0 mt-1" title="Seret untuk mengubah urutan">⠿</span>
               <div className="w-9 h-9 rounded-full bg-[var(--color-cream-dark)] flex items-center justify-center text-[var(--color-gold)] font-semibold text-sm flex-shrink-0">
                 {g.name.charAt(0).toUpperCase()}
               </div>
@@ -311,7 +312,8 @@ export default function GroupsPage() {
                 </div>
                 {g.notes && <p className="text-xs text-gray-400 truncate mt-0.5">{g.notes}</p>}
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              </div>
+              <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0 pl-8 sm:pl-0">
                 <button
                   onClick={() => openAddGuest(g)}
                   className="text-xs px-2.5 py-1 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-cream-dark)] transition-colors"
