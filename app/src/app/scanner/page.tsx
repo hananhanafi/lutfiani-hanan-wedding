@@ -50,6 +50,22 @@ export default function ScannerPage() {
   const [walkinResult, setWalkinResult] = useState<{ name: string; plus_one_name?: string } | null>(null);
   const [walkinError, setWalkinError] = useState("");
 
+  // Guest-group master data (loaded after PIN unlock) for the walk-in group picker
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  const loadGroups = useCallback(async (pinValue: string) => {
+    try {
+      const res = await fetch("/api/scanner/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: pinValue }),
+      });
+      const data = await res.json();
+      if (res.ok) setGroups(data.groups ?? []);
+    } catch {
+      /* non-fatal — walk-in still works */
+    }
+  }, []);
+
   // Desktop layout detection
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
@@ -73,6 +89,7 @@ export default function ScannerPage() {
       const data = await res.json();
       if (data.valid) {
         setPinVerified(true);
+        loadGroups(pin);
       } else {
         setPinError("PIN salah. Silakan coba lagi.");
       }
@@ -191,7 +208,7 @@ export default function ScannerPage() {
       const res = await fetch("/api/scanner/walkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, name: walkinName, plus_one_name: walkinPlusOne, group_name: walkinGroup, side: walkinSide }),
+        body: JSON.stringify({ pin, name: walkinName, plus_one_name: walkinPlusOne, group_id: walkinGroup, side: walkinSide }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -498,14 +515,15 @@ export default function ScannerPage() {
                         <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">
                           Dari / Grup <span className="text-red-400">*</span>
                         </label>
-                        <input
+                        <select
                           required
                           value={walkinGroup}
                           onChange={(e) => setWalkinGroup(e.target.value)}
-                          maxLength={100}
-                          placeholder="cth. Keluarga, Kampus"
-                          className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
-                        />
+                          className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
+                        >
+                          <option value="" disabled>Pilih grup…</option>
+                          {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">
@@ -696,14 +714,15 @@ export default function ScannerPage() {
                     <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">
                       Dari / Grup <span className="text-red-400">*</span>
                     </label>
-                    <input
+                    <select
                       required
                       value={walkinGroup}
                       onChange={(e) => setWalkinGroup(e.target.value)}
-                      maxLength={100}
-                      placeholder="cth. Keluarga, Kampus"
-                      className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] placeholder-[#c9b99a] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
-                    />
+                      className="w-full border border-[#e8ddd0] rounded-xl px-4 py-2.5 text-[#3a3028] text-sm focus:outline-none focus:border-[var(--color-gold)] bg-white font-[family-name:var(--font-lato)]"
+                    >
+                      <option value="" disabled>Pilih grup…</option>
+                      {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)]">

@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { v4 as uuidv4 } from "uuid";
 import { verifyScannerPin } from "@/lib/scannerAuth";
+import { resolveGroup } from "@/lib/groups";
 
 export async function POST(req: NextRequest) {
   try {
-    const { pin, name, plus_one_name, group_name, side } = await req.json();
+    const { pin, name, plus_one_name, group_id, group_name, side } = await req.json();
 
     if (!verifyScannerPin(pin)) {
       return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
@@ -23,6 +24,9 @@ export async function POST(req: NextRequest) {
     const normalizedSide = side?.trim().toLowerCase();
     const safeSide = normalizedSide === "bride" || normalizedSide === "groom" ? normalizedSide : null;
 
+    // Resolve the group from master data (group_id authoritative; free-text fallback)
+    const { groupId, groupName } = await resolveGroup(group_id, group_name);
+
     const now = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
@@ -30,7 +34,8 @@ export async function POST(req: NextRequest) {
       .insert({
         name: name.trim(),
         plus_one_name: plus_one_name?.trim() || null,
-        group_name: group_name?.trim() || null,
+        group_id: groupId,
+        group_name: groupName,
         side: safeSide,
         attending: true,
         is_vip: false,
