@@ -42,16 +42,34 @@ CREATE TABLE IF NOT EXISTS guests (
 
 -- ── Guest Groups (master data) ───────────────────────────────
 CREATE TABLE IF NOT EXISTS guest_groups (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT NOT NULL,
-  side        TEXT,                       -- optional: 'bride' | 'groom'
-  notes       TEXT,
-  position    INT NOT NULL DEFAULT 0,     -- manual sort order (see migrations/0002)
-  created_at  TIMESTAMPTZ DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ DEFAULT NOW()
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          TEXT NOT NULL,
+  side          TEXT,                       -- optional: 'bride' | 'groom'
+  notes         TEXT,
+  position      INT NOT NULL DEFAULT 0,     -- manual sort order (see migrations/0002)
+  token         UUID UNIQUE DEFAULT gen_random_uuid(), -- group invitation/QR (see migrations/0004)
+  expected_pax  INT,                        -- null = auto (members + plus-ones)
+  arrived_pax   INT NOT NULL DEFAULT 0,     -- running total from group QR scans
+  first_arrived_at TIMESTAMPTZ,
+  last_arrived_at  TIMESTAMPTZ,
+  wa_group_jid  TEXT,                        -- linked WhatsApp group chat (see migrations/0005)
+  wa_group_name TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS guest_groups_name_lower_idx ON guest_groups (lower(name));
 CREATE INDEX IF NOT EXISTS guest_groups_position_idx ON guest_groups (position);
+
+-- Per-scan audit log for group check-in (see migrations/0004)
+CREATE TABLE IF NOT EXISTS group_checkin_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id    UUID REFERENCES guest_groups(id) ON DELETE CASCADE,
+  pax         INT NOT NULL,
+  scanned_by  TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS group_checkin_events_group_idx ON group_checkin_events (group_id, created_at);
+ALTER TABLE group_checkin_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guest_groups ENABLE ROW LEVEL SECURITY;
 
 -- guests.group_id links to this master table; group_name is kept as a denormalized mirror.

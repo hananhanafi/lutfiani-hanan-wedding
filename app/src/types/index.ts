@@ -46,6 +46,15 @@ export interface GuestGroup {
   side?: string | null;
   notes?: string | null;
   position: number;
+  token?: string;
+  expected_pax?: number | null;   // manual override; null = auto
+  expected_pax_auto?: number;     // computed from members + plus-ones
+  expected_pax_effective?: number; // override ?? auto
+  arrived_pax?: number;
+  first_arrived_at?: string | null;
+  last_arrived_at?: string | null;
+  wa_group_jid?: string | null;
+  wa_group_name?: string | null;
   created_at: string;
   updated_at?: string;
   guest_count?: number;
