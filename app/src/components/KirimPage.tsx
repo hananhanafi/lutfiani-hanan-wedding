@@ -54,6 +54,7 @@ export default function KirimPage({
 
   // Search
   const [search, setSearch] = useState("");
+  const [groupFilter, setGroupFilter] = useState(""); // "" = all, "__none__" = no group, else group_id
 
   // Add guest
   const [showAddModal, setShowAddModal] = useState(false);
@@ -126,6 +127,10 @@ export default function KirimPage({
       (g.phone_number ?? "").includes(q) ||
       (g.group_name ?? "").toLowerCase().includes(q);
     if (!matchSearch) return false;
+    const matchGroup =
+      !groupFilter ||
+      (groupFilter === "__none__" ? !g.group_id : g.group_id === groupFilter);
+    if (!matchGroup) return false;
     if (tab === "unsent") return !isWaSent(g);
     if (tab === "sent") return isWaSent(g);
     return true;
@@ -487,14 +492,25 @@ export default function KirimPage({
         ))}
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Cari nama atau nomor..."
-        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-gold)] bg-white shadow-sm"
-      />
+      {/* Search + group filter */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama atau nomor..."
+          className="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-gold)] bg-white shadow-sm"
+        />
+        <select
+          value={groupFilter}
+          onChange={(e) => setGroupFilter(e.target.value)}
+          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-[var(--color-gold)] bg-white shadow-sm max-w-[45%]"
+        >
+          <option value="">Semua grup</option>
+          {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+          <option value="__none__">Tanpa grup</option>
+        </select>
+      </div>
 
       {/* Select-all row */}
       {filtered.length > 0 && (
