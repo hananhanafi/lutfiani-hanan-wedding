@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import type { GuestGroup } from "@/types";
 
-type FormState = { name: string; side: "" | "bride" | "groom"; notes: string };
-const EMPTY_FORM: FormState = { name: "", side: "", notes: "" };
+type FormState = { name: string; side: "" | "bride" | "groom"; notes: string; expected_pax: string };
+const EMPTY_FORM: FormState = { name: "", side: "", notes: "", expected_pax: "" };
 
 type GroupGuest = {
   id: string;
@@ -57,6 +57,127 @@ export default function GroupsPage() {
   const [groupGuests, setGroupGuests] = useState<Record<string, GroupGuest[]>>({});
   const [guestsLoading, setGuestsLoading] = useState(false);
 
+  // Group invitation QR modal
+  const [qrModal, setQrModal] = useState<{ name: string; url: string; dataUrl: string } | null>(null);
+  const [qrLoadingId, setQrLoadingId] = useState<string | null>(null);
+  const openQr = async (g: GuestGroup) => {
+    setQrLoadingId(g.id);
+    try {
+      const res = await fetch(`/api/admin/groups/${g.id}/qr`);
+      const data = await res.json();
+      if (res.ok) setQrModal({ name: data.name, url: data.url, dataUrl: data.qrDataUrl });
+    } catch {
+      /* ignore */
+    } finally {
+      setQrLoadingId(null);
+    }
+  };
+
+  // Group check-in history + undo
+  const [historyGroup, setHistoryGroup] = useState<GuestGroup | null>(null);
+  const [historyEvents, setHistoryEvents] = useState<{ id: string; pax: number; created_at: string }[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [undoingId, setUndoingId] = useState<string | null>(null);
+
+  const openHistory = async (g: GuestGroup) => {
+    setHistoryGroup(g);
+    setHistoryEvents([]);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/admin/groups/${g.id}/checkins`);
+      const data = await res.json();
+      setHistoryEvents(data.events ?? []);
+    } catch {
+      /* ignore */
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const undoCheckin = async (eventId: string) => {
+    if (!historyGroup) return;
+    setUndoingId(eventId);
+    try {
+      const res = await fetch(`/api/admin/groups/${historyGroup.id}/checkins?eventId=${eventId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        setHistoryEvents((prev) => prev.filter((e) => e.id !== eventId));
+        setGroups((prev) => prev.map((g) => (g.id === historyGroup.id ? { ...g, arrived_pax: data.arrived_pax } : g)));
+      }
+    } finally {
+      setUndoingId(null);
+    }
+  };
+
+  // Send group invitation into a WhatsApp group chat
+  const [sendWaGroup, setSendWaGroup] = useState<GuestGroup | null>(null);
+  const [waSessions, setWaSessions] = useState<{ sessionId: string; status: string; phone: string | null }[]>([]);
+  const [waSession, setWaSession] = useState("");
+  const [waList, setWaList] = useState<{ jid: string; subject: string }[] | null>(null);
+  const [waSelectedJid, setWaSelectedJid] = useState("");
+  const [waLoadingGroups, setWaLoadingGroups] = useState(false);
+  const [waSending, setWaSending] = useState(false);
+  const [waMsg, setWaMsg] = useState("");
+
+  const openSendWa = async (g: GuestGroup) => {
+    setSendWaGroup(g);
+    setWaList(null);
+    setWaSession("");
+    setWaSelectedJid(g.wa_group_jid ?? "");
+    setWaMsg("");
+    try {
+      const res = await fetch("/api/admin/whatsapp-sessions");
+      const data = await res.json();
+      const connected = (data.sessions ?? []).filter((s: { status: string }) => s.status === "connected");
+      setWaSessions(connected);
+      if (connected.length === 1) setWaSession(connected[0].sessionId);
+    } catch {
+      setWaSessions([]);
+    }
+  };
+
+  const loadWaGroups = async () => {
+    if (!waSession) return;
+    setWaLoadingGroups(true);
+    setWaMsg("");
+    try {
+      const res = await fetch(`/api/admin/groups/wa-groups?sessionId=${encodeURIComponent(waSession)}`);
+      const data = await res.json();
+      if (!res.ok) { setWaMsg(data.error ?? "Gagal memuat grup WhatsApp."); setWaList([]); }
+      else setWaList(data.groups ?? []);
+    } catch {
+      setWaMsg("Koneksi error.");
+      setWaList([]);
+    } finally {
+      setWaLoadingGroups(false);
+    }
+  };
+
+  const doSendWa = async () => {
+    if (!sendWaGroup || !waSelectedJid || !waSession) return;
+    const sel = (waList ?? []).find((x) => x.jid === waSelectedJid);
+    setWaSending(true);
+    setWaMsg("");
+    try {
+      const res = await fetch(`/api/admin/groups/${sendWaGroup.id}/send-wa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: waSession, waGroupJid: waSelectedJid, waGroupName: sel?.subject ?? null }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWaMsg(data.error ?? "Gagal mengirim.");
+      } else {
+        setWaMsg("✓ Undangan terkirim ke grup WhatsApp.");
+        setGroups((prev) => prev.map((g) => (g.id === sendWaGroup.id ? { ...g, wa_group_jid: waSelectedJid, wa_group_name: sel?.subject ?? null } : g)));
+      }
+    } catch {
+      setWaMsg("Koneksi error.");
+    } finally {
+      setWaSending(false);
+    }
+  };
+
   const toggleExpand = async (id: string) => {
     if (expandedId === id) { setExpandedId(null); return; }
     setExpandedId(id);
@@ -92,7 +213,12 @@ export default function GroupsPage() {
   const openAdd = () => { setEditingId(null); setForm(EMPTY_FORM); setFormError(""); setShowForm(true); };
   const openEdit = (g: GuestGroup) => {
     setEditingId(g.id);
-    setForm({ name: g.name, side: (g.side as "" | "bride" | "groom") ?? "", notes: g.notes ?? "" });
+    setForm({
+      name: g.name,
+      side: (g.side as "" | "bride" | "groom") ?? "",
+      notes: g.notes ?? "",
+      expected_pax: g.expected_pax != null ? String(g.expected_pax) : "",
+    });
     setFormError("");
     setShowForm(true);
   };
@@ -106,7 +232,12 @@ export default function GroupsPage() {
       const res = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, side: form.side || null, notes: form.notes || null }),
+        body: JSON.stringify({
+          name: form.name,
+          side: form.side || null,
+          notes: form.notes || null,
+          ...(editingId ? { expected_pax: form.expected_pax.trim() === "" ? null : Number(form.expected_pax) } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -259,12 +390,24 @@ export default function GroupsPage() {
           <h1 className="text-2xl font-semibold text-gray-800">Master Grup Tamu</h1>
           <p className="text-sm text-gray-500 mt-0.5">Kelola daftar grup/asal tamu yang dipakai di seluruh panel</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="px-4 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors"
-        >
-          + Tambah Grup
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {groups.length > 0 && (
+            <a
+              href="/api/admin/groups/export-qr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors whitespace-nowrap"
+            >
+              🖨️ Cetak QR
+            </a>
+          )}
+          <button
+            onClick={openAdd}
+            className="px-4 py-2 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] transition-colors whitespace-nowrap"
+          >
+            + Tambah Grup
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -311,9 +454,32 @@ export default function GroupsPage() {
                   </button>
                 </div>
                 {g.notes && <p className="text-xs text-gray-400 truncate mt-0.5">{g.notes}</p>}
+                <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                  <span>
+                    👥 Hadir {g.arrived_pax ?? 0} / {g.expected_pax_effective ?? 0} orang
+                    {g.expected_pax == null && <span className="text-gray-300"> (auto)</span>}
+                  </span>
+                  {(g.arrived_pax ?? 0) > 0 && (
+                    <button onClick={() => openHistory(g)} className="text-[var(--color-gold)] hover:underline">Riwayat</button>
+                  )}
+                </div>
               </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0 pl-8 sm:pl-0">
+                <button
+                  onClick={() => openQr(g)}
+                  disabled={qrLoadingId === g.id}
+                  className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors disabled:opacity-50"
+                >
+                  {qrLoadingId === g.id ? "…" : "QR"}
+                </button>
+                <button
+                  onClick={() => openSendWa(g)}
+                  className="text-xs px-2.5 py-1 rounded-lg border border-[#25d366] text-[#1da851] hover:bg-[#25d366]/10 transition-colors"
+                  title={g.wa_group_name ? `Terhubung: ${g.wa_group_name}` : "Kirim undangan ke grup WhatsApp"}
+                >
+                  Kirim WA
+                </button>
                 <button
                   onClick={() => openAddGuest(g)}
                   className="text-xs px-2.5 py-1 rounded-lg border border-[var(--color-gold)] text-[var(--color-gold)] hover:bg-[var(--color-cream-dark)] transition-colors"
@@ -596,6 +762,20 @@ export default function GroupsPage() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
                 />
               </div>
+              {editingId && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Perkiraan jumlah orang <span className="text-gray-400 text-[10px] normal-case">(opsional)</span></label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.expected_pax}
+                    onChange={(e) => setForm((p) => ({ ...p, expected_pax: e.target.value }))}
+                    placeholder="Otomatis dari anggota"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)]"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Kosongkan untuk hitung otomatis (anggota + pasangan).</p>
+                </div>
+              )}
               {formError && <p className="text-sm text-red-500">{formError}</p>}
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Batal</button>
@@ -604,6 +784,144 @@ export default function GroupsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send group invitation to a WhatsApp group */}
+      {sendWaGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-semibold text-gray-800">Kirim ke Grup WhatsApp</h2>
+                <p className="text-xs text-gray-500">Grup: <span className="font-medium text-[var(--color-gold)]">{sendWaGroup.name}</span></p>
+              </div>
+              <button onClick={() => setSendWaGroup(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4 overflow-y-auto">
+              {waSessions.length === 0 ? (
+                <p className="text-sm text-amber-600">Tidak ada sesi WhatsApp yang terhubung.</p>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Kirim dari</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={waSession}
+                        onChange={(e) => { setWaSession(e.target.value); setWaList(null); setWaSelectedJid(""); }}
+                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white"
+                      >
+                        <option value="">— Pilih sesi —</option>
+                        {waSessions.map((s) => <option key={s.sessionId} value={s.sessionId}>{s.sessionId}{s.phone ? ` (+${s.phone})` : ""}</option>)}
+                      </select>
+                      <button
+                        onClick={loadWaGroups}
+                        disabled={!waSession || waLoadingGroups}
+                        className="px-3 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors flex-shrink-0"
+                      >
+                        {waLoadingGroups ? "…" : "Muat Grup"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {waList && (
+                    waList.length === 0 ? (
+                      <p className="text-sm text-gray-400">Tidak ada grup WhatsApp pada akun ini.</p>
+                    ) : (
+                      <div className="max-h-56 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
+                        {waList.map((wg) => (
+                          <label key={wg.jid} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                            <input
+                              type="radio"
+                              name="wa-group"
+                              checked={waSelectedJid === wg.jid}
+                              onChange={() => setWaSelectedJid(wg.jid)}
+                              className="accent-[var(--color-gold)]"
+                            />
+                            <span className="text-sm text-gray-800 truncate">{wg.subject || wg.jid}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )
+                  )}
+
+                  {waMsg && <p className={`text-sm ${waMsg.startsWith("✓") ? "text-green-600" : "text-red-500"}`}>{waMsg}</p>}
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100">
+              <button type="button" onClick={() => setSendWaGroup(null)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Tutup</button>
+              <button
+                type="button"
+                onClick={doSendWa}
+                disabled={!waSelectedJid || !waSession || waSending}
+                className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm font-medium hover:bg-[#1da851] disabled:opacity-50 transition-colors"
+              >
+                {waSending ? "Mengirim…" : "Kirim Undangan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group check-in history + undo */}
+      {historyGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-semibold text-gray-800">Riwayat Check-in</h2>
+                <p className="text-xs text-gray-500">{historyGroup.name}</p>
+              </div>
+              <button onClick={() => setHistoryGroup(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-5 py-4 overflow-y-auto">
+              {historyLoading ? (
+                <p className="text-sm text-gray-400">Memuat…</p>
+              ) : historyEvents.length === 0 ? (
+                <p className="text-sm text-gray-400">Belum ada riwayat check-in.</p>
+              ) : (
+                <ul className="divide-y divide-gray-50">
+                  {historyEvents.map((ev) => (
+                    <li key={ev.id} className="flex items-center justify-between py-2">
+                      <div>
+                        <p className="text-sm text-gray-800">+{ev.pax} orang</p>
+                        <p className="text-[11px] text-gray-400">{new Date(ev.created_at).toLocaleString("id-ID")}</p>
+                      </div>
+                      <button
+                        onClick={() => undoCheckin(ev.id)}
+                        disabled={undoingId === ev.id}
+                        className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-red-400 hover:border-red-300 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                      >
+                        {undoingId === ev.id ? "…" : "Batalkan"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group invitation QR modal */}
+      {qrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-5 text-center">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-gray-800 truncate">{qrModal.name}</h2>
+              <button onClick={() => setQrModal(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0">&times;</button>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrModal.dataUrl} alt="QR Undangan Grup" className="w-56 h-56 mx-auto rounded-xl" />
+            <p className="text-[11px] text-gray-400 mt-2 break-all">{qrModal.url}</p>
+            <div className="flex gap-2 mt-4">
+              <a href={qrModal.dataUrl} download={`qr-${qrModal.name}.png`} className="flex-1 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors">Unduh</a>
+              <a href={qrModal.url} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors">Buka Pass</a>
+            </div>
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import { verifyScannerPin } from "@/lib/scannerAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, pin, preview } = await req.json();
+    const { token, pin, preview, pax } = await req.json();
 
     // Validate scanner PIN
     if (!verifyScannerPin(pin)) {
@@ -41,7 +41,62 @@ export async function POST(req: NextRequest) {
     }
 
     if (!guest) {
-      return NextResponse.json({ error: "Invalid QR code. Guest not found." }, { status: 404 });
+      // Not an individual token — maybe a GROUP token (group invitation / pax check-in)
+      const { data: group } = await supabaseAdmin
+        .from("guest_groups")
+        .select("id, name, token, expected_pax, arrived_pax, first_arrived_at")
+        .eq("token", token)
+        .maybeSingle();
+
+      if (!group) {
+        return NextResponse.json({ error: "Invalid QR code. Guest not found." }, { status: 404 });
+      }
+
+      const { data: members } = await supabaseAdmin
+        .from("guests")
+        .select("name, plus_one_name")
+        .eq("group_id", group.id);
+
+      const autoPax = (members ?? []).reduce((sum, m) => sum + 1 + (m.plus_one_name?.trim() ? 1 : 0), 0);
+      const expected = group.expected_pax ?? autoPax;
+
+      if (preview) {
+        return NextResponse.json({
+          preview: true,
+          type: "group",
+          group: {
+            token,
+            name: group.name,
+            expected_pax: expected,
+            arrived_pax: group.arrived_pax ?? 0,
+            members: (members ?? []).map((m) => ({ name: m.name, plus_one_name: m.plus_one_name })),
+          },
+        });
+      }
+
+      // Confirm: add pax (incremental, no cap), log the scan, mark member guests checked in
+      const addPax = Math.max(1, Math.floor(Number(pax)) || 1);
+      const now = new Date().toISOString();
+      const newArrived = (group.arrived_pax ?? 0) + addPax;
+
+      await supabaseAdmin
+        .from("guest_groups")
+        .update({ arrived_pax: newArrived, last_arrived_at: now, first_arrived_at: group.first_arrived_at ?? now })
+        .eq("id", group.id);
+
+      await supabaseAdmin.from("group_checkin_events").insert({ group_id: group.id, pax: addPax });
+
+      await supabaseAdmin
+        .from("guests")
+        .update({ checked_in: true, checked_in_at: now })
+        .eq("group_id", group.id)
+        .eq("checked_in", false);
+
+      return NextResponse.json({
+        success: true,
+        type: "group",
+        group: { name: group.name, arrived_pax: newArrived, expected_pax: expected },
+      });
     }
 
     if (guest.checked_in) {

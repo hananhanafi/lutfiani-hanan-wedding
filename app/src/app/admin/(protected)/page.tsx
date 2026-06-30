@@ -27,8 +27,37 @@ async function getCheckinGuests() {
   return (data as Guest[]) ?? [];
 }
 
+async function getGroupStats() {
+  const [{ data: groups }, { data: guestRows }] = await Promise.all([
+    supabaseAdmin
+      .from("guest_groups")
+      .select("id, name, expected_pax, arrived_pax")
+      .order("position", { ascending: true })
+      .order("name", { ascending: true }),
+    supabaseAdmin.from("guests").select("group_id, plus_one_name"),
+  ]);
+
+  const autoPax = new Map<string, number>();
+  for (const r of guestRows ?? []) {
+    if (!r.group_id) continue;
+    autoPax.set(r.group_id, (autoPax.get(r.group_id) ?? 0) + 1 + (r.plus_one_name?.trim() ? 1 : 0));
+  }
+
+  const rows = (groups ?? []).map((g) => ({
+    id: g.id as string,
+    name: g.name as string,
+    expected: (g.expected_pax as number | null) ?? autoPax.get(g.id) ?? 0,
+    arrived: (g.arrived_pax as number) ?? 0,
+  }));
+  return {
+    rows,
+    totalExpected: rows.reduce((s, r) => s + r.expected, 0),
+    totalArrived: rows.reduce((s, r) => s + r.arrived, 0),
+  };
+}
+
 export default async function AdminDashboard() {
-  const [stats, checkinGuests] = await Promise.all([getStats(), getCheckinGuests()]);
+  const [stats, checkinGuests, groupStats] = await Promise.all([getStats(), getCheckinGuests(), getGroupStats()]);
   const checkedIn = checkinGuests.filter((g) => g.checked_in);
   const notArrived = checkinGuests.filter((g) => !g.checked_in);
 
@@ -88,6 +117,38 @@ export default async function AdminDashboard() {
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>{stats.checkedIn} sudah check-in</span>
             <span>{stats.attending - stats.checkedIn} belum tiba</span>
+          </div>
+        </div>
+      )}
+
+      {/* Group attendance (pax) */}
+      {groupStats.rows.length > 0 && (
+        <div className="bg-white rounded-xl p-5 mt-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-gray-700">
+              Kehadiran per Grup — {groupStats.totalArrived} / {groupStats.totalExpected} orang
+            </p>
+            <Link href="/admin/groups" className="text-xs text-[var(--color-gold)] hover:underline">Kelola Grup →</Link>
+          </div>
+          <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-4">
+            <div
+              className="h-full bg-[var(--color-gold)] rounded-full transition-all"
+              style={{ width: `${Math.min(100, Math.round((groupStats.totalArrived / (groupStats.totalExpected || 1)) * 100))}%` }}
+            />
+          </div>
+          <div className="space-y-2">
+            {groupStats.rows.map((r) => (
+              <div key={r.id} className="flex items-center gap-3">
+                <span className="text-sm text-gray-700 w-40 truncate flex-shrink-0">{r.name}</span>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${r.arrived >= r.expected && r.expected > 0 ? "bg-green-400" : "bg-[var(--color-gold)]"}`}
+                    style={{ width: `${Math.min(100, Math.round((r.arrived / (r.expected || 1)) * 100))}%` }}
+                  />
+                </div>
+                <span className="text-xs text-gray-500 w-14 text-right flex-shrink-0">{r.arrived}/{r.expected}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

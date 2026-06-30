@@ -8,6 +8,7 @@ const QrScanner = dynamic(() => import("@/components/QrScanner"), { ssr: false }
 type ScanResult =
   | { status: "success"; name: string; plus_one_name?: string }
   | { status: "already_checked_in"; name: string; checked_in_at?: string }
+  | { status: "group_success"; name: string; arrived: number; expected: number }
   | { status: "error"; message: string };
 
 type LookupGuest = {
@@ -33,6 +34,12 @@ export default function ScannerPage() {
   type PendingGuest = { token: string; name: string; plus_one_name?: string };
   const [pendingGuest, setPendingGuest] = useState<PendingGuest | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  // Group check-in modal state
+  type PendingGroup = { token: string; name: string; expected_pax: number; arrived_pax: number; members: { name: string; plus_one_name?: string | null }[] };
+  const [pendingGroup, setPendingGroup] = useState<PendingGroup | null>(null);
+  const [groupPax, setGroupPax] = useState(1);
+  const [confirmingGroup, setConfirmingGroup] = useState(false);
 
   // Manual lookup state
   const [tab, setTab] = useState<"scan" | "lookup" | "walkin">("scan");
@@ -122,8 +129,12 @@ export default function ScannerPage() {
 
     const data = await res.json();
 
-    if (data.preview) {
-      // Show confirmation modal
+    if (data.preview && data.type === "group") {
+      // Group QR → pax confirmation modal
+      setPendingGroup(data.group);
+      setGroupPax(Math.max(1, (data.group.expected_pax ?? 1) - (data.group.arrived_pax ?? 0)));
+    } else if (data.preview) {
+      // Individual guest confirmation modal
       setPendingGuest(data.guest);
     } else if (data.warning === "already_checked_in") {
       setResult({ status: "already_checked_in", name: data.guest.name, checked_in_at: data.guest.checked_in_at });
@@ -134,6 +145,31 @@ export default function ScannerPage() {
     processingRef.current = false;
     setProcessing(false);
   }, [pin]);
+
+  // Confirm group check-in (adds pax; can be scanned again to add more)
+  const handleConfirmGroup = async () => {
+    if (!pendingGroup) return;
+    setConfirmingGroup(true);
+    const res = await fetch("/api/scanner", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: pendingGroup.token, pin, pax: groupPax }),
+    });
+    const data = await res.json();
+    setPendingGroup(null);
+    setConfirmingGroup(false);
+    if (data.success) {
+      setResult({ status: "group_success", name: data.group.name, arrived: data.group.arrived_pax, expected: data.group.expected_pax });
+    } else {
+      setResult({ status: "error", message: data.error ?? "Terjadi kesalahan." });
+    }
+  };
+
+  const handleCancelGroup = () => {
+    setPendingGroup(null);
+    processingRef.current = false;
+    setScanning(true);
+  };
 
   // Confirm check-in after modal
   const handleConfirmCheckin = async () => {
@@ -270,13 +306,25 @@ export default function ScannerPage() {
   // ── Result card (shared between mobile inline + desktop overlay) ──────────
   const ResultCard = () => !result ? null : (
     <div className={`rounded-2xl p-6 text-center border ${
-      result.status === "success" ? "bg-green-50 border-green-200" :
+      result.status === "success" || result.status === "group_success" ? "bg-green-50 border-green-200" :
       result.status === "already_checked_in" ? "bg-amber-50 border-amber-200" :
       "bg-red-50 border-red-200"
     }`}>
       <div className="text-4xl mb-3">
-        {result.status === "success" ? "✅" : result.status === "already_checked_in" ? "⚠️" : "❌"}
+        {result.status === "success" || result.status === "group_success" ? "✅" : result.status === "already_checked_in" ? "⚠️" : "❌"}
       </div>
+      {result.status === "group_success" && (
+        <>
+          <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
+          <p className="text-green-700 text-sm mt-1 font-[family-name:var(--font-lato)]">
+            Hadir: <span className="font-semibold">{result.arrived}</span> / {result.expected} orang
+          </p>
+          {result.arrived > result.expected && (
+            <p className="text-amber-600 text-xs mt-1 font-[family-name:var(--font-lato)]">Melebihi perkiraan</p>
+          )}
+          <p className="text-green-600 text-xs mt-3 font-[family-name:var(--font-lato)]">Grup berhasil check-in!</p>
+        </>
+      )}
       {result.status === "success" && (
         <>
           <p className="text-green-800 font-[family-name:var(--font-wedding)] text-xl">{result.name}</p>
@@ -340,6 +388,75 @@ export default function ScannerPage() {
                 className="flex-1 py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 font-[family-name:var(--font-lato)]"
               >
                 {confirming ? "Memproses…" : "✓ Check-in"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Group check-in modal ── */}
+      {pendingGroup && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border border-[#e8ddd0]">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-3">👨‍👩‍👧‍👦</div>
+              <h2 className="text-xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-1">{pendingGroup.name}</h2>
+              <p className="text-[#9a7d5a] text-sm font-[family-name:var(--font-lato)]">
+                Diharapkan {pendingGroup.expected_pax} orang
+                {pendingGroup.arrived_pax > 0 && <> • sudah hadir {pendingGroup.arrived_pax}</>}
+              </p>
+            </div>
+
+            {pendingGroup.members.length > 0 && (
+              <div className="max-h-28 overflow-y-auto bg-[#fffbf5] border border-[#e8ddd0] rounded-xl px-3 py-2 mb-4">
+                {pendingGroup.members.map((m, i) => (
+                  <p key={i} className="text-xs text-[#3a3028] font-[family-name:var(--font-lato)] truncate">
+                    {m.name}{m.plus_one_name ? ` & ${m.plus_one_name}` : ""}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <label className="block text-xs text-[#9a7d5a] mb-1 uppercase tracking-wide font-[family-name:var(--font-lato)] text-center">Jumlah hadir sekarang</label>
+            <div className="flex items-center justify-center gap-3 mb-5">
+              <button
+                type="button"
+                onClick={() => setGroupPax((p) => Math.max(1, p - 1))}
+                className="w-10 h-10 rounded-full border border-[#e8ddd0] text-[#9a7d5a] text-xl hover:bg-[#fffbf5]"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={groupPax}
+                onChange={(e) => setGroupPax(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className="w-20 text-center text-2xl font-semibold border border-[#e8ddd0] rounded-xl py-2 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)]"
+              />
+              <button
+                type="button"
+                onClick={() => setGroupPax((p) => p + 1)}
+                className="w-10 h-10 rounded-full border border-[#e8ddd0] text-[#9a7d5a] text-xl hover:bg-[#fffbf5]"
+              >
+                +
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelGroup}
+                disabled={confirmingGroup}
+                className="flex-1 py-3 border border-[#e8ddd0] text-[#9a7d5a] rounded-xl text-sm hover:bg-[#fffbf5] transition-colors disabled:opacity-50 font-[family-name:var(--font-lato)]"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmGroup}
+                disabled={confirmingGroup}
+                className="flex-1 py-3 bg-[var(--color-gold)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--color-gold-hover)] transition-colors disabled:opacity-50 font-[family-name:var(--font-lato)]"
+              >
+                {confirmingGroup ? "Memproses…" : `✓ Check-in ${groupPax}`}
               </button>
             </div>
           </div>

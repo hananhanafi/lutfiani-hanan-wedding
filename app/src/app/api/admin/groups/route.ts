@@ -23,17 +23,26 @@ export async function GET(req: NextRequest) {
       .select("*")
       .order("position", { ascending: true })
       .order("name", { ascending: true }),
-    supabaseAdmin.from("guests").select("group_id"),
+    supabaseAdmin.from("guests").select("group_id, plus_one_name"),
   ]);
 
   if (error) return NextResponse.json({ error: "Failed to fetch groups." }, { status: 500 });
 
+  // Per group: member count and auto pax (each member = 1, +1 for a plus-one)
   const counts = new Map<string, number>();
+  const autoPax = new Map<string, number>();
   for (const row of guestRows ?? []) {
-    if (row.group_id) counts.set(row.group_id, (counts.get(row.group_id) ?? 0) + 1);
+    if (!row.group_id) continue;
+    counts.set(row.group_id, (counts.get(row.group_id) ?? 0) + 1);
+    const add = 1 + (row.plus_one_name?.trim() ? 1 : 0);
+    autoPax.set(row.group_id, (autoPax.get(row.group_id) ?? 0) + add);
   }
 
-  const withCounts = (groups ?? []).map((g) => ({ ...g, guest_count: counts.get(g.id) ?? 0 }));
+  const withCounts = (groups ?? []).map((g) => {
+    const auto = autoPax.get(g.id) ?? 0;
+    const effective = g.expected_pax ?? auto;
+    return { ...g, guest_count: counts.get(g.id) ?? 0, expected_pax_auto: auto, expected_pax_effective: effective };
+  });
   return NextResponse.json({ groups: withCounts });
 }
 

@@ -70,6 +70,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.side !== undefined) updates.side = normalizeSide(body.side);
   if (body.notes !== undefined) updates.notes = typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null;
+  if (body.expected_pax !== undefined) {
+    // null / "" → reset to auto; otherwise a non-negative integer
+    const n = body.expected_pax === null || body.expected_pax === "" ? null : Number(body.expected_pax);
+    updates.expected_pax = n === null ? null : Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+  }
 
   const { data, error } = await supabaseAdmin
     .from("guest_groups")
