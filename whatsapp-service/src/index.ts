@@ -381,6 +381,19 @@ app.get("/sessions/:id/status", auth, (req, res) => {
   res.json({ sessionId: id, status: client.getStatus(), phone: client.getPhoneNumber(), name: client.getName(), connected: client.isConnected() });
 });
 
+// List the WhatsApp groups this session's account participates in
+app.get("/sessions/:id/groups", auth, async (req, res) => {
+  const id = req.params.id as string;
+  const client = sessionManager.getSession(id);
+  if (!client) return res.status(404).json({ error: "Session not found" });
+  if (!client.isConnected()) return res.status(400).json({ error: "Session not connected" });
+  try {
+    res.json({ sessionId: id, groups: await client.getGroups() });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Failed to fetch groups" });
+  }
+});
+
 // Read the connected account's address-book contacts (no chat history involved)
 app.get("/sessions/:id/contacts", auth, (req, res) => {
   const id = req.params.id as string;

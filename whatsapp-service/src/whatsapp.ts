@@ -357,8 +357,21 @@ class WhatsAppClient {
     return this.status === "connected";
   }
 
+  /** List the WhatsApp groups this account participates in (jid + subject). */
+  async getGroups(): Promise<{ jid: string; subject: string }[]> {
+    if (!this.sock || this.status !== "connected") {
+      throw new Error("WhatsApp not connected");
+    }
+    const all = await this.sock.groupFetchAllParticipating();
+    return Object.values(all)
+      .map((g) => ({ jid: g.id, subject: g.subject ?? "" }))
+      .sort((a, b) => a.subject.localeCompare(b.subject));
+  }
+
   private formatJid(phone: string): string {
-    // Remove any non-digit chars and ensure @s.whatsapp.net suffix
+    // Pass through full JIDs (groups @g.us, users @s.whatsapp.net) untouched
+    if (phone.endsWith("@g.us") || phone.endsWith("@s.whatsapp.net")) return phone;
+    // Otherwise treat as a phone number → user JID
     const digits = phone.replace(/\D/g, "");
     return `${digits}@s.whatsapp.net`;
   }
