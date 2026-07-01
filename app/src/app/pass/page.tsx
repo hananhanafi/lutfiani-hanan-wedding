@@ -45,13 +45,15 @@ export default async function PassPage({ searchParams }: Props) {
       const expected = group.expected_pax ?? autoPax;
       const url = buildPassUrl(token);
       const qrDataUrl = await generatePassQrDataUrl(url);
-      return <GroupPass name={group.name} expected={expected} members={members ?? []} qrDataUrl={qrDataUrl} />;
+      return <GroupPass name={group.name} expected={expected} qrDataUrl={qrDataUrl} />;
     }
 
     return <ErrorScreen message="QR code ini tidak valid." />;
   }
 
-  if (!guest.attending) {
+  // Only block guests who explicitly declined; unconfirmed (attending === null)
+  // still get their QR, matching the scanner which accepts all RSVP statuses.
+  if (guest.attending === false) {
     return <ErrorScreen message="Pass ini milik tamu yang tidak bisa hadir." />;
   }
 
@@ -110,12 +112,10 @@ export default async function PassPage({ searchParams }: Props) {
 function GroupPass({
   name,
   expected,
-  members,
   qrDataUrl,
 }: {
   name: string;
   expected: number;
-  members: { name: string; plus_one_name?: string | null }[];
   qrDataUrl: string;
 }) {
   return (
@@ -139,19 +139,6 @@ function GroupPass({
             Unduh QR Code
           </a>
         </div>
-
-        {members.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm text-left">
-            <p className="text-xs uppercase tracking-wide text-[#9a7d5a] mb-2 font-[family-name:var(--font-lato)]">Tamu dalam undangan ini</p>
-            <ul className="space-y-1">
-              {members.map((m, i) => (
-                <li key={i} className="text-sm text-[#3a3028] font-[family-name:var(--font-lato)]">
-                  {m.name}{m.plus_one_name ? ` & ${m.plus_one_name}` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );
