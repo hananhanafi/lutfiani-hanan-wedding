@@ -43,6 +43,34 @@ export default function KirimPage({
   const [sendStep, setSendStep] = useState<SendStep>("idle");
   const [selectedSession, setSelectedSession] = useState("");
   const [messageType, setMessageType] = useState<"muslim" | "general">("muslim");
+
+  // Message preview
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewText, setPreviewText] = useState("");
+  const [previewGuestName, setPreviewGuestName] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const openPreview = async () => {
+    const g = guests.find((x) => selectedIds.has(x.id) && x.phone_number?.trim());
+    if (!g) return;
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewText("");
+    try {
+      const res = await fetch("/api/admin/send-whatsapp/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestId: g.id, messageType }),
+      });
+      const data = await res.json();
+      if (res.ok) { setPreviewText(data.message ?? ""); setPreviewGuestName(data.guestName ?? ""); }
+      else setPreviewText(data.error ?? "Gagal memuat pratinjau.");
+    } catch {
+      setPreviewText("Koneksi error.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
   const [otpCode, setOtpCode] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const [otpPhoneLast4, setOtpPhoneLast4] = useState("");
@@ -601,6 +629,13 @@ export default function KirimPage({
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={openPreview}
+              className="ml-auto text-xs text-[var(--color-gold)] hover:underline whitespace-nowrap"
+            >
+              👁 Pratinjau
+            </button>
           </div>
           <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -629,6 +664,44 @@ export default function KirimPage({
               Kirim WA →
             </button>
           )}
+          </div>
+        </div>
+      )}
+
+      {/* Message preview modal */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-semibold text-gray-800">Pratinjau Pesan</h2>
+                <p className="text-xs text-gray-500">
+                  {messageType === "general" ? "Tipe: Umum" : "Tipe: Muslim"}
+                  {previewGuestName && ` · contoh untuk ${previewGuestName}`}
+                </p>
+              </div>
+              <button onClick={() => setPreviewOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-5 py-4 overflow-y-auto">
+              {previewLoading ? (
+                <p className="text-sm text-gray-400">Memuat…</p>
+              ) : (
+                <div className="bg-[#f3fbef] border border-green-100 rounded-xl p-3 text-sm text-gray-800 whitespace-pre-wrap break-words">
+                  {previewText}
+                </div>
+              )}
+              <p className="text-[11px] text-gray-400 mt-2">
+                QR code masuk dikirim sebagai pesan terpisah setelah teks ini.
+              </p>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/utils/supabase/admin";
 import { sendWhatsAppMessage, sendWhatsAppImage, sendWhatsAppImageBase64, formatPhoneForWA, getWhatsAppStatus } from "@/lib/whatsapp";
 import { generatePassQrDataUrl, dataUrlToBase64, buildPassUrl } from "@/lib/qrcode";
 import { canUseSession } from "@/lib/sessionOwnership";
+import { buildInvitationMessage } from "@/lib/waMessage";
 
 /**
  * POST /api/admin/send-whatsapp
@@ -83,33 +84,15 @@ export async function POST(req: NextRequest) {
 
     const phone = formatPhoneForWA(guest.phone_number);
     const invitationLink = `${appUrl}/?token=${guest.token}`;
-    const passLink = `${appUrl}/pass?token=${guest.token}`;
 
-    const heart = "\u{1F90D}";
-    const pray = "\u{1F64F}";
-
-    // Address the guest and, when present, their partner (plus-one)
-    const recipient = guest.plus_one_name?.trim()
-      ? `*${guest.name}* & *${guest.plus_one_name.trim()}*`
-      : `*${guest.name}*`;
-
-    const muslimMessage =
-      `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
-      `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i ${recipient} untuk hadir dalam acara pernikahan ${coupleName}.\n\n` +
-      `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
-      `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
-      `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
-      `Hormat Kami,\n${signOffName}`;
-
-    const generalMessage =
-      `Kepada Yth. Bapak/Ibu/Saudara/i ${recipient} ${heart}\n\n` +
-      `Dengan hormat, perkenankan kami mengundang Anda untuk hadir dalam acara pernikahan ${coupleName}.\n\n` +
-      `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${invitationLink}\n\n` +
-      `Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
-      `Terima kasih.\n\n` +
-      `Hormat Kami,\n${signOffName}`;
-
-    const message = messageType === "general" ? generalMessage : muslimMessage;
+    const message = buildInvitationMessage({
+      guestName: guest.name,
+      plusOneName: guest.plus_one_name,
+      invitationLink,
+      messageType,
+      coupleName,
+      signOffName,
+    });
 
     try {
       let messageId: string;
