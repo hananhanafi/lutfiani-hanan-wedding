@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
     const [{ data: adminGuests }, { data: rsvpGuests }] = await Promise.all([
       supabaseAdmin
         .from("guests")
-        .select("id, name, attending, plus_one_name, checked_in, token")
+        .select("id, name, attending, plus_one_name, group_name, checked_in, token")
         .ilike("name", pattern)
         .limit(8),
       supabaseAdmin
         .from("rsvp_submissions")
-        .select("id, name, attending, plus_one_name, checked_in, token")
+        .select("id, name, attending, plus_one_name, group_name, checked_in, token")
         .ilike("name", pattern)
         .limit(8),
     ]);

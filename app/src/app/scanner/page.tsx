@@ -15,6 +15,7 @@ type LookupGuest = {
   id: string;
   name: string;
   plus_one_name?: string;
+  group_name?: string | null;
   checked_in: boolean;
   source: "guests" | "rsvp_submissions";
 };
@@ -566,6 +567,7 @@ export default function ScannerPage() {
                         <div>
                           <p className="text-[#3a3028] font-medium font-[family-name:var(--font-lato)]">{g.name}</p>
                           {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">Pasangan: {g.plus_one_name}</p>}
+                          {g.group_name && <p className="text-[#c9b99a] text-xs font-[family-name:var(--font-lato)]">Grup: {g.group_name}</p>}
                         </div>
                         {g.checked_in ? (
                           <span className="text-green-600 text-xs font-medium font-[family-name:var(--font-lato)]">✅ Selesai</span>
@@ -766,6 +768,7 @@ export default function ScannerPage() {
                     <div>
                       <p className="text-[#3a3028] font-medium font-[family-name:var(--font-lato)]">{g.name}</p>
                       {g.plus_one_name && <p className="text-[#9a7d5a] text-xs font-[family-name:var(--font-lato)]">Pasangan: {g.plus_one_name}</p>}
+                      {g.group_name && <p className="text-[#c9b99a] text-xs font-[family-name:var(--font-lato)]">Grup: {g.group_name}</p>}
                     </div>
                     {g.checked_in ? (
                       <span className="text-green-600 text-xs font-medium font-[family-name:var(--font-lato)]">✅ Selesai</span>
