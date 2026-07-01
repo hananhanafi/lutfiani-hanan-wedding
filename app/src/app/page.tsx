@@ -32,6 +32,7 @@ export default async function Home({ searchParams }: Props) {
   const config = await getSiteConfig();
 
   let guestName: string | undefined;
+  let guestPlusOne: string | undefined;
   let guestPass: { plusOneName?: string; checkedIn: boolean; qrDataUrl: string } | undefined;
 
   if (token) {
@@ -43,6 +44,7 @@ export default async function Home({ searchParams }: Props) {
         .single();
       if (data) {
         guestName = data.name;
+        guestPlusOne = data.plus_one_name ?? undefined;
         if (data.attending === true) {
           const qrDataUrl = await generatePassQrDataUrl(buildPassUrl(token));
           guestPass = {
@@ -75,6 +77,7 @@ export default async function Home({ searchParams }: Props) {
         weddingDate={config.wedding_date}
         coverPhotoUrl={config.cover_photo_url}
         guestName={guestName}
+        plusOneName={guestPlusOne}
       />
 
       {/* Page-wide subtle petal layer (fixed, low opacity) */}

@@ -11,6 +11,7 @@ interface Props {
   weddingDate?: string;
   coverPhotoUrl?: string;
   guestName?: string;
+  plusOneName?: string;
 }
 
 type Stage = "sealed" | "cracking" | "opening" | "revealed" | "leaving";
@@ -20,8 +21,14 @@ export default function EnvelopeModal({
   partnerTwoName,
   weddingDate,
   guestName,
+  plusOneName,
 }: Props) {
   const { t } = useLanguage();
+
+  // Address the guest and, when present, their partner (plus-one)
+  const addressee = guestName
+    ? (plusOneName?.trim() ? `${guestName} & ${plusOneName.trim()}` : guestName)
+    : undefined;
   const [visible, setVisible] = useState(false);
   const [stage, setStage] = useState<Stage>("sealed");
 
@@ -201,9 +208,9 @@ const handleSealClick = () => {
             >
               {stage === "revealed" && (
                 <div className="env-content" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  {guestName && (
+                  {addressee && (
                     <p style={{ fontSize: "0.62rem", color: "#9a7d5a", fontFamily: "var(--font-lato)", fontStyle: "italic", letterSpacing: "0.04em" }}>
-                      {t("env_dear")} {guestName},
+                      {t("env_dear")} {addressee},
                     </p>
                   )}
                   <p style={{ fontSize: "0.6rem", letterSpacing: "0.35em", textTransform: "uppercase", color: "#c9a96e", fontFamily: "var(--font-lato)" }}>
@@ -361,16 +368,16 @@ const handleSealClick = () => {
                   }}>
                     {(partnerOneName[0] ?? "")}&amp;{(partnerTwoName[0] ?? "")}
                   </p>
-                  {guestName && (
+                  {addressee && (
                     <p style={{
                       fontSize: "0.58rem",
                       letterSpacing: "0.18em",
                       textTransform: "uppercase",
                       color: "rgba(100,70,20,0.65)",
                       fontFamily: "var(--font-lato)",
-                      whiteSpace: "nowrap",
+                      textAlign: "center",
                     }}>
-                      {t("env_to")}: {guestName}
+                      {t("env_to")}: {addressee}
                     </p>
                   )}
                 </div>
