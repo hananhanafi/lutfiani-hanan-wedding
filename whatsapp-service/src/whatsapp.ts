@@ -10,7 +10,7 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import pino from "pino";
 import QRCode from "qrcode";
-import { useSupabaseAuthState, clearAuthState, listAuthSessions } from "./supabaseAuthState";
+import { useSupabaseAuthState, clearAuthState, listAuthSessions } from "./supabaseAuthState.js";
 const logger = pino({ level: process.env.LOG_LEVEL ?? "silent" });
 
 export type ConnectionStatus = "disconnected" | "connecting" | "qr" | "connected";
