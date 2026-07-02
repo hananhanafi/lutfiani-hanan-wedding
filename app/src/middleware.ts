@@ -51,7 +51,9 @@ export async function middleware(request: NextRequest) {
     const cookieToken = request.cookies.get("site_unlocked")?.value;
     if (!(await isUnlockCookieValid(cookieToken, secret))) {
       const enterUrl = new URL("/enter", request.url);
-      enterUrl.searchParams.set("redirect", pathname);
+      // Preserve the full path + query (e.g. ?token=…) so the guest's personal
+      // invitation link isn't lost after unlocking.
+      enterUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
       return NextResponse.redirect(enterUrl);
     }
   }

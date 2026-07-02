@@ -6,7 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 export default function EnterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") ?? "/";
+  // Only allow same-origin relative paths (guards against open-redirect)
+  const rawRedirect = searchParams.get("redirect") ?? "/";
+  const redirect = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/";
 
   const [stage, setStage] = useState<"loading" | "form">("loading");
   const [partnerNames, setPartnerNames] = useState("");
