@@ -45,7 +45,9 @@ export default async function Home({ searchParams }: Props) {
       if (data) {
         guestName = data.name;
         guestPlusOne = data.plus_one_name ?? undefined;
-        if (data.attending === true) {
+        // Show the QR pass for everyone except guests who explicitly declined
+        // (attending === false), matching the /pass page behavior.
+        if (data.attending !== false) {
           const qrDataUrl = await generatePassQrDataUrl(buildPassUrl(token));
           guestPass = {
             plusOneName: data.plus_one_name ?? undefined,
