@@ -17,6 +17,35 @@ export async function POST(req: NextRequest) {
 
   try {
     const data = await req.json();
+
+    // ── Outgoing message status (delivery/read receipts + send errors like 463) ──
+    if (data.type === "status") {
+      const statusMap: Record<number, "failed" | "sent" | "delivered" | "read"> = {
+        0: "failed", 2: "sent", 3: "delivered", 4: "read", 5: "read",
+      };
+      const mapped = typeof data.status === "number" ? statusMap[data.status] : undefined;
+      const wamId: string | undefined = data.messageId;
+      if (!wamId || !mapped) return NextResponse.json({ received: true });
+
+      const { data: guest } = await supabaseAdmin
+        .from("guests")
+        .select("id, whatsapp_status")
+        .eq("whatsapp_message_id", wamId)
+        .maybeSingle();
+      if (!guest) return NextResponse.json({ received: true });
+
+      // Guard against downgrades (e.g. a late "delivered" after "read")
+      const rank: Record<string, number> = { sent: 1, delivered: 2, read: 3 };
+      const current = (guest.whatsapp_status as string | null) ?? null;
+      const apply = mapped === "failed"
+        ? current !== "delivered" && current !== "read" // don't overwrite a confirmed delivery
+        : (rank[mapped] ?? 0) > (rank[current ?? ""] ?? 0);
+      if (apply) {
+        await supabaseAdmin.from("guests").update({ whatsapp_status: mapped }).eq("id", guest.id);
+      }
+      return NextResponse.json({ received: true, updated: apply });
+    }
+
     const { from, pushName, text, messageId, timestamp } = data;
 
     if (!from) {
