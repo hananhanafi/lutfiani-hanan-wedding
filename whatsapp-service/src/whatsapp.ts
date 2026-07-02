@@ -39,6 +39,8 @@ class WhatsAppClient {
   // Passive address-book store (phone -> name). Populated only from WhatsApp's
   // contact app-state sync — never from message content.
   private contacts = new Map<string, string>();
+  // Resolvers for sends awaiting a server ack (message id -> resolve(status))
+  private pendingAcks = new Map<string, (status: number) => void>();
 
   constructor(sessionId: string) {
     this.sessionId = sessionId;
@@ -253,6 +255,11 @@ class WhatsAppClient {
         if (!u.key?.fromMe) continue;
         const status = u.update?.status;
         if (status === undefined || status === null) continue;
+        // Resolve a send that's waiting on this ack (skip PENDING=1)
+        if (status !== 1 && u.key.id) {
+          const resolver = this.pendingAcks.get(u.key.id);
+          if (resolver) { resolver(status); this.pendingAcks.delete(u.key.id); }
+        }
         this.emit({
           type: "status",
           sessionId: this.sessionId,
@@ -282,6 +289,24 @@ class WhatsAppClient {
     return code;
   }
 
+  /**
+   * Wait for the server ack of a just-sent message.
+   * Resolves with the WA status (0=ERROR, 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ),
+   * or null on timeout (treated as optimistic success by callers).
+   */
+  private waitForAck(id: string, timeoutMs = 8000): Promise<number | null> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingAcks.delete(id);
+        resolve(null);
+      }, timeoutMs);
+      this.pendingAcks.set(id, (status) => {
+        clearTimeout(timer);
+        resolve(status);
+      });
+    });
+  }
+
   async sendText(to: string, text: string): Promise<proto.WebMessageInfo> {
     if (!this.sock || this.status !== "connected") {
       throw new Error("WhatsApp not connected");
@@ -289,6 +314,16 @@ class WhatsAppClient {
 
     const jid = this.formatJid(to);
     const result = await this.sock.sendMessage(jid, { text });
+
+    // Wait for the ack so we report the real outcome, not just "queued".
+    // A 463 / rejected message arrives as an ERROR ack (status 0).
+    const id = result?.key?.id;
+    if (id) {
+      const status = await this.waitForAck(id);
+      if (status === 0) {
+        throw new Error("Message rejected by WhatsApp (nomor kemungkinan diblokir/limit spam, atau tidak terdaftar di WhatsApp).");
+      }
+    }
     return result!;
   }
 
