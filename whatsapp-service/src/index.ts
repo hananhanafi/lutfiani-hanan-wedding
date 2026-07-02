@@ -539,8 +539,9 @@ app.post("/sessions/:id/send-image", auth, upload.single("image"), async (req, r
       // File upload via multipart
       result = await client.sendImage(to, req.file.buffer, caption, req.file.mimetype);
     } else if (imageBase64) {
-      // Base64-encoded image
-      const buffer = Buffer.from(imageBase64, "base64");
+      // Base64-encoded image — strip any data-URL prefix defensively
+      const clean = String(imageBase64).replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(clean, "base64");
       result = await client.sendImage(to, buffer, caption, "image/png");
     } else if (imageUrl) {
       // URL-based image
@@ -590,15 +591,28 @@ app.post("/sessions/:id/send-bulk", auth, async (req, res) => {
 sessionManager.on(async (event) => {
   if (!WEBHOOK_URL) return;
 
+  const headers = { "Content-Type": "application/json", "x-api-key": API_KEY };
+
   if (event.type === "message") {
     try {
       await fetch(WEBHOOK_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ sessionId: event.sessionId, ...event.data as object }),
       });
     } catch {
       // webhook delivery failure is non-critical
+    }
+  } else if (event.type === "status") {
+    // Outgoing message delivery/read/error updates
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ type: "status", sessionId: event.sessionId, ...event.data as object }),
+      });
+    } catch {
+      // non-critical
     }
   }
 });

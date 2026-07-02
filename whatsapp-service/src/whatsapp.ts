@@ -20,7 +20,7 @@ const logger = pino({ level: process.env.LOG_LEVEL ?? "silent" });
 export type ConnectionStatus = "disconnected" | "connecting" | "qr" | "connected";
 
 export interface WAEvent {
-  type: "connection" | "qr" | "message";
+  type: "connection" | "qr" | "message" | "status";
   sessionId: string;
   data: unknown;
 }
@@ -242,6 +242,21 @@ class WhatsAppClient {
               msg.message?.audioMessage
             ),
           },
+        });
+      }
+    });
+
+    // Outgoing message status: delivery/read receipts AND send errors (e.g. 463).
+    // Lets the app correct a falsely-optimistic "sent" to delivered/read or failed.
+    this.sock.ev.on("messages.update", (updates) => {
+      for (const u of updates) {
+        if (!u.key?.fromMe) continue;
+        const status = u.update?.status;
+        if (status === undefined || status === null) continue;
+        this.emit({
+          type: "status",
+          sessionId: this.sessionId,
+          data: { messageId: u.key.id, status },
         });
       }
     });
