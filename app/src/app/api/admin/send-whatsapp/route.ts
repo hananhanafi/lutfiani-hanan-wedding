@@ -21,11 +21,15 @@ export async function POST(req: NextRequest) {
   // Which invitation template to use: "muslim" (Islamic greeting) or "general"/national.
   const messageType: "muslim" | "general" = body.messageType === "general" ? "general" : "muslim";
 
+  // Anti-ban limits (configurable via env)
+  const MAX_BATCH = parseInt(process.env.WA_MAX_BATCH ?? "20", 10);   // per request
+  const DAILY_LIMIT = parseInt(process.env.WA_DAILY_LIMIT ?? "80", 10); // rolling 24h per session
+
   if (guestIds.length === 0) {
     return NextResponse.json({ error: "guestIds required" }, { status: 400 });
   }
-  if (guestIds.length > 50) {
-    return NextResponse.json({ error: "Maksimal 50 penerima per batch" }, { status: 400 });
+  if (guestIds.length > MAX_BATCH) {
+    return NextResponse.json({ error: `Maksimal ${MAX_BATCH} penerima per batch` }, { status: 400 });
   }
 
   // Enforce session ownership for senders
@@ -76,11 +80,31 @@ export async function POST(req: NextRequest) {
 
   const results: { guestId: string; name: string; success: boolean; error?: string; messageId?: string; senderNumber?: string | null; sentBy?: string | null; dbError?: string | null }[] = [];
 
+  // Rolling 24h daily cap per sender session (ban prevention). We count prior
+  // sends recorded in rate_limits and only allow the remainder in this batch.
+  const capBucket = sessionId ?? "global";
+  const dayStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: sentToday } = await supabaseAdmin
+    .from("rate_limits")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", capBucket)
+    .eq("action", "wa_send")
+    .gte("created_at", dayStart);
+  let allowance = Math.max(0, DAILY_LIMIT - (sentToday ?? 0));
+
   for (const guest of guests) {
     if (!guest.phone_number?.trim()) {
       results.push({ guestId: guest.id, name: guest.name, success: false, error: "No phone number" });
       continue;
     }
+
+    if (allowance <= 0) {
+      results.push({ guestId: guest.id, name: guest.name, success: false, error: `Batas harian ${DAILY_LIMIT} pesan tercapai. Coba lagi besok.` });
+      continue;
+    }
+    // Count this attempt toward the daily cap (records it in rate_limits)
+    allowance--;
+    await supabaseAdmin.from("rate_limits").insert({ ip: capBucket, action: "wa_send" });
 
     const phone = formatPhoneForWA(guest.phone_number);
     const invitationLink = `${appUrl}/?token=${guest.token}`;

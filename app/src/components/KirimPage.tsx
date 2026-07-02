@@ -279,7 +279,7 @@ export default function KirimPage({
     setTotalSending(toSend.length);
 
     const allResults: SendResult[] = [];
-    const CHUNK = 10;
+    const CHUNK = 5;
 
     for (let i = 0; i < toSend.length; i += CHUNK) {
       const chunk = toSend.slice(i, i + CHUNK);
