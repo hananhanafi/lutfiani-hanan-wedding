@@ -50,6 +50,69 @@ export default function KirimPage({
   const [previewGuestName, setPreviewGuestName] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Manual wa.me step-through (ban-safe alternative — operator sends from their own WhatsApp)
+  const [waManual, setWaManual] = useState<{ queue: Guest[]; index: number } | null>(null);
+  const [waManualBusy, setWaManualBusy] = useState(false);
+
+  const startWaManual = () => {
+    const queue = guests.filter((g) => selectedIds.has(g.id) && g.phone_number?.trim());
+    if (queue.length === 0) return;
+    setWaManual({ queue, index: 0 });
+  };
+
+  const openCurrentWa = async () => {
+    if (!waManual) return;
+    const g = waManual.queue[waManual.index];
+    if (!g) return;
+    // Open the tab within the click gesture so popup blockers allow it,
+    // then point it at the wa.me URL once we've built the message.
+    const win = window.open("about:blank", "_blank");
+    try {
+      const res = await fetch("/api/admin/send-whatsapp/wa-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestId: g.id, messageType }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        if (win) win.location.href = data.url; else window.open(data.url, "_blank");
+      } else {
+        win?.close();
+        alert(data.error ?? "Gagal membuat link WhatsApp.");
+      }
+    } catch {
+      win?.close();
+      alert("Koneksi error.");
+    }
+  };
+
+  const waManualNext = async (markSent: boolean) => {
+    if (!waManual) return;
+    const g = waManual.queue[waManual.index];
+    if (markSent && g) {
+      setWaManualBusy(true);
+      try {
+        await fetch("/api/admin/send-whatsapp/mark", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ guestId: g.id }),
+        });
+        setGuests((prev) => prev.map((x) => (x.id === g.id ? { ...x, whatsapp_status: "sent" as const } : x)));
+      } catch {
+        /* ignore */
+      } finally {
+        setWaManualBusy(false);
+      }
+    }
+    const next = waManual.index + 1;
+    if (next >= waManual.queue.length) {
+      setWaManual(null);
+      setSelectedIds(new Set());
+    } else {
+      setWaManual({ ...waManual, index: next });
+    }
+  };
+
   const openPreview = async () => {
     const g = guests.find((x) => selectedIds.has(x.id) && x.phone_number?.trim());
     if (!g) return;
@@ -648,6 +711,13 @@ export default function KirimPage({
                 : "Pilih pengirim di atas"}
             </p>
           </div>
+          <button
+            onClick={startWaManual}
+            title="Kirim manual dari WhatsApp Anda sendiri (aman dari blokir)"
+            className="flex-shrink-0 px-3 py-2.5 border border-[#25d366] text-[#1da851] rounded-xl text-sm font-medium hover:bg-[#25d366]/10 transition-colors whitespace-nowrap"
+          >
+            Manual
+          </button>
           {connectedSessions.length === 0 ? (
             <Link
               href="/admin/whatsapp"
@@ -664,6 +734,52 @@ export default function KirimPage({
               Kirim WA →
             </button>
           )}
+          </div>
+        </div>
+      )}
+
+      {/* Manual wa.me step-through */}
+      {waManual && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-semibold text-gray-800">Kirim Manual (wa.me)</h2>
+                <p className="text-xs text-gray-500">{waManual.index + 1} dari {waManual.queue.length} tamu</p>
+              </div>
+              <button onClick={() => setWaManual(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <div className="text-center">
+                <p className="text-lg font-medium text-gray-800">{waManual.queue[waManual.index]?.name}</p>
+                <p className="text-xs text-gray-400">{waManual.queue[waManual.index]?.phone_number}</p>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                Buka WhatsApp, tekan kirim, lalu kembali ke sini dan tandai terkirim. QR masuk sudah disertakan sebagai link di dalam pesan.
+              </p>
+              <button
+                onClick={openCurrentWa}
+                className="w-full py-3 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] transition-colors"
+              >
+                Buka WhatsApp
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => waManualNext(false)}
+                  disabled={waManualBusy}
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-500 rounded-xl text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                >
+                  Lewati
+                </button>
+                <button
+                  onClick={() => waManualNext(true)}
+                  disabled={waManualBusy}
+                  className="flex-1 py-2.5 bg-[var(--color-gold)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-gold-hover)] disabled:opacity-50 transition-colors"
+                >
+                  {waManualBusy ? "..." : "Tandai Terkirim →"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
