@@ -192,6 +192,16 @@ CREATE TABLE IF NOT EXISTS whatsapp_session_connectors (
   updated_at   TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE whatsapp_session_connectors ENABLE ROW LEVEL SECURITY;
+
+-- Persisted Baileys auth state so the WhatsApp login survives restarts (see migrations/0006).
+CREATE TABLE IF NOT EXISTS wa_auth_state (
+  session_id  TEXT NOT NULL,
+  key         TEXT NOT NULL,
+  value       TEXT NOT NULL,
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (session_id, key)
+);
+ALTER TABLE wa_auth_state ENABLE ROW LEVEL SECURITY;
 -- Migration: run if guests table already exists
 -- ALTER TABLE guests ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES staff(id) ON DELETE SET NULL;
 

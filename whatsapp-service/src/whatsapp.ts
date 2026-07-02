@@ -1,5 +1,4 @@
 import makeWASocket, {
-  useMultiFileAuthState,
   DisconnectReason,
   Browsers,
   fetchLatestWaWebVersion,
@@ -10,11 +9,8 @@ import makeWASocket, {
 } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import pino from "pino";
-import path from "path";
-import fs from "fs";
 import QRCode from "qrcode";
-
-const AUTH_BASE_DIR = path.resolve("auth_state");
+import { useSupabaseAuthState, clearAuthState, listAuthSessions } from "./supabaseAuthState";
 const logger = pino({ level: process.env.LOG_LEVEL ?? "silent" });
 
 export type ConnectionStatus = "disconnected" | "connecting" | "qr" | "connected";
@@ -29,7 +25,6 @@ export type EventListener = (event: WAEvent) => void;
 
 class WhatsAppClient {
   public readonly sessionId: string;
-  private authDir: string;
   private sock: WASocket | null = null;
   private status: ConnectionStatus = "disconnected";
   private qrCode: string | null = null;
@@ -44,7 +39,6 @@ class WhatsAppClient {
 
   constructor(sessionId: string) {
     this.sessionId = sessionId;
-    this.authDir = path.join(AUTH_BASE_DIR, sessionId);
   }
 
   /** Merge a batch of WhatsApp contacts into the store (individuals only, no groups). */
@@ -118,11 +112,7 @@ class WhatsAppClient {
   }
 
   async connect() {
-    if (!fs.existsSync(this.authDir)) {
-      fs.mkdirSync(this.authDir, { recursive: true });
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState(this.authDir);
+    const { state, saveCreds } = await useSupabaseAuthState(this.sessionId);
 
     this.status = "connecting";
     this.emit({ type: "connection", sessionId: this.sessionId, data: { status: "connecting" } });
@@ -175,9 +165,7 @@ class WhatsAppClient {
           this.qrCode = null;
           this.sock = null;
           this.retryCount = 0;
-          if (fs.existsSync(this.authDir)) {
-            fs.rmSync(this.authDir, { recursive: true, force: true });
-          }
+          void clearAuthState(this.sessionId);
           this.emit({ type: "connection", sessionId: this.sessionId, data: { status: "disconnected", reason: "logged_out" } });
         } else if (reason === DisconnectReason.restartRequired) {
           console.log(`[${this.sessionId}] Restart required. Reconnecting...`);
@@ -199,9 +187,7 @@ class WhatsAppClient {
           this.qrCode = null;
           this.sock = null;
           this.retryCount = 0;
-          if (fs.existsSync(this.authDir)) {
-            fs.rmSync(this.authDir, { recursive: true, force: true });
-          }
+          void clearAuthState(this.sessionId);
           this.emit({ type: "connection", sessionId: this.sessionId, data: { status: "disconnected", reason: "connection_failure" } });
         }
       }
@@ -466,11 +452,8 @@ class SessionManager {
     if (!client) return false;
     client.disconnect().catch(() => {});
     this.sessions.delete(sessionId);
-    // Clean auth dir
-    const authDir = path.join(AUTH_BASE_DIR, sessionId);
-    if (fs.existsSync(authDir)) {
-      fs.rmSync(authDir, { recursive: true, force: true });
-    }
+    // Clear persisted auth so a re-created session starts fresh
+    void clearAuthState(sessionId);
     return true;
   }
 
@@ -487,23 +470,16 @@ class SessionManager {
     return Array.from(this.sessions.values()).filter((c) => c.isConnected());
   }
 
-  // Auto-restore sessions from auth_state directories on startup
+  // Auto-restore sessions from persisted Supabase auth on startup
   async restoreAll() {
-    if (!fs.existsSync(AUTH_BASE_DIR)) return;
-    const dirs = fs.readdirSync(AUTH_BASE_DIR, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
-
-    for (const sessionId of dirs) {
-      const credsPath = path.join(AUTH_BASE_DIR, sessionId, "creds.json");
-      if (fs.existsSync(credsPath)) {
-        console.log(`Restoring session: ${sessionId}`);
-        const client = this.createSession(sessionId);
-        try {
-          await client.connect();
-        } catch (err) {
-          console.error(`Failed to restore ${sessionId}:`, (err as Error).message);
-        }
+    const sessionIds = await listAuthSessions();
+    for (const sessionId of sessionIds) {
+      console.log(`Restoring session: ${sessionId}`);
+      const client = this.createSession(sessionId);
+      try {
+        await client.connect();
+      } catch (err) {
+        console.error(`Failed to restore ${sessionId}:`, (err as Error).message);
       }
     }
   }

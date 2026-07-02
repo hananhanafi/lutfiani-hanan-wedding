@@ -16,3 +16,8 @@ services:
         value: info
       - key: NODE_ENV
         value: production
+      # Persist WhatsApp login across restarts (see migrations/0006)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
