@@ -509,7 +509,7 @@ export default function KirimPage({
           <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-white text-sm flex-shrink-0">!</div>
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-800">WhatsApp Belum Terhubung</p>
-            <p className="text-xs text-amber-700 mt-0.5">Hubungkan terlebih dahulu untuk kirim undangan.</p>
+            <p className="text-xs text-amber-700 mt-0.5">Hubungkan untuk kirim otomatis, atau pilih tamu di bawah lalu tekan <span className="font-semibold">📱 Kirim Manual</span> untuk kirim dari WhatsApp Anda sendiri.</p>
           </div>
           <Link
             href="/admin/whatsapp"
@@ -711,28 +711,40 @@ export default function KirimPage({
                 : "Pilih pengirim di atas"}
             </p>
           </div>
-          <button
-            onClick={startWaManual}
-            title="Kirim manual dari WhatsApp Anda sendiri (aman dari blokir)"
-            className="flex-shrink-0 px-3 py-2.5 border border-[#25d366] text-[#1da851] rounded-xl text-sm font-medium hover:bg-[#25d366]/10 transition-colors whitespace-nowrap"
-          >
-            Manual
-          </button>
           {connectedSessions.length === 0 ? (
-            <Link
-              href="/admin/whatsapp"
-              className="flex-shrink-0 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 transition-colors whitespace-nowrap"
-            >
-              Hubungkan WA
-            </Link>
+            // No connected number → manual wa.me is the primary way to send
+            <>
+              <button
+                onClick={startWaManual}
+                title="Kirim manual dari WhatsApp Anda sendiri (aman dari blokir)"
+                className="flex-shrink-0 px-5 py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] transition-colors whitespace-nowrap"
+              >
+                📱 Kirim Manual
+              </button>
+              <Link
+                href="/admin/whatsapp"
+                className="flex-shrink-0 text-xs text-amber-600 hover:underline whitespace-nowrap"
+              >
+                Hubungkan WA
+              </Link>
+            </>
           ) : (
-            <button
-              onClick={startSend}
-              disabled={!selectedSession}
-              className="flex-shrink-0 px-5 py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Kirim WA →
-            </button>
+            <>
+              <button
+                onClick={startWaManual}
+                title="Kirim manual dari WhatsApp Anda sendiri (aman dari blokir)"
+                className="flex-shrink-0 px-3 py-2.5 border border-[#25d366] text-[#1da851] rounded-xl text-sm font-medium hover:bg-[#25d366]/10 transition-colors whitespace-nowrap"
+              >
+                Manual
+              </button>
+              <button
+                onClick={startSend}
+                disabled={!selectedSession}
+                className="flex-shrink-0 px-5 py-2.5 bg-[#25d366] text-white rounded-xl text-sm font-medium hover:bg-[#1da851] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Kirim WA →
+              </button>
+            </>
           )}
           </div>
         </div>
