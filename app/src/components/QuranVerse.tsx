@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
+import { FloralSprig } from "@/components/FloralCorner";
 
 export default function QuranVerse() {
   const { lang } = useLanguage();
@@ -16,11 +17,11 @@ export default function QuranVerse() {
   return (
     <section className="py-16 px-6 flex justify-center bg-[var(--color-cream-dark)]" aria-label="Qur'an verse">
       <div className="max-w-2xl w-full text-center space-y-6">
-        {/* Decorative divider */}
-        <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-60">
-          <span className="block h-px w-16 bg-current" />
-          <span className="text-lg">✦</span>
-          <span className="block h-px w-16 bg-current" />
+        {/* Decorative floral divider */}
+        <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-70">
+          <span className="block h-px w-14 bg-current" />
+          <FloralSprig size={60} />
+          <span className="block h-px w-14 bg-current" />
         </div>
 
         {/* Arabic text */}
@@ -51,11 +52,11 @@ export default function QuranVerse() {
           {source}
         </p>
 
-        {/* Decorative divider */}
-        <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-60">
-          <span className="block h-px w-16 bg-current" />
-          <span className="text-lg">✦</span>
-          <span className="block h-px w-16 bg-current" />
+        {/* Decorative floral divider */}
+        <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-70">
+          <span className="block h-px w-14 bg-current" />
+          <FloralSprig size={60} />
+          <span className="block h-px w-14 bg-current" />
         </div>
       </div>
     </section>

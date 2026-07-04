@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import FloralCorner from "@/components/FloralCorner";
 
 interface Props {
   photos: string[];
@@ -40,8 +41,10 @@ export default function PhotoGallery({ photos }: Props) {
     <>
       <section id="gallery" className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12 glass-bg rounded-2xl px-8 py-12">
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
+          <div className="relative text-center mb-12 glass-bg rounded-2xl px-8 py-12 overflow-hidden">
+            <FloralCorner position="top-left" size={120} opacity={0.8} />
+            <FloralCorner position="bottom-right" size={120} opacity={0.8} />
+            <p className="relative z-10 text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
               Gallery
             </p>
             <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028]">

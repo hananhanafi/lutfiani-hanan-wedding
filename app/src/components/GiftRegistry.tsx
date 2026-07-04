@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import FloralCorner, { FloralSprig } from "@/components/FloralCorner";
 import type { BankAccount } from "@/types";
 
 interface Props {
@@ -35,15 +36,22 @@ export default function GiftRegistry({ qrUrl, bankAccounts, bankName, bankAccoun
   };
 
   return (
-    <section id="gift" className="py-20 px-4 bg-[#fffbf5]">
-      <div className="max-w-xl mx-auto text-center">
+    <section id="gift" className="relative isolate py-20 px-4 bg-[#fffbf5] overflow-hidden">
+      {/* Corner flowers sit behind the content */}
+      <FloralCorner position="top-left" size={140} opacity={0.6} className="!-z-10" />
+      <FloralCorner position="bottom-right" size={140} opacity={0.6} className="!-z-10" />
+      <div className="relative max-w-xl mx-auto text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("gift_eyebrow")}
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           A Gift of Love
         </h2>
-        <div className="w-12 h-px bg-[var(--color-gold)] mx-auto mb-6" />
+        <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-70 mb-6">
+          <span className="block h-px w-10 bg-current" />
+          <FloralSprig size={52} />
+          <span className="block h-px w-10 bg-current" />
+        </div>
         <p className="text-[#9a7d5a] font-[family-name:var(--font-lato)] mb-10 leading-relaxed">
           {t("gift_desc")}
         </p>

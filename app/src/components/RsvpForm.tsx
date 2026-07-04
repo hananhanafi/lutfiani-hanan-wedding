@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
+import FloralCorner from "@/components/FloralCorner";
 
 interface Props {
   rsvpDeadline?: string;
@@ -103,7 +104,10 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
+        <form onSubmit={handleSubmit} className="relative isolate bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-5 overflow-hidden">
+          {/* Flowers sit behind the fields (negative z) so they peek through, never cover inputs */}
+          <FloralCorner position="top-left" size={120} opacity={0.5} className="!-z-10" />
+          <FloralCorner position="bottom-right" size={120} opacity={0.5} className="!-z-10" />
           {/* Name */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">
