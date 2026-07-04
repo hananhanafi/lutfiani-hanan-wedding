@@ -118,6 +118,22 @@ export default function GroupsPage() {
   const [waLoadingGroups, setWaLoadingGroups] = useState(false);
   const [waSending, setWaSending] = useState(false);
   const [waMsg, setWaMsg] = useState("");
+  // OTP gate before sending to a WhatsApp group
+  const [waOtpStep, setWaOtpStep] = useState<"idle" | "otp">("idle");
+  const [waOtpCode, setWaOtpCode] = useState("");
+  const [waOtpSending, setWaOtpSending] = useState(false);
+  const [waOtpVerifying, setWaOtpVerifying] = useState(false);
+  const [waOtpError, setWaOtpError] = useState("");
+  const [waOtpLast4, setWaOtpLast4] = useState("");
+
+  const resetWaOtp = () => {
+    setWaOtpStep("idle");
+    setWaOtpCode("");
+    setWaOtpError("");
+    setWaOtpLast4("");
+    setWaOtpSending(false);
+    setWaOtpVerifying(false);
+  };
 
   const openSendWa = async (g: GuestGroup) => {
     setSendWaGroup(g);
@@ -125,6 +141,7 @@ export default function GroupsPage() {
     setWaSession("");
     setWaSelectedJid(g.wa_group_jid ?? "");
     setWaMsg("");
+    resetWaOtp();
     try {
       const res = await fetch("/api/admin/whatsapp-sessions");
       const data = await res.json();
@@ -150,6 +167,69 @@ export default function GroupsPage() {
       setWaList([]);
     } finally {
       setWaLoadingGroups(false);
+    }
+  };
+
+  // Gate the send behind OTP verification of the sender number (1-day window).
+  const startSendWa = async () => {
+    if (!sendWaGroup || !waSelectedJid || !waSession) return;
+    setWaMsg("");
+    setWaOtpError("");
+    // Already verified within the window? send straight away.
+    try {
+      const chk = await fetch(`/api/admin/whatsapp-otp?sessionId=${encodeURIComponent(waSession)}`);
+      const chkData = await chk.json();
+      if (chkData.verified) { doSendWa(); return; }
+    } catch { /* fall through to OTP */ }
+
+    // Request a fresh OTP to the sender's own number.
+    setWaOtpSending(true);
+    setWaOtpStep("otp");
+    setWaOtpCode("");
+    try {
+      const res = await fetch("/api/admin/whatsapp-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: waSession }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWaOtpError(data.error ?? "Gagal mengirim OTP");
+      } else if (data.alreadyVerified) {
+        resetWaOtp();
+        doSendWa();
+        return;
+      } else {
+        setWaOtpLast4(data.phoneLast4 ?? "");
+      }
+    } catch {
+      setWaOtpError("Gagal mengirim OTP");
+    } finally {
+      setWaOtpSending(false);
+    }
+  };
+
+  const verifyOtpAndSend = async () => {
+    if (waOtpCode.length !== 6) return;
+    setWaOtpVerifying(true);
+    setWaOtpError("");
+    try {
+      const res = await fetch("/api/admin/whatsapp-otp", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: waSession, code: waOtpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.verified) {
+        setWaOtpError(data.error ?? "OTP tidak valid");
+        return;
+      }
+      resetWaOtp();
+      doSendWa();
+    } catch {
+      setWaOtpError("Gagal memverifikasi OTP");
+    } finally {
+      setWaOtpVerifying(false);
     }
   };
 
@@ -801,7 +881,39 @@ export default function GroupsPage() {
             </div>
 
             <div className="px-5 py-4 space-y-4 overflow-y-auto">
-              {waSessions.length === 0 ? (
+              {waOtpStep === "otp" ? (
+                <div className="space-y-4">
+                  {waOtpSending ? (
+                    <div className="flex flex-col items-center py-4 space-y-3">
+                      <div className="w-8 h-8 border-4 border-green-200 border-t-green-500 rounded-full animate-spin" />
+                      <p className="text-sm text-gray-600">Mengirim kode OTP ke nomor pengirim…</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-center space-y-1">
+                        <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center text-2xl">🔐</div>
+                        <p className="text-sm text-gray-600">Kode OTP telah dikirim ke nomor pengirim</p>
+                        {waOtpLast4 && <p className="text-xs text-gray-400">Nomor berakhiran ****{waOtpLast4}</p>}
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Masukkan 6 digit OTP"
+                        value={waOtpCode}
+                        onChange={(e) => { setWaOtpCode(e.target.value.replace(/\D/g, "")); setWaOtpError(""); }}
+                        className="w-full text-center text-2xl tracking-[0.5em] font-mono px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-400"
+                        autoFocus
+                      />
+                      {waOtpError && <p className="text-xs text-red-500 text-center">{waOtpError}</p>}
+                      <div className="flex items-center justify-between">
+                        <button onClick={() => { resetWaOtp(); }} className="text-xs text-gray-400 hover:text-gray-600">← Batal</button>
+                        <button onClick={startSendWa} className="text-xs text-green-600 hover:text-green-700">Kirim ulang OTP</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : waSessions.length === 0 ? (
                 <p className="text-sm text-amber-600">Tidak ada sesi WhatsApp yang terhubung.</p>
               ) : (
                 <>
@@ -853,15 +965,26 @@ export default function GroupsPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100">
-              <button type="button" onClick={() => setSendWaGroup(null)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Tutup</button>
-              <button
-                type="button"
-                onClick={doSendWa}
-                disabled={!waSelectedJid || !waSession || waSending}
-                className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm font-medium hover:bg-[#1da851] disabled:opacity-50 transition-colors"
-              >
-                {waSending ? "Mengirim…" : "Kirim Undangan"}
-              </button>
+              <button type="button" onClick={() => { resetWaOtp(); setSendWaGroup(null); }} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">Tutup</button>
+              {waOtpStep === "otp" ? (
+                <button
+                  type="button"
+                  onClick={verifyOtpAndSend}
+                  disabled={waOtpCode.length !== 6 || waOtpVerifying || waSending}
+                  className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm font-medium hover:bg-[#1da851] disabled:opacity-50 transition-colors"
+                >
+                  {waOtpVerifying ? "Memverifikasi…" : waSending ? "Mengirim…" : "Verifikasi & Kirim"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startSendWa}
+                  disabled={!waSelectedJid || !waSession || waSending}
+                  className="px-5 py-2 bg-[#25d366] text-white rounded-lg text-sm font-medium hover:bg-[#1da851] disabled:opacity-50 transition-colors"
+                >
+                  {waSending ? "Mengirim…" : "Kirim Undangan"}
+                </button>
+              )}
             </div>
           </div>
         </div>
