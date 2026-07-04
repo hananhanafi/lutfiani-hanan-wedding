@@ -15,10 +15,10 @@ export default function EventSchedule({ schedule }: Props) {
 
   return (
     <section id="schedule" className="py-16 px-4 ">
-      <div className="relative max-w-2xl mx-auto text-center glass-bg rounded-2xl px-8 py-10 overflow-hidden">
-        <FloralCorner variant="blush" position="top-left" size={120} opacity={0.9} />
-        <FloralCorner variant="blush" position="top-right" size={120} opacity={0.9} />
-        <FloralGarland variant="blush" height={140} opacity={0.95} />
+      <div className="relative max-w-2xl mx-auto text-center glass-bg rounded-2xl px-8 pt-10 pb-28 overflow-hidden">
+        <FloralCorner variant="blush" position="top-left" size={115} opacity={0.9} />
+        <FloralCorner variant="blush" position="top-right" size={115} opacity={0.9} />
+        <FloralGarland variant="blush" opacity={0.95} />
         <p className="relative z-10 text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("schedule_eyebrow")}
         </p>

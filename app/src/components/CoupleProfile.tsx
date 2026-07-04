@@ -35,10 +35,10 @@ export default function CoupleProfile({
       {/* Soft background */}
       <div className="absolute inset-0" />
 
-      <div className="relative z-10 max-w-4xl mx-auto text-center glass-bg rounded-2xl px-8 py-12 overflow-hidden">
-        <FloralCorner variant="burgundy" position="top-left" size={130} opacity={0.9} />
-        <FloralCorner variant="burgundy" position="top-right" size={130} opacity={0.9} />
-        <FloralGarland variant="burgundy" height={150} opacity={0.95} />
+      <div className="relative z-10 max-w-4xl mx-auto text-center glass-bg rounded-2xl px-8 pt-12 pb-32 overflow-hidden">
+        <FloralCorner variant="burgundy" position="top-left" size={120} opacity={0.9} />
+        <FloralCorner variant="burgundy" position="top-right" size={120} opacity={0.9} />
+        <FloralGarland variant="burgundy" opacity={0.95} />
         <h2 className="relative z-10 text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           {t("couple_eyebrow")}
         </h2>

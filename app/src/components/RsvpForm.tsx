@@ -108,7 +108,7 @@ export default function RsvpForm({ rsvpDeadline, guestName }: Props) {
           {/* Flowers sit behind the fields (negative z) so they peek through, never cover inputs */}
           <FloralCorner variant="ivory" position="top-left" size={120} opacity={0.5} className="!-z-10" />
           <FloralCorner variant="ivory" position="top-right" size={120} opacity={0.5} className="!-z-10" />
-          <FloralGarland variant="ivory" height={130} opacity={0.45} className="!-z-10" />
+          <FloralGarland variant="ivory" opacity={0.4} className="!-z-10" />
           {/* Name */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-[#9a7d5a] mb-1 font-[family-name:var(--font-lato)]">

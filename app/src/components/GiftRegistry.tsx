@@ -40,7 +40,7 @@ export default function GiftRegistry({ qrUrl, bankAccounts, bankName, bankAccoun
       {/* Corner flowers sit behind the content */}
       <FloralCorner variant="burgundy" position="top-left" size={140} opacity={0.6} className="!-z-10" />
       <FloralCorner variant="burgundy" position="top-right" size={140} opacity={0.6} className="!-z-10" />
-      <FloralGarland variant="burgundy" height={150} opacity={0.6} className="!-z-10" />
+      <FloralGarland variant="burgundy" opacity={0.6} className="!-z-10" />
       <div className="relative max-w-xl mx-auto text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("gift_eyebrow")}

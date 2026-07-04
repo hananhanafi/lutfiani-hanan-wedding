@@ -156,7 +156,7 @@ export default function FloralCorner({
  */
 export function FloralGarland({
   variant = "blush",
-  height = 150,
+  height = 96,
   opacity = 1,
   animate = true,
   className = "",
@@ -172,14 +172,14 @@ export function FloralGarland({
   // Left half (0–~50%); mirrored to the right for symmetry.
   const items: GItem[] = [
     // greenery (behind)
-    { src: s[0], w: 30, ar: 0.79, left: -3, bottom: -8, rot: 16, delay: 0 },
-    { src: s[2], w: 24, ar: 0.9, left: 15, bottom: -3, rot: -14, delay: 0.4 },
-    { src: s[1], w: 20, ar: 0.8, left: 33, bottom: 1, rot: 26, delay: 0.8 },
+    { src: s[0], w: 22, ar: 0.79, left: -3, bottom: -6, rot: 16, delay: 0 },
+    { src: s[2], w: 17, ar: 0.9, left: 13, bottom: -2, rot: -14, delay: 0.4 },
+    { src: s[1], w: 14, ar: 0.8, left: 29, bottom: 1, rot: 26, delay: 0.8 },
     // flowers (front)
-    { src: s[3], w: 33, ar: 1.09, left: 0, bottom: -10, rot: -8, delay: 0.3, bob: true },
-    { src: s[4], w: 26, ar: 1.27, left: 20, bottom: -2, rot: 8, delay: 0.9, bob: true },
-    { src: s[5], w: 20, ar: 1.0, left: 38, bottom: -6, rot: -6, delay: 0.6, bob: true },
-    { src: s[6], w: 16, ar: 0.9, left: 30, bottom: 10, rot: 18, delay: 1.2, bob: true },
+    { src: s[3], w: 22, ar: 1.09, left: 1, bottom: -6, rot: -8, delay: 0.3, bob: true },
+    { src: s[4], w: 17, ar: 1.27, left: 17, bottom: -1, rot: 8, delay: 0.9, bob: true },
+    { src: s[5], w: 14, ar: 1.0, left: 31, bottom: -4, rot: -6, delay: 0.6, bob: true },
+    { src: s[6], w: 11, ar: 0.9, left: 25, bottom: 5, rot: 18, delay: 1.2, bob: true },
   ];
   const Half = () => (
     <>

@@ -66,10 +66,10 @@ export default function EventDetails({ config }: Props) {
   const { t, lang } = useLanguage();
   return (
     <section id="details" className="relative overflow-hidden py-16 px-4 bg-[var(--color-cream-dark)]">
-      <FloralCorner variant="blush" position="top-left" size={130} opacity={0.9} />
-      <FloralCorner variant="blush" position="top-right" size={130} opacity={0.9} />
-      <FloralGarland variant="blush" height={150} opacity={0.95} />
-      <div className="relative z-10 max-w-2xl mx-auto text-center">
+      <FloralCorner variant="blush" position="top-left" size={115} opacity={0.9} />
+      <FloralCorner variant="blush" position="top-right" size={115} opacity={0.9} />
+      <FloralGarland variant="blush" opacity={0.95} />
+      <div className="relative z-10 max-w-2xl mx-auto text-center pb-28">
       <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
         {t("details_eyebrow")}
       </p>

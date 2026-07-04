@@ -31,10 +31,10 @@ export default function OurStory({ storyText, storyTextEn, partnerOneName, partn
   return (
     <section id="story" className="relative overflow-hidden py-20 px-4">
       <ParallaxLayer speed={0.25} className="" />
-      <div className="relative z-10 max-w-2xl mx-auto text-center glass-bg rounded-xl p-10 overflow-hidden">
-        <FloralCorner variant="ivory" position="top-left" size={125} opacity={0.9} />
-        <FloralCorner variant="ivory" position="top-right" size={125} opacity={0.9} />
-        <FloralGarland variant="ivory" height={140} opacity={0.95} />
+      <div className="relative z-10 max-w-2xl mx-auto text-center glass-bg rounded-xl px-10 pt-10 pb-28 overflow-hidden">
+        <FloralCorner variant="ivory" position="top-left" size={115} opacity={0.9} />
+        <FloralCorner variant="ivory" position="top-right" size={115} opacity={0.9} />
+        <FloralGarland variant="ivory" opacity={0.95} />
         <p className="relative z-10 text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("story_eyebrow")}
         </p>
