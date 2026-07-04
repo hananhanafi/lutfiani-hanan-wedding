@@ -53,6 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     `Tanpa mengurangi rasa hormat, perkenankan kami mengundang anggota grup *${group.name}* untuk hadir dalam acara pernikahan ${coupleName}.\n\n` +
     `Berikut undangan grup beserta QR masuk (berlaku untuk ${expected} orang):\n${passUrl}\n\n` +
     `Cukup tunjukkan satu QR ini saat tiba di venue ${pray}\n\n` +
+    `Mohon maaf karena undangan ini kami sampaikan dalam bentuk pesan digital. Terima kasih atas perhatian, doa, dan kehadirannya.\n\n` +
     `Wassalamualaikum Warahmatullahi Wabarakatuh\n\nHormat Kami,\n${coupleName}`;
 
   try {

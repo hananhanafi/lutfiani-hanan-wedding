@@ -29,12 +29,16 @@ export function buildInvitationMessage(opts: {
     ? `${ticket} QR code masuk (tiket) Anda ada di halaman berikut — cukup tunjukkan saat tiba di venue:\n${opts.passLink}\n\n`
     : "";
 
+  const digitalNote =
+    `Mohon maaf karena undangan ini kami sampaikan dalam bentuk pesan digital. Terima kasih atas perhatian, doa, dan kehadirannya.`;
+
   const muslimMessage =
     `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
     `Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i ${recipient} untuk hadir dalam acara pernikahan ${opts.coupleName}.\n\n` +
     `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${opts.invitationLink}\n\n` +
     qrNote +
     `Merupakan suatu kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
+    `${digitalNote}\n\n` +
     `Wassalamualaikum Warahmatullahi Wabarakatuh\n\n` +
     `Hormat Kami,\n${opts.signOffName}`;
 
@@ -44,7 +48,7 @@ export function buildInvitationMessage(opts: {
     `Berikut link undangan kami, untuk info lengkap dari acara bisa kunjungi :\n${opts.invitationLink}\n\n` +
     qrNote +
     `Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan untuk hadir ${pray}\n\n` +
-    `Terima kasih.\n\n` +
+    `${digitalNote}\n\n` +
     `Hormat Kami,\n${opts.signOffName}`;
 
   return opts.messageType === "general" ? generalMessage : muslimMessage;
