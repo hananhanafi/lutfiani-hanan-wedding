@@ -21,6 +21,7 @@ import GuestPassButton from "@/components/GuestPassButton";
 import BackgroundVideo from "@/components/BackgroundVideo";
 import CoupleProfile from "@/components/CoupleProfile";
 import BackgroundMusicPlayer from "@/components/BackgroundMusicPlayer";
+import { ScallopEdge } from "@/components/Batik";
 import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
 interface Props {
@@ -90,9 +91,13 @@ export default async function Home({ searchParams }: Props) {
       <HeroSection config={config} />
 
       {config.wedding_date && (
-        // Cream backdrop so the scalloped hero edge meets the content seamlessly
-        // even while the countdown is still revealing (transform/opacity offset).
+        // Cream content block. The scallop is its first child, pulled fully up
+        // over the hero (-mt = its own height) so the domes rise into the photo
+        // while its cream base is continuous with this block — no seam possible.
         <div className="bg-[var(--color-cream-dark)]">
+          <div className="-mt-[38px] relative z-10 pointer-events-none">
+            <ScallopEdge height={38} scallop={44} />
+          </div>
           <ScrollReveal direction="scale">
             <CountdownTimer weddingDate={config.wedding_date} />
           </ScrollReveal>

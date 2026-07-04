@@ -7,7 +7,6 @@ import FloatingPetals from "@/components/FloatingPetals";
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
 import FloralCorner from "@/components/FloralCorner";
-import { ScallopEdge } from "@/components/Batik";
 
 interface Props {
   config: SiteConfig;
@@ -123,16 +122,11 @@ export default function HeroSection({ config }: Props) {
         </a>
       </div>
 
-      {/* Scalloped batik edge — cream content rises into the photo */}
-      <div className="absolute inset-x-0 bottom-0 z-[15]">
-        <ScallopEdge height={38} scallop={44} />
-      </div>
-
-      {/* Scroll indicator (lifted above the scallop domes) */}
+      {/* Scroll indicator */}
       <a
         href="#story"
         aria-label="Scroll down"
-        className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 group"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 group"
       >
         <span className="text-[10px] uppercase tracking-[0.25em] text-white/50 font-[family-name:var(--font-lato)] group-hover:text-white/80 transition-colors">
           Scroll
