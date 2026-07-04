@@ -119,32 +119,36 @@ export function BatikPattern({
 export function ScallopEdge({
   fill = "var(--color-cream-dark)",
   trim = "#c9a96e",
-  height = 44,
-  count = 30,
+  height = 34,
+  scallop = 40,
   className = "",
 }: {
   fill?: string;
   trim?: string;
   height?: number;
-  count?: number;
+  /** width of one dome in px (fixed, so it never distorts) */
+  scallop?: number;
   className?: string;
 }) {
-  const seg = 50;
-  const w = count * seg;
-  const vbH = 64;
-  const top = 48; // valley baseline; crests rise toward y≈12
-  const scallops = ` q 25 -72 50 0`.repeat(count);
-  const fillPath = `M0 ${vbH} V${top}${scallops} V${vbH} Z`;
-  const trimPath = `M0 ${top}${scallops}`;
+  const r = scallop / 2;
+  const base = r + 4;            // dome chord baseline; peak rises to y≈4
+  const id = `scallop-${scallop}-${height}`;
+  // Smooth upward dome (quadratic), tiled at a fixed pixel size via <pattern>.
+  const dome = `M0 ${base} Q ${r} ${base - 2 * r} ${scallop} ${base}`;
   return (
     <div
       aria-hidden="true"
       className={`w-full overflow-hidden leading-none pointer-events-none ${className}`}
       style={{ height }}
     >
-      <svg width="100%" height="100%" viewBox={`0 0 ${w} ${vbH}`} preserveAspectRatio="none">
-        <path d={fillPath} fill={fill} />
-        <path d={trimPath} fill="none" stroke={trim} strokeWidth="1.4" opacity="0.5" />
+      <svg width="100%" height={height} className="block">
+        <defs>
+          <pattern id={id} width={scallop} height={height} patternUnits="userSpaceOnUse">
+            <path d={`${dome} L${scallop} ${height} L0 ${height} Z`} fill={fill} />
+            <path d={dome} fill="none" stroke={trim} strokeWidth="1.4" opacity="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height={height} fill={`url(#${id})`} />
       </svg>
     </div>
   );

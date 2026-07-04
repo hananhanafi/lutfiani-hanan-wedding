@@ -125,7 +125,7 @@ export default function HeroSection({ config }: Props) {
 
       {/* Scalloped batik edge — cream content rises into the photo */}
       <div className="absolute inset-x-0 bottom-0 z-[15]">
-        <ScallopEdge height={46} />
+        <ScallopEdge height={38} scallop={44} />
       </div>
 
       {/* Scroll indicator (lifted above the scallop domes) */}
