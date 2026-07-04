@@ -1364,14 +1364,24 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
   const [filterVip, setFilterVip] = useState("");
   const [filterEmail, setFilterEmail] = useState("");
   const [filterWa, setFilterWa] = useState("");
+  const [filterGroup, setFilterGroup] = useState("");
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
 
   // Draft state — only committed when Terapkan is clicked
-  const [draft, setDraft] = useState({ attending: "", side: "", checkin: "", vip: "", email: "", wa: "" });
+  const [draft, setDraft] = useState({ attending: "", side: "", checkin: "", vip: "", email: "", wa: "", group: "" });
   useEffect(() => {
     if (showFilterModal) {
-      setDraft({ attending: filterAttending, side: filterSide, checkin: filterCheckin, vip: filterVip, email: filterEmail, wa: filterWa });
+      setDraft({ attending: filterAttending, side: filterSide, checkin: filterCheckin, vip: filterVip, email: filterEmail, wa: filterWa, group: filterGroup });
     }
   }, [showFilterModal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Group master data for the group filter dropdown
+  useEffect(() => {
+    fetch("/api/admin/groups")
+      .then((r) => r.json())
+      .then((d) => setGroups(d.groups ?? []))
+      .catch(() => {});
+  }, []);
 
   // Fetch WA sessions for sender selector
   useEffect(() => {
@@ -1449,11 +1459,13 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
     if (filterWa === "sent" && !(g.whatsapp_status === "sent" || g.whatsapp_status === "delivered" || g.whatsapp_status === "read")) return false;
     if (filterWa === "failed" && g.whatsapp_status !== "failed") return false;
     if (filterWa === "none" && !!g.whatsapp_status) return false;
+    if (filterGroup === "none" && g.group_id) return false;
+    if (filterGroup && filterGroup !== "none" && g.group_id !== filterGroup) return false;
     return true;
   });
 
-  const hasActiveFilters = !!(filterAttending || filterSide || filterCheckin || filterVip || filterEmail || filterWa);
-  const activeFilterCount = [filterAttending, filterSide, filterCheckin, filterVip, filterEmail, filterWa].filter(Boolean).length;
+  const hasActiveFilters = !!(filterAttending || filterSide || filterCheckin || filterVip || filterEmail || filterWa || filterGroup);
+  const activeFilterCount = [filterAttending, filterSide, filterCheckin, filterVip, filterEmail, filterWa, filterGroup].filter(Boolean).length;
   const resetFilters = () => {
     setFilterAttending("");
     setFilterSide("");
@@ -1461,6 +1473,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
     setFilterVip("");
     setFilterEmail("");
     setFilterWa("");
+    setFilterGroup("");
   };
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((g) => selectedIds.has(g.id));
@@ -1606,6 +1619,15 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                 </select>
               </div>
               <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Grup</label>
+                <select value={draft.group} onChange={(e) => setDraft((p) => ({ ...p, group: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
+                  <option value="">Semua</option>
+                  {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  <option value="none">— Tanpa grup —</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Pihak</label>
                 <select value={draft.side} onChange={(e) => setDraft((p) => ({ ...p, side: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-gold)] bg-white cursor-pointer">
@@ -1654,7 +1676,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
             <div className="px-6 pb-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
               <button
                 onClick={() => {
-                  setDraft({ attending: "", side: "", checkin: "", vip: "", email: "", wa: "" });
+                  setDraft({ attending: "", side: "", checkin: "", vip: "", email: "", wa: "", group: "" });
                   resetFilters();
                   setShowFilterModal(false);
                 }}
@@ -1671,6 +1693,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   setFilterVip(draft.vip);
                   setFilterEmail(draft.email);
                   setFilterWa(draft.wa);
+                  setFilterGroup(draft.group);
                   setShowFilterModal(false);
                 }}
                 className="px-5 py-2 bg-[var(--color-gold)] text-white rounded-lg text-sm hover:bg-[var(--color-gold-hover)] transition-colors"
