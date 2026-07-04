@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ParallaxLayer from "@/components/ParallaxLayer";
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
+import FloralCorner from "@/components/FloralCorner";
 
 interface Props {
   storyText: string;
@@ -30,8 +31,10 @@ export default function OurStory({ storyText, storyTextEn, partnerOneName, partn
   return (
     <section id="story" className="relative overflow-hidden py-20 px-4">
       <ParallaxLayer speed={0.25} className="" />
-      <div className="relative z-10 max-w-2xl mx-auto text-center glass-bg rounded-xl p-10">
-        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
+      <div className="relative z-10 max-w-2xl mx-auto text-center glass-bg rounded-xl p-10 overflow-hidden">
+        <FloralCorner position="top-left" size={125} opacity={0.8} />
+        <FloralCorner position="bottom-right" size={125} opacity={0.8} />
+        <p className="relative z-10 text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("story_eyebrow")}
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">

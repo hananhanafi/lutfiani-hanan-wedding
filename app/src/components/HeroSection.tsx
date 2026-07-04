@@ -6,6 +6,7 @@ import type { SiteConfig } from "@/types";
 import FloatingPetals from "@/components/FloatingPetals";
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
+import FloralCorner from "@/components/FloralCorner";
 
 interface Props {
   config: SiteConfig;
@@ -61,6 +62,12 @@ export default function HeroSection({ config }: Props) {
 
       {/* Floating petals over hero */}
       <FloatingPetals count={40} />
+
+      {/* Botanical corner ornaments framing the hero */}
+      <FloralCorner position="top-left" size={190} opacity={0.92} className="drop-shadow-lg sm:!w-[220px] sm:!h-[220px]" />
+      <FloralCorner position="top-right" size={190} opacity={0.92} className="drop-shadow-lg sm:!w-[220px] sm:!h-[220px]" />
+      <FloralCorner position="bottom-left" size={150} opacity={0.7} className="hidden sm:block" />
+      <FloralCorner position="bottom-right" size={150} opacity={0.7} className="hidden sm:block" />
 
       <div className="relative z-10 text-white">
         <h1 className="text-5xl sm:text-7xl font-[family-name:var(--font-wedding)] leading-tight mb-6">

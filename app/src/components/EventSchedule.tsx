@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
+import FloralCorner from "@/components/FloralCorner";
 import type { ScheduleItem } from "@/types";
 
 interface Props {
@@ -14,8 +15,10 @@ export default function EventSchedule({ schedule }: Props) {
 
   return (
     <section id="schedule" className="py-16 px-4 ">
-      <div className="max-w-2xl mx-auto text-center glass-bg rounded-2xl px-8 py-10">
-        <p className="text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
+      <div className="relative max-w-2xl mx-auto text-center glass-bg rounded-2xl px-8 py-10 overflow-hidden">
+        <FloralCorner position="top-right" size={120} opacity={0.8} />
+        <FloralCorner position="bottom-left" size={120} opacity={0.8} />
+        <p className="relative z-10 text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("schedule_eyebrow")}
         </p>
         <h2 className="text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-10">
