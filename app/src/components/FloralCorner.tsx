@@ -149,6 +149,79 @@ export default function FloralCorner({
 }
 
 /**
+ * Dense, symmetric full-width floral band for the bottom of a section — the
+ * "full flowers" frame. One half is composed and mirrored to the other, so it
+ * is perfectly symmetric. Place in a `relative overflow-hidden` container,
+ * behind the content (content should sit at a higher z-index).
+ */
+export function FloralGarland({
+  variant = "blush",
+  height = 150,
+  opacity = 1,
+  animate = true,
+  className = "",
+}: {
+  variant?: Variant;
+  height?: number;
+  opacity?: number;
+  animate?: boolean;
+  className?: string;
+}) {
+  const s = VARIANTS[variant];
+  type GItem = { src: string; w: number; ar: number; left: number; bottom: number; rot: number; delay: number; bob?: boolean };
+  // Left half (0–~50%); mirrored to the right for symmetry.
+  const items: GItem[] = [
+    // greenery (behind)
+    { src: s[0], w: 30, ar: 0.79, left: -3, bottom: -8, rot: 16, delay: 0 },
+    { src: s[2], w: 24, ar: 0.9, left: 15, bottom: -3, rot: -14, delay: 0.4 },
+    { src: s[1], w: 20, ar: 0.8, left: 33, bottom: 1, rot: 26, delay: 0.8 },
+    // flowers (front)
+    { src: s[3], w: 33, ar: 1.09, left: 0, bottom: -10, rot: -8, delay: 0.3, bob: true },
+    { src: s[4], w: 26, ar: 1.27, left: 20, bottom: -2, rot: 8, delay: 0.9, bob: true },
+    { src: s[5], w: 20, ar: 1.0, left: 38, bottom: -6, rot: -6, delay: 0.6, bob: true },
+    { src: s[6], w: 16, ar: 0.9, left: 30, bottom: 10, rot: 18, delay: 1.2, bob: true },
+  ];
+  const Half = () => (
+    <>
+      {items.map((it, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            width: `${it.w}%`,
+            aspectRatio: String(it.ar),
+            left: `${it.left}%`,
+            bottom: `${it.bottom}%`,
+            transform: `rotate(${it.rot}deg)`,
+          }}
+        >
+          <div
+            className={animate && it.bob ? "vfloral-item" : undefined}
+            style={{ position: "relative", width: "100%", height: "100%", animationDelay: `${it.delay}s` }}
+          >
+            <Image src={it.src} alt="" fill sizes="180px" draggable={false} style={{ objectFit: "contain" }} />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-x-0 bottom-0 select-none ${className}`}
+      style={{ height, opacity }}
+    >
+      <div className="absolute inset-0">
+        <Half />
+      </div>
+      <div className="absolute inset-0" style={{ transform: "scaleX(-1)" }}>
+        <Half />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Small centered flower for section dividers (pair with rules on either side).
  * Uses a single watercolor bloom so it matches the corner bouquets.
  */

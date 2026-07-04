@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import ParallaxLayer from "@/components/ParallaxLayer";
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
-import FloralCorner from "@/components/FloralCorner";
+import FloralCorner, { FloralGarland } from "@/components/FloralCorner";
 
 interface Props {
   storyText: string;
@@ -32,8 +32,9 @@ export default function OurStory({ storyText, storyTextEn, partnerOneName, partn
     <section id="story" className="relative overflow-hidden py-20 px-4">
       <ParallaxLayer speed={0.25} className="" />
       <div className="relative z-10 max-w-2xl mx-auto text-center glass-bg rounded-xl p-10 overflow-hidden">
-        <FloralCorner variant="mixed" position="top-left" size={125} opacity={0.8} />
-        <FloralCorner variant="ivory" position="bottom-right" size={125} opacity={0.8} />
+        <FloralCorner variant="ivory" position="top-left" size={125} opacity={0.9} />
+        <FloralCorner variant="ivory" position="top-right" size={125} opacity={0.9} />
+        <FloralGarland variant="ivory" height={140} opacity={0.95} />
         <p className="relative z-10 text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("story_eyebrow")}
         </p>

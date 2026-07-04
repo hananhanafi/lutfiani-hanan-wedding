@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
-import FloralCorner, { FloralSprig } from "@/components/FloralCorner";
+import FloralCorner, { FloralSprig, FloralGarland } from "@/components/FloralCorner";
 import type { BankAccount } from "@/types";
 
 interface Props {
@@ -38,8 +38,9 @@ export default function GiftRegistry({ qrUrl, bankAccounts, bankName, bankAccoun
   return (
     <section id="gift" className="relative isolate py-20 px-4 bg-[#fffbf5] overflow-hidden">
       {/* Corner flowers sit behind the content */}
-      <FloralCorner variant="mixed" position="top-left" size={140} opacity={0.6} className="!-z-10" />
-      <FloralCorner variant="burgundy" position="bottom-right" size={140} opacity={0.6} className="!-z-10" />
+      <FloralCorner variant="burgundy" position="top-left" size={140} opacity={0.6} className="!-z-10" />
+      <FloralCorner variant="burgundy" position="top-right" size={140} opacity={0.6} className="!-z-10" />
+      <FloralGarland variant="burgundy" height={150} opacity={0.6} className="!-z-10" />
       <div className="relative max-w-xl mx-auto text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("gift_eyebrow")}

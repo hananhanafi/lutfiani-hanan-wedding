@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
-import FloralCorner from "@/components/FloralCorner";
+import FloralCorner, { FloralGarland } from "@/components/FloralCorner";
 
 interface Props {
   partnerOneName: string;
@@ -36,8 +36,9 @@ export default function CoupleProfile({
       <div className="absolute inset-0" />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center glass-bg rounded-2xl px-8 py-12 overflow-hidden">
-        <FloralCorner variant="blush" position="top-left" size={130} opacity={0.85} />
-        <FloralCorner variant="burgundy" position="bottom-right" size={130} opacity={0.85} />
+        <FloralCorner variant="burgundy" position="top-left" size={130} opacity={0.9} />
+        <FloralCorner variant="burgundy" position="top-right" size={130} opacity={0.9} />
+        <FloralGarland variant="burgundy" height={150} opacity={0.95} />
         <h2 className="relative z-10 text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           {t("couple_eyebrow")}
         </h2>
