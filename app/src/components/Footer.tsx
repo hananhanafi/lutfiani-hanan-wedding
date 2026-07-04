@@ -1,6 +1,8 @@
 "use client";
 
 import { useLanguage } from "@/components/LanguageProvider";
+import { BatikPattern } from "@/components/Batik";
+import Gunungan from "@/components/JavaOrnament";
 
 interface Props {
   partnerOneName: string;
@@ -15,12 +17,15 @@ function formatYear(dateStr: string) {
 export default function Footer({ partnerOneName, partnerTwoName, weddingDate }: Props) {
   const { t } = useLanguage();
   return (
-    <footer className="bg-[var(--color-cream-dark)] py-12 px-4 text-center border-t border-[#e0d5c5]/60">
-      <div className="max-w-xl mx-auto space-y-4">
-        {/* Decorative divider */}
+    <footer className="relative overflow-hidden bg-[var(--color-cream-dark)] py-12 px-4 text-center border-t border-[#e0d5c5]/60">
+      {/* Subtle batik watermark */}
+      <BatikPattern motif="kawung" opacity={0.05} />
+
+      <div className="relative z-10 max-w-xl mx-auto space-y-4">
+        {/* Decorative divider with gunungan ornament */}
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="h-px w-12 bg-[var(--color-gold)]" />
-          <span className="text-[var(--color-gold)] text-base">✦</span>
+          <Gunungan size={34} />
           <div className="h-px w-12 bg-[var(--color-gold)]" />
         </div>
 

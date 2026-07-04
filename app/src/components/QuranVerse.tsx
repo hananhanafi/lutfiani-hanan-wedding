@@ -3,6 +3,8 @@
 import { useLanguage } from "@/components/LanguageProvider";
 import Typewriter from "@/components/Typewriter";
 import { FloralSprig } from "@/components/FloralCorner";
+import { BatikPattern } from "@/components/Batik";
+import Gunungan from "@/components/JavaOrnament";
 
 export default function QuranVerse() {
   const { lang } = useLanguage();
@@ -15,8 +17,14 @@ export default function QuranVerse() {
   const source = lang === "en" ? "Q.S. Ar-Rum: 21" : "Q.S. Ar-Rūm: 21";
 
   return (
-    <section className="py-16 px-6 flex justify-center bg-[var(--color-cream-dark)]" aria-label="Qur'an verse">
-      <div className="max-w-2xl w-full text-center space-y-6">
+    <section className="relative overflow-hidden py-16 px-6 flex justify-center bg-[var(--color-cream-dark)]" aria-label="Qur'an verse">
+      {/* Subtle Javanese batik (truntum — a wedding motif) watermark */}
+      <BatikPattern motif="truntum" opacity={0.06} />
+
+      <div className="relative z-10 max-w-2xl w-full text-center space-y-6">
+        {/* Gunungan (kayon) ornament */}
+        <Gunungan size={52} className="mx-auto" />
+
         {/* Decorative floral divider */}
         <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-70">
           <span className="block h-px w-14 bg-current" />

@@ -21,6 +21,7 @@ import GuestPassButton from "@/components/GuestPassButton";
 import BackgroundVideo from "@/components/BackgroundVideo";
 import CoupleProfile from "@/components/CoupleProfile";
 import BackgroundMusicPlayer from "@/components/BackgroundMusicPlayer";
+import { BatikBand } from "@/components/Batik";
 import { generatePassQrDataUrl, buildPassUrl } from "@/lib/qrcode";
 
 interface Props {
@@ -88,6 +89,9 @@ export default async function Home({ searchParams }: Props) {
       </div>
 
       <HeroSection config={config} />
+
+      {/* Javanese batik ribbon separating the hero from the content */}
+      <BatikBand motif="truntum" className="bg-[var(--color-cream-dark)]" />
 
       {config.wedding_date && (
         <ScrollReveal direction="scale">
