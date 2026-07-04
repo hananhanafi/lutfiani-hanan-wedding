@@ -104,6 +104,43 @@ h1, h2, h3, h4 {
   .typewriter-caret { animation: none; }
 }
 
+/* ── Floral ornament motion (gentle breeze) ────────────────── */
+@keyframes floral-sway {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50%      { transform: rotate(1.6deg); }
+}
+@keyframes floral-breathe {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.06) rotate(2deg); }
+}
+@keyframes floral-flutter {
+  0%, 100% { transform: rotate(-3.5deg); }
+  50%      { transform: rotate(3.5deg); }
+}
+
+/* whole spray sways from its anchored corner */
+.floral-anim {
+  animation: floral-sway 7s ease-in-out infinite;
+}
+/* individual blossoms softly breathe around their own centre */
+.floral-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: floral-breathe 4.5s ease-in-out infinite;
+}
+/* leaves flutter from where they meet the stem */
+.floral-leaf {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: floral-flutter 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floral-anim,
+  .floral-bloom,
+  .floral-leaf { animation: none; }
+}
+
 /* ── Glassmorphism ─────────────────────────────────────────── */
 .glass {
   background: rgba(255, 251, 245, 0.60);

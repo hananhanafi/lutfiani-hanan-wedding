@@ -20,7 +20,16 @@ interface Props {
   className?: string;
   /** 0–1 overall opacity */
   opacity?: number;
+  /** gentle breeze motion (default true; honors prefers-reduced-motion) */
+  animate?: boolean;
 }
+
+const TRANSFORM_ORIGIN: Record<Corner, string> = {
+  "top-left": "top left",
+  "top-right": "top right",
+  "bottom-left": "bottom left",
+  "bottom-right": "bottom right",
+};
 
 const MIRROR: Record<Corner, string> = {
   "top-left": "scale(1, 1)",
@@ -56,6 +65,8 @@ function Blossom({
   rotate = 0,
   petal = PETAL_MID,
   inner = PETAL_LIGHT,
+  delay = 0,
+  animate = true,
 }: {
   cx: number;
   cy: number;
@@ -63,33 +74,40 @@ function Blossom({
   rotate?: number;
   petal?: string;
   inner?: string;
+  delay?: number;
+  animate?: boolean;
 }) {
   const outer = [0, 60, 120, 180, 240, 300];
   const innerRing = [30, 102, 174, 246, 318];
   return (
     <g transform={`translate(${cx} ${cy}) rotate(${rotate}) scale(${scale})`}>
-      {outer.map((a) => (
-        <path key={`o${a}`} d={PETAL_PATH} fill={petal} transform={`rotate(${a})`} />
-      ))}
-      {innerRing.map((a) => (
-        <path
-          key={`i${a}`}
-          d={PETAL_PATH}
-          fill={inner}
-          transform={`rotate(${a}) scale(0.62)`}
-        />
-      ))}
-      <circle r="5.5" fill={CENTER} />
-      <circle r="5.5" fill="none" stroke={CENTER_DOT} strokeWidth="0.6" opacity="0.5" />
-      {[0, 72, 144, 216, 288].map((a) => (
-        <circle
-          key={`d${a}`}
-          cx={Math.cos((a * Math.PI) / 180) * 2.6}
-          cy={Math.sin((a * Math.PI) / 180) * 2.6}
-          r="1"
-          fill={CENTER_DOT}
-        />
-      ))}
+      <g
+        className={animate ? "floral-bloom" : undefined}
+        style={animate ? { animationDelay: `${delay}s` } : undefined}
+      >
+        {outer.map((a) => (
+          <path key={`o${a}`} d={PETAL_PATH} fill={petal} transform={`rotate(${a})`} />
+        ))}
+        {innerRing.map((a) => (
+          <path
+            key={`i${a}`}
+            d={PETAL_PATH}
+            fill={inner}
+            transform={`rotate(${a}) scale(0.62)`}
+          />
+        ))}
+        <circle r="5.5" fill={CENTER} />
+        <circle r="5.5" fill="none" stroke={CENTER_DOT} strokeWidth="0.6" opacity="0.5" />
+        {[0, 72, 144, 216, 288].map((a) => (
+          <circle
+            key={`d${a}`}
+            cx={Math.cos((a * Math.PI) / 180) * 2.6}
+            cy={Math.sin((a * Math.PI) / 180) * 2.6}
+            r="1"
+            fill={CENTER_DOT}
+          />
+        ))}
+      </g>
     </g>
   );
 }
@@ -100,17 +118,26 @@ function Leaf({
   rotate,
   scale = 1,
   fill = LEAF,
+  delay = 0,
+  animate = true,
 }: {
   x: number;
   y: number;
   rotate: number;
   scale?: number;
   fill?: string;
+  delay?: number;
+  animate?: boolean;
 }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${rotate}) scale(${scale})`}>
-      <path d={LEAF_PATH} fill={fill} />
-      <path d="M0 -2 L0 -33" stroke="#ffffff" strokeWidth="0.7" opacity="0.35" fill="none" />
+      <g
+        className={animate ? "floral-leaf" : undefined}
+        style={animate ? { animationDelay: `${delay}s` } : undefined}
+      >
+        <path d={LEAF_PATH} fill={fill} />
+        <path d="M0 -2 L0 -33" stroke="#ffffff" strokeWidth="0.7" opacity="0.35" fill="none" />
+      </g>
     </g>
   );
 }
@@ -148,9 +175,9 @@ export function FloralSprig({
         <path d="M14 34 q -6 -4 -3 -9 q 6 -1 7 4 q 0 6 -4 5 Z" fill={PETAL_MID} />
         <path d="M106 34 q 6 -4 3 -9 q -6 -1 -7 4 q 0 6 4 5 Z" fill={PETAL_MID} />
         {/* center blossoms */}
-        <Blossom cx={60} cy={30} scale={0.92} rotate={0} petal={PETAL_DEEP} inner={PETAL_MID} />
-        <Blossom cx={44} cy={34} scale={0.5} rotate={20} petal={PETAL_MID} inner={PETAL_LIGHT} />
-        <Blossom cx={76} cy={34} scale={0.5} rotate={-20} petal={PETAL_MID} inner={PETAL_LIGHT} />
+        <Blossom cx={60} cy={30} scale={0.92} rotate={0} petal={PETAL_DEEP} inner={PETAL_MID} delay={0} />
+        <Blossom cx={44} cy={34} scale={0.5} rotate={20} petal={PETAL_MID} inner={PETAL_LIGHT} delay={0.6} />
+        <Blossom cx={76} cy={34} scale={0.5} rotate={-20} petal={PETAL_MID} inner={PETAL_LIGHT} delay={1.1} />
       </svg>
     </span>
   );
@@ -161,12 +188,20 @@ export default function FloralCorner({
   size = 150,
   className = "",
   opacity = 0.9,
+  animate = true,
 }: Props) {
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute z-20 select-none ${POS_CLASS[position]} ${className}`}
-      style={{ width: size, height: size, opacity }}
+      className={`pointer-events-none absolute z-20 select-none ${POS_CLASS[position]} ${
+        animate ? "floral-anim" : ""
+      } ${className}`}
+      style={{
+        width: size,
+        height: size,
+        opacity,
+        transformOrigin: TRANSFORM_ORIGIN[position],
+      }}
     >
       <svg
         viewBox="0 0 200 200"
@@ -186,19 +221,19 @@ export default function FloralCorner({
         </g>
 
         {/* trailing leaves along the stems */}
-        <Leaf x={70} y={30} rotate={52} scale={0.85} fill={LEAF} />
-        <Leaf x={104} y={38} rotate={70} scale={0.75} fill={LEAF_DEEP} />
-        <Leaf x={138} y={40} rotate={82} scale={0.7} fill={LEAF} />
-        <Leaf x={166} y={44} rotate={96} scale={0.6} fill={LEAF_DEEP} />
-        <Leaf x={30} y={70} rotate={128} scale={0.85} fill={LEAF} />
-        <Leaf x={38} y={104} rotate={110} scale={0.75} fill={LEAF_DEEP} />
-        <Leaf x={40} y={138} rotate={98} scale={0.7} fill={LEAF} />
-        <Leaf x={44} y={166} rotate={84} scale={0.6} fill={LEAF_DEEP} />
-        <Leaf x={82} y={82} rotate={135} scale={0.7} fill={LEAF} />
-        <Leaf x={112} y={70} rotate={58} scale={0.6} fill={LEAF_DEEP} />
-        <Leaf x={70} y={112} rotate={150} scale={0.6} fill={LEAF_DEEP} />
-        <Leaf x={128} y={92} rotate={72} scale={0.5} fill={LEAF} />
-        <Leaf x={92} y={128} rotate={126} scale={0.5} fill={LEAF} />
+        <Leaf x={70} y={30} rotate={52} scale={0.85} fill={LEAF} animate={animate} delay={0} />
+        <Leaf x={104} y={38} rotate={70} scale={0.75} fill={LEAF_DEEP} animate={animate} delay={0.6} />
+        <Leaf x={138} y={40} rotate={82} scale={0.7} fill={LEAF} animate={animate} delay={1.2} />
+        <Leaf x={166} y={44} rotate={96} scale={0.6} fill={LEAF_DEEP} animate={animate} delay={1.8} />
+        <Leaf x={30} y={70} rotate={128} scale={0.85} fill={LEAF} animate={animate} delay={0.3} />
+        <Leaf x={38} y={104} rotate={110} scale={0.75} fill={LEAF_DEEP} animate={animate} delay={0.9} />
+        <Leaf x={40} y={138} rotate={98} scale={0.7} fill={LEAF} animate={animate} delay={1.5} />
+        <Leaf x={44} y={166} rotate={84} scale={0.6} fill={LEAF_DEEP} animate={animate} delay={2.1} />
+        <Leaf x={82} y={82} rotate={135} scale={0.7} fill={LEAF} animate={animate} delay={0.75} />
+        <Leaf x={112} y={70} rotate={58} scale={0.6} fill={LEAF_DEEP} animate={animate} delay={1.35} />
+        <Leaf x={70} y={112} rotate={150} scale={0.6} fill={LEAF_DEEP} animate={animate} delay={1.05} />
+        <Leaf x={128} y={92} rotate={72} scale={0.5} fill={LEAF} animate={animate} delay={1.65} />
+        <Leaf x={92} y={128} rotate={126} scale={0.5} fill={LEAF} animate={animate} delay={0.45} />
 
         {/* buds at the tips */}
         <g>
@@ -209,15 +244,15 @@ export default function FloralCorner({
         </g>
 
         {/* blossoms — a full corner bouquet, largest at the corner */}
-        <Blossom cx={28} cy={28} scale={1.35} rotate={12} petal={PETAL_DEEP} inner={PETAL_MID} />
-        <Blossom cx={66} cy={40} scale={0.95} rotate={-18} petal={PETAL_MID} inner={PETAL_LIGHT} />
-        <Blossom cx={40} cy={66} scale={0.92} rotate={40} petal={PETAL_MID} inner={PETAL_LIGHT} />
-        <Blossom cx={62} cy={62} scale={0.7} rotate={22} petal={PETAL_DEEP} inner={PETAL_MID} />
-        <Blossom cx={100} cy={52} scale={0.68} rotate={-8} petal={PETAL_MID} inner={PETAL_LIGHT} />
-        <Blossom cx={52} cy={100} scale={0.66} rotate={54} petal={PETAL_MID} inner={PETAL_LIGHT} />
-        <Blossom cx={92} cy={90} scale={0.52} rotate={0} petal={PETAL_LIGHT} inner="#ffffff" />
-        <Blossom cx={128} cy={64} scale={0.44} rotate={-14} petal={PETAL_LIGHT} inner="#ffffff" />
-        <Blossom cx={64} cy={128} scale={0.44} rotate={30} petal={PETAL_LIGHT} inner="#ffffff" />
+        <Blossom cx={28} cy={28} scale={1.35} rotate={12} petal={PETAL_DEEP} inner={PETAL_MID} animate={animate} delay={0} />
+        <Blossom cx={66} cy={40} scale={0.95} rotate={-18} petal={PETAL_MID} inner={PETAL_LIGHT} animate={animate} delay={0.5} />
+        <Blossom cx={40} cy={66} scale={0.92} rotate={40} petal={PETAL_MID} inner={PETAL_LIGHT} animate={animate} delay={0.8} />
+        <Blossom cx={62} cy={62} scale={0.7} rotate={22} petal={PETAL_DEEP} inner={PETAL_MID} animate={animate} delay={1.1} />
+        <Blossom cx={100} cy={52} scale={0.68} rotate={-8} petal={PETAL_MID} inner={PETAL_LIGHT} animate={animate} delay={1.4} />
+        <Blossom cx={52} cy={100} scale={0.66} rotate={54} petal={PETAL_MID} inner={PETAL_LIGHT} animate={animate} delay={0.65} />
+        <Blossom cx={92} cy={90} scale={0.52} rotate={0} petal={PETAL_LIGHT} inner="#ffffff" animate={animate} delay={1.7} />
+        <Blossom cx={128} cy={64} scale={0.44} rotate={-14} petal={PETAL_LIGHT} inner="#ffffff" animate={animate} delay={2} />
+        <Blossom cx={64} cy={128} scale={0.44} rotate={30} petal={PETAL_LIGHT} inner="#ffffff" animate={animate} delay={0.95} />
       </svg>
     </div>
   );
