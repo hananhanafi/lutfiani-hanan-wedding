@@ -27,9 +27,9 @@ async function authorize(req: NextRequest, sessionId: string): Promise<NextRespo
   if (!(await canUseSession(sessionId, token.role as string, token.staffId as string | undefined))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  // if (!(await isSessionConnector(sessionId, readConnectorId(req)))) {
-  //   return NextResponse.json({ error: NOT_CONNECTOR_MSG }, { status: 403 });
-  // }
+  if (!(await isSessionConnector(sessionId, readConnectorId(req)))) {
+    return NextResponse.json({ error: NOT_CONNECTOR_MSG }, { status: 403 });
+  }
   return null;
 }
 
