@@ -90,9 +90,13 @@ export default async function Home({ searchParams }: Props) {
       <HeroSection config={config} />
 
       {config.wedding_date && (
-        <ScrollReveal direction="scale">
-          <CountdownTimer weddingDate={config.wedding_date} />
-        </ScrollReveal>
+        // Cream backdrop so the scalloped hero edge meets the content seamlessly
+        // even while the countdown is still revealing (transform/opacity offset).
+        <div className="bg-[var(--color-cream-dark)]">
+          <ScrollReveal direction="scale">
+            <CountdownTimer weddingDate={config.wedding_date} />
+          </ScrollReveal>
+        </div>
       )}
 
       <ScrollReveal direction="up">
