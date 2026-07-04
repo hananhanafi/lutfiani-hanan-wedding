@@ -142,6 +142,31 @@ h1, h2, h3, h4 {
   .floral-leaf { animation: none; }
 }
 
+/* ── Vintage flower (PNG) motion ───────────────────────────── */
+@keyframes vfloral-sway {
+  0%, 100% { transform: rotate(-3.5deg); }
+  50%      { transform: rotate(3.5deg); }
+}
+@keyframes vfloral-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-4px) rotate(2deg); }
+}
+/* whole bouquet gently sways from its anchored corner */
+.vfloral-anim {
+  animation: vfloral-sway 5.5s ease-in-out infinite;
+  will-change: transform;
+}
+/* individual blooms bob on their own timing */
+.vfloral-item {
+  transform-origin: center;
+  animation: vfloral-bob 4s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vfloral-anim,
+  .vfloral-item { animation: none; }
+}
+
 /* ── Glassmorphism ─────────────────────────────────────────── */
 .glass {
   background: rgba(255, 251, 245, 0.60);
