@@ -1,30 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { canUseSession } from "@/lib/sessionOwnership";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 
 // How long a verified session stays authorized to send (re-OTP after this).
 const VERIFIED_WINDOW_MS = 24 * 60 * 60 * 1000; // 1 day
+const CODE_WINDOW_MS = 10 * 60 * 1000;           // 10 min
 
 /**
- * In-memory OTP store: sessionId -> { code, phone, expiresAt, verified, verifiedUntil }
- * - code/expiresAt: the one-time code sent to the user (short-lived)
- * - verified/verifiedUntil: once verified, stays valid for 1 day bound to the session's phone
+ * OTP state is persisted in Supabase (table `wa_otp_state`) rather than in
+ * memory, so the 1-day verified window survives serverless cold starts and
+ * instance switches. Verification is bound to (sessionId, sender phone).
+ *   - code / code_expires_at: the short-lived one-time code
+ *   - verified_until: once verified, sends are allowed until this time
  */
-const otpStore = new Map<string, {
-  code: string;
-  expiresAt: number;       // code expiry (10 min)
-  phone: string;           // sender phone — verification is tied to this
-  verified: boolean;
-  verifiedUntil: number;   // verified-state expiry (1 day)
-}>();
-
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function isVerified(sessionId: string, phone: string): boolean {
-  const stored = otpStore.get(sessionId);
-  return !!(stored?.verified && stored.phone === phone && Date.now() < stored.verifiedUntil);
+async function isVerified(sessionId: string, phone: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("wa_otp_state")
+    .select("phone, verified_until")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  return !!(
+    data &&
+    data.phone === phone &&
+    data.verified_until &&
+    Date.now() < new Date(data.verified_until).getTime()
+  );
+}
+
+/** Fetch the session's own connected phone from the WA microservice. */
+async function getSessionPhone(sessionId: string): Promise<string | null> {
+  const serviceUrl = process.env.WA_SERVICE_URL;
+  if (!serviceUrl) return null;
+  const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
+  try {
+    const res = await fetch(`${serviceUrl.replace(/\/$/, "")}/sessions/${sessionId}/status`, {
+      headers: { "x-api-key": apiKey },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.status !== "connected" || !data.phone) return null;
+    return data.phone as string;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -42,22 +64,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const serviceUrl = process.env.WA_SERVICE_URL;
-  if (!serviceUrl) return NextResponse.json({ error: "WA_SERVICE_URL not configured" }, { status: 500 });
-
-  // Fetch current phone of the session
-  const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
-  const statusRes = await fetch(`${serviceUrl.replace(/\/$/, "")}/sessions/${sessionId}/status`, {
-    headers: { "x-api-key": apiKey },
-  });
-  const statusData = await statusRes.json().catch(() => ({}));
-
-  if (!statusRes.ok || statusData.status !== "connected" || !statusData.phone) {
-    return NextResponse.json({ verified: false });
+  if (!process.env.WA_SERVICE_URL) {
+    return NextResponse.json({ error: "WA_SERVICE_URL not configured" }, { status: 500 });
   }
 
-  const phone: string = statusData.phone;
-  const verified = isVerified(sessionId, phone);
+  const phone = await getSessionPhone(sessionId);
+  if (!phone) return NextResponse.json({ verified: false });
+
+  const verified = await isVerified(sessionId, phone);
   return NextResponse.json({ verified, phoneLast4: phone.slice(-4) });
 }
 
@@ -87,31 +101,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "WA_SERVICE_URL not configured" }, { status: 500 });
   }
 
-  const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
-
-  // Get the session's own phone number
-  const statusRes = await fetch(`${serviceUrl.replace(/\/$/, "")}/sessions/${sessionId}/status`, {
-    headers: { "x-api-key": apiKey },
-  });
-  const statusData = await statusRes.json().catch(() => ({}));
-
-  if (!statusRes.ok || statusData.status !== "connected" || !statusData.phone) {
+  const phone = await getSessionPhone(sessionId);
+  if (!phone) {
     return NextResponse.json({ error: "Session not connected or phone unknown" }, { status: 400 });
   }
 
-  const phone: string = statusData.phone;
-
   // Return early if already verified for this phone
-  if (isVerified(sessionId, phone)) {
+  if (await isVerified(sessionId, phone)) {
     return NextResponse.json({ alreadyVerified: true, phoneLast4: phone.slice(-4) });
   }
 
-  // Generate OTP (10-minute window)
+  // Generate OTP (10-minute window) and persist it
   const code = generateOTP();
-  const expiresAt = Date.now() + 10 * 60 * 1000;
-  otpStore.set(sessionId, { code, expiresAt, phone, verified: false, verifiedUntil: 0 });
+  const codeExpiresAt = new Date(Date.now() + CODE_WINDOW_MS).toISOString();
+  await supabaseAdmin.from("wa_otp_state").upsert({
+    session_id: sessionId,
+    phone,
+    code,
+    code_expires_at: codeExpiresAt,
+    verified_until: null,
+    updated_at: new Date().toISOString(),
+  });
 
   // Send OTP to the sender's own number
+  const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
   const sendRes = await fetch(`${serviceUrl.replace(/\/$/, "")}/sessions/${sessionId}/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": apiKey },
@@ -124,7 +137,7 @@ export async function POST(req: NextRequest) {
   const sendData = await sendRes.json().catch(() => ({}));
 
   if (!sendRes.ok || !sendData.success) {
-    otpStore.delete(sessionId);
+    await supabaseAdmin.from("wa_otp_state").delete().eq("session_id", sessionId);
     return NextResponse.json({ error: "Failed to send OTP" }, { status: 500 });
   }
 
@@ -151,28 +164,35 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const stored = otpStore.get(sessionId);
+  const { data: stored } = await supabaseAdmin
+    .from("wa_otp_state")
+    .select("code, code_expires_at, phone")
+    .eq("session_id", sessionId)
+    .maybeSingle();
 
-  if (!stored) {
+  if (!stored || !stored.code) {
     return NextResponse.json({ error: "OTP not found. Request a new one." }, { status: 400 });
   }
 
-  if (Date.now() > stored.expiresAt) {
-    otpStore.delete(sessionId);
+  if (!stored.code_expires_at || Date.now() > new Date(stored.code_expires_at).getTime()) {
+    await supabaseAdmin.from("wa_otp_state").delete().eq("session_id", sessionId);
     return NextResponse.json({ error: "OTP expired. Request a new one." }, { status: 400 });
   }
 
-  if (stored.code !== code.trim()) {
+  if (stored.code !== String(code).trim()) {
     return NextResponse.json({ error: "Invalid OTP code" }, { status: 400 });
   }
 
   // Mark as verified for the verification window, bound to the sender's phone
-  otpStore.set(sessionId, {
-    ...stored,
-    code: "",
-    verified: true,
-    verifiedUntil: Date.now() + VERIFIED_WINDOW_MS,
-  });
+  await supabaseAdmin
+    .from("wa_otp_state")
+    .update({
+      code: null,
+      code_expires_at: null,
+      verified_until: new Date(Date.now() + VERIFIED_WINDOW_MS).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("session_id", sessionId);
 
   return NextResponse.json({ verified: true });
 }
