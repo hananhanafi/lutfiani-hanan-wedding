@@ -42,8 +42,8 @@ export default function PhotoGallery({ photos }: Props) {
       <section id="gallery" className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="relative text-center mb-12 glass-bg rounded-2xl px-8 py-12 overflow-hidden">
-            <FloralCorner position="top-left" size={120} opacity={0.8} />
-            <FloralCorner position="bottom-right" size={120} opacity={0.8} />
+            <FloralCorner variant="burgundy" position="top-left" size={120} opacity={0.8} />
+            <FloralCorner variant="mixed" position="bottom-right" size={120} opacity={0.8} />
             <p className="relative z-10 text-xs uppercase tracking-[0.3em] text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
               Gallery
             </p>

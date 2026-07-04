@@ -14,6 +14,9 @@ import Image from "next/image";
 
 type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
+/** Bouquet flower mixes, so different sections show different blooms. */
+type Variant = "burgundy" | "blush" | "mixed" | "ivory";
+
 interface Props {
   position?: Corner;
   /** rendered width/height in px (square artwork box) */
@@ -23,6 +26,8 @@ interface Props {
   opacity?: number;
   /** gentle breeze motion (default true; honors prefers-reduced-motion) */
   animate?: boolean;
+  /** which flower mix to use */
+  variant?: Variant;
 }
 
 const MIRROR: Record<Corner, string> = {
@@ -48,31 +53,50 @@ const TRANSFORM_ORIGIN: Record<Corner, string> = {
 
 const DIR = "/vintage-flowers";
 
-/** Bouquet layers, drawn for the TOP-LEFT corner (back → front). */
-type Layer = {
-  src: string;
-  /** width as % of the box */
-  w: number;
-  /** aspect ratio (w/h) — only sets the box; object-contain keeps the flower */
-  ar: number;
-  top: number;   // % offset
-  left: number;  // % offset
-  rot: number;   // base rotation, deg
+/**
+ * Shared bouquet geometry (drawn for the TOP-LEFT corner, back → front).
+ * Slots: 3 greenery, then focal / medium / small / accent blooms.
+ */
+type Slot = {
+  w: number;   // width as % of the box
+  ar: number;  // aspect ratio (box only; object-contain keeps the flower)
+  top: number; // % offset
+  left: number;
+  rot: number; // base rotation, deg
   delay: number; // bob stagger, s
 };
 
-const LAYERS: Layer[] = [
-  // greenery backdrop
-  { src: `${DIR}/12_green_leaves_1.png`, w: 62, ar: 0.79, top: -10, left: -8, rot: 12, delay: 0 },
-  { src: `${DIR}/15_green_leaf_sprig.png`, w: 46, ar: 0.8, top: -4, left: 32, rot: 52, delay: 0.9 },
-  { src: `${DIR}/13_green_leaves_2.png`, w: 40, ar: 0.9, top: 30, left: -6, rot: -18, delay: 0.5 },
-  // focal blooms, largest hugging the corner
-  { src: `${DIR}/02_burgundy_rose.png`, w: 50, ar: 1.09, top: -6, left: -2, rot: -6, delay: 0.3 },
-  { src: `${DIR}/04_pink_peony.png`, w: 42, ar: 1.27, top: 24, left: 24, rot: 8, delay: 1.1 },
-  { src: `${DIR}/06_pink_rose.png`, w: 30, ar: 1.0, top: 38, left: 2, rot: -12, delay: 0.6 },
-  // small accent
-  { src: `${DIR}/09_burgundy_rosebud.png`, w: 24, ar: 0.9, top: 6, left: 46, rot: 28, delay: 1.4 },
+const SLOTS: Slot[] = [
+  { w: 62, ar: 0.79, top: -10, left: -8, rot: 12, delay: 0 },   // greenery (big)
+  { w: 46, ar: 0.8, top: -4, left: 32, rot: 52, delay: 0.9 },   // greenery (sprig)
+  { w: 40, ar: 0.9, top: 30, left: -6, rot: -18, delay: 0.5 },  // greenery (mid)
+  { w: 50, ar: 1.09, top: -6, left: -2, rot: -6, delay: 0.3 },  // focal bloom
+  { w: 42, ar: 1.27, top: 24, left: 24, rot: 8, delay: 1.1 },   // medium bloom
+  { w: 30, ar: 1.0, top: 38, left: 2, rot: -12, delay: 0.6 },   // small bloom
+  { w: 24, ar: 0.9, top: 6, left: 46, rot: 28, delay: 1.4 },    // accent
 ];
+
+const f = (n: string) => `${DIR}/${n}.png`;
+
+/** Which flower asset fills each slot, per variant. */
+const VARIANTS: Record<Variant, string[]> = {
+  burgundy: [
+    f("12_green_leaves_1"), f("15_green_leaf_sprig"), f("13_green_leaves_2"),
+    f("02_burgundy_rose"), f("04_pink_peony"), f("06_pink_rose"), f("09_burgundy_rosebud"),
+  ],
+  blush: [
+    f("13_green_leaves_2"), f("15_green_leaf_sprig"), f("14_green_leaves_3"),
+    f("04_pink_peony"), f("05_pink_dahlia"), f("06_pink_rose"), f("11_rosebud_sprig"),
+  ],
+  mixed: [
+    f("12_green_leaves_1"), f("15_green_leaf_sprig"), f("14_green_leaves_3"),
+    f("08_white_magnolia"), f("02_burgundy_rose"), f("06_pink_rose"), f("10_white_lace_flower"),
+  ],
+  ivory: [
+    f("13_green_leaves_2"), f("15_green_leaf_sprig"), f("14_green_leaves_3"),
+    f("07_white_rose"), f("01_white_dog_rose"), f("10_white_lace_flower"), f("11_rosebud_sprig"),
+  ],
+};
 
 export default function FloralCorner({
   position = "top-left",
@@ -80,7 +104,9 @@ export default function FloralCorner({
   className = "",
   opacity = 1,
   animate = true,
+  variant = "burgundy",
 }: Props) {
+  const srcs = VARIANTS[variant];
   return (
     <div
       aria-hidden="true"
@@ -90,7 +116,7 @@ export default function FloralCorner({
       style={{ width: size, height: size, opacity, transformOrigin: TRANSFORM_ORIGIN[position] }}
     >
       <div className="relative w-full h-full" style={{ transform: MIRROR[position] }}>
-        {LAYERS.map((l, i) => (
+        {SLOTS.map((l, i) => (
           <div
             key={i}
             style={{
@@ -107,7 +133,7 @@ export default function FloralCorner({
               style={{ position: "relative", width: "100%", height: "100%", animationDelay: `${l.delay}s` }}
             >
               <Image
-                src={l.src}
+                src={srcs[i]}
                 alt=""
                 fill
                 sizes="200px"

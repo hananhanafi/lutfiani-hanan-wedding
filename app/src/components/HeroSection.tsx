@@ -64,10 +64,10 @@ export default function HeroSection({ config }: Props) {
       <FloatingPetals count={40} />
 
       {/* Vintage floral corners framing the hero */}
-      <FloralCorner position="top-left" size={180} className="drop-shadow-xl sm:!w-[240px] sm:!h-[240px]" />
-      <FloralCorner position="top-right" size={180} className="drop-shadow-xl sm:!w-[240px] sm:!h-[240px]" />
-      <FloralCorner position="bottom-left" size={150} opacity={0.9} className="hidden sm:block drop-shadow-xl" />
-      <FloralCorner position="bottom-right" size={150} opacity={0.9} className="hidden sm:block drop-shadow-xl" />
+      <FloralCorner variant="burgundy" position="top-left" size={180} className="drop-shadow-xl sm:!w-[240px] sm:!h-[240px]" />
+      <FloralCorner variant="ivory" position="top-right" size={180} className="drop-shadow-xl sm:!w-[240px] sm:!h-[240px]" />
+      <FloralCorner variant="blush" position="bottom-left" size={150} opacity={0.9} className="hidden sm:block drop-shadow-xl" />
+      <FloralCorner variant="mixed" position="bottom-right" size={150} opacity={0.9} className="hidden sm:block drop-shadow-xl" />
 
       <div className="relative z-10 text-white">
         <h1 className="text-5xl sm:text-7xl font-[family-name:var(--font-wedding)] leading-tight mb-6">

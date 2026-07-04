@@ -36,8 +36,8 @@ export default function CoupleProfile({
       <div className="absolute inset-0" />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center glass-bg rounded-2xl px-8 py-12 overflow-hidden">
-        <FloralCorner position="top-left" size={130} opacity={0.85} />
-        <FloralCorner position="bottom-right" size={130} opacity={0.85} />
+        <FloralCorner variant="blush" position="top-left" size={130} opacity={0.85} />
+        <FloralCorner variant="burgundy" position="bottom-right" size={130} opacity={0.85} />
         <h2 className="relative z-10 text-3xl sm:text-4xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-4">
           {t("couple_eyebrow")}
         </h2>

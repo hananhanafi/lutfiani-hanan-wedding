@@ -16,8 +16,8 @@ export default function EventSchedule({ schedule }: Props) {
   return (
     <section id="schedule" className="py-16 px-4 ">
       <div className="relative max-w-2xl mx-auto text-center glass-bg rounded-2xl px-8 py-10 overflow-hidden">
-        <FloralCorner position="top-right" size={120} opacity={0.8} />
-        <FloralCorner position="bottom-left" size={120} opacity={0.8} />
+        <FloralCorner variant="ivory" position="top-right" size={120} opacity={0.8} />
+        <FloralCorner variant="blush" position="bottom-left" size={120} opacity={0.8} />
         <p className="relative z-10 text-sm uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
           {t("schedule_eyebrow")}
         </p>
