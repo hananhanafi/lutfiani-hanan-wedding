@@ -104,35 +104,36 @@ h1, h2, h3, h4 {
   .typewriter-caret { animation: none; }
 }
 
-/* ── Floral ornament motion (gentle breeze) ────────────────── */
+/* ── Floral ornament motion (breeze) ───────────────────────── */
 @keyframes floral-sway {
-  0%, 100% { transform: rotate(-1.6deg); }
-  50%      { transform: rotate(1.6deg); }
+  0%, 100% { transform: rotate(-5deg); }
+  50%      { transform: rotate(5deg); }
 }
 @keyframes floral-breathe {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50%      { transform: scale(1.06) rotate(2deg); }
+  0%   { transform: scale(0.94) rotate(-4deg); }
+  50%  { transform: scale(1.12) rotate(5deg); }
+  100% { transform: scale(0.94) rotate(-4deg); }
 }
 @keyframes floral-flutter {
-  0%, 100% { transform: rotate(-3.5deg); }
-  50%      { transform: rotate(3.5deg); }
+  0%, 100% { transform: rotate(-11deg); }
+  50%      { transform: rotate(11deg); }
 }
 
 /* whole spray sways from its anchored corner */
 .floral-anim {
-  animation: floral-sway 7s ease-in-out infinite;
+  animation: floral-sway 4s ease-in-out infinite;
 }
-/* individual blossoms softly breathe around their own centre */
+/* individual blossoms breathe around their own centre */
 .floral-bloom {
   transform-box: fill-box;
   transform-origin: center;
-  animation: floral-breathe 4.5s ease-in-out infinite;
+  animation: floral-breathe 3s ease-in-out infinite;
 }
 /* leaves flutter from where they meet the stem */
 .floral-leaf {
   transform-box: fill-box;
   transform-origin: bottom center;
-  animation: floral-flutter 5s ease-in-out infinite;
+  animation: floral-flutter 2.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
