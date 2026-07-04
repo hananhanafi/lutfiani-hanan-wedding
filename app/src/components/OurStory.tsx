@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import ParallaxLayer from "@/components/ParallaxLayer";
 import { useLanguage } from "@/components/LanguageProvider";
+import Typewriter from "@/components/Typewriter";
 
 interface Props {
   storyText: string;
@@ -12,6 +14,14 @@ interface Props {
 
 export default function OurStory({ storyText, storyTextEn, partnerOneName, partnerTwoName }: Props) {
   const { t, lang } = useLanguage();
+  // Type each paragraph one after another; the first starts when scrolled in view.
+  const [active, setActive] = useState(0);
+
+  // Re-type from the top when the language (and thus the text) switches.
+  useEffect(() => {
+    setActive(0);
+  }, [lang]);
+
   if (!storyText) return null;
 
   const activeText = (lang === "en" && storyTextEn) ? storyTextEn : storyText;
@@ -31,7 +41,22 @@ export default function OurStory({ storyText, storyTextEn, partnerOneName, partn
 
         <div className="mt-2 space-y-5 text-[#3a3028] leading-relaxed font-[family-name:var(--font-lato)] text-base sm:text-lg text-left">
           {paragraphs.map((para, i) => (
-            <p key={i}>{para}</p>
+            <p key={`${lang}-${i}`}>
+              {i < active ? (
+                para
+              ) : i === active ? (
+                <Typewriter
+                  text={para}
+                  startOnView
+                  speed={18}
+                  keepCaret={i === paragraphs.length - 1 ? false : true}
+                  onDone={() => setActive((a) => a + 1)}
+                />
+              ) : (
+                // Reserve nothing yet; paragraph types in when its turn comes.
+                <span className="invisible">{para}</span>
+              )}
+            </p>
           ))}
         </div>
       </div>

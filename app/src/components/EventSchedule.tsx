@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/components/LanguageProvider";
+import Typewriter from "@/components/Typewriter";
 import type { ScheduleItem } from "@/types";
 
 interface Props {
@@ -31,7 +32,14 @@ export default function EventSchedule({ schedule }: Props) {
                 {item.time}
               </p>
               <p className="text-lg font-[family-name:var(--font-wedding)] text-[#3a3028]">
-                {(lang === "en" && item.title_en) ? item.title_en : item.title}
+                <Typewriter
+                  key={`${lang}-${i}`}
+                  text={(lang === "en" && item.title_en) ? item.title_en : item.title}
+                  startOnView
+                  startDelay={i * 300}
+                  speed={45}
+                  keepCaret={false}
+                />
               </p>
               {(item.description || item.description_en) && (
                 <p className="text-sm text-[#9a7d5a] mt-1 font-[family-name:var(--font-lato)]">

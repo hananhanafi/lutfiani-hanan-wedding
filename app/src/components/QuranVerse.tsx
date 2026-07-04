@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/components/LanguageProvider";
+import Typewriter from "@/components/Typewriter";
 
 export default function QuranVerse() {
   const { lang } = useLanguage();
@@ -34,7 +35,15 @@ export default function QuranVerse() {
 
         {/* Translation */}
         <p className="text-sm sm:text-base text-[#9a7d5a] leading-relaxed italic max-w-xl mx-auto">
-          &ldquo;{translation}&rdquo;
+          &ldquo;
+          <Typewriter
+            key={translation}
+            text={translation}
+            startOnView
+            speed={22}
+            keepCaret={false}
+          />
+          &rdquo;
         </p>
 
         {/* Citation */}
