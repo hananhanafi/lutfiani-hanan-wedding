@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { SiteConfig } from "@/types";
 import FloatingPetals from "@/components/FloatingPetals";
 import { useLanguage } from "@/components/LanguageProvider";
+import Typewriter from "@/components/Typewriter";
 
 interface Props {
   config: SiteConfig;
@@ -21,6 +22,7 @@ function formatWeddingDate(dateStr: string) {
 export default function HeroSection({ config }: Props) {
   const { t } = useLanguage();
   const bgRef = useRef<HTMLDivElement>(null);
+  const [firstDone, setFirstDone] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -62,9 +64,33 @@ export default function HeroSection({ config }: Props) {
 
       <div className="relative z-10 text-white">
         <h1 className="text-5xl sm:text-7xl font-[family-name:var(--font-wedding)] leading-tight mb-6">
-          <span className="shimmer-text">{config.partner_one_name}</span>
-          <span className="block text-3xl sm:text-4xl my-3 font-light opacity-80">&amp;</span>
-          <span className="shimmer-text">{config.partner_two_name}</span>
+          <Typewriter
+            text={config.partner_one_name}
+            startDelay={500}
+            className="shimmer-text"
+            keepCaret={false}
+            onDone={() => setFirstDone(true)}
+          />
+          <span
+            className={`block text-3xl sm:text-4xl my-3 font-light opacity-80 transition-opacity duration-700 ${
+              firstDone ? "opacity-80" : "opacity-0"
+            }`}
+          >
+            &amp;
+          </span>
+          {/* Reserve the line height so nothing jumps when the name types in */}
+          <span className="block min-h-[1.15em]">
+            {firstDone ? (
+              <Typewriter
+                text={config.partner_two_name}
+                startDelay={250}
+                className="shimmer-text"
+                keepCaret={false}
+              />
+            ) : (
+              <span className="invisible shimmer-text">{config.partner_two_name}</span>
+            )}
+          </span>
         </h1>
 
         <div className="w-16 h-px bg-white/60 mx-auto mb-6" />
