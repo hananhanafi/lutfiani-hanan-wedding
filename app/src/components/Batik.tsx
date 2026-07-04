@@ -111,6 +111,45 @@ export function BatikPattern({
   );
 }
 
+/**
+ * Scalloped edge — cream "domes" that rise into the image above, with a thin
+ * gold batik trim tracing the scallops. Place at the bottom of a photo section
+ * (fill should match the section that follows).
+ */
+export function ScallopEdge({
+  fill = "var(--color-cream-dark)",
+  trim = "#c9a96e",
+  height = 44,
+  count = 30,
+  className = "",
+}: {
+  fill?: string;
+  trim?: string;
+  height?: number;
+  count?: number;
+  className?: string;
+}) {
+  const seg = 50;
+  const w = count * seg;
+  const vbH = 64;
+  const top = 48; // valley baseline; crests rise toward y≈12
+  const scallops = ` q 25 -72 50 0`.repeat(count);
+  const fillPath = `M0 ${vbH} V${top}${scallops} V${vbH} Z`;
+  const trimPath = `M0 ${top}${scallops}`;
+  return (
+    <div
+      aria-hidden="true"
+      className={`w-full overflow-hidden leading-none pointer-events-none ${className}`}
+      style={{ height }}
+    >
+      <svg width="100%" height="100%" viewBox={`0 0 ${w} ${vbH}`} preserveAspectRatio="none">
+        <path d={fillPath} fill={fill} />
+        <path d={trimPath} fill="none" stroke={trim} strokeWidth="1.4" opacity="0.5" />
+      </svg>
+    </div>
+  );
+}
+
 export function BatikBand({
   motif = "truntum",
   color = "#c9a96e",
