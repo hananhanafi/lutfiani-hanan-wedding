@@ -23,7 +23,7 @@ export default function QuranVerse() {
 
       <div className="relative z-10 max-w-2xl w-full text-center space-y-6">
         {/* Gunungan (kayon) ornament */}
-        <Gunungan size={52} className="mx-auto" />
+        <Gunungan size={64} className="mx-auto" />
 
         {/* Decorative floral divider */}
         <div className="flex items-center justify-center gap-3 text-[var(--color-gold)] opacity-70">

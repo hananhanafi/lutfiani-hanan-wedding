@@ -25,7 +25,7 @@ export default function Footer({ partnerOneName, partnerTwoName, weddingDate }: 
         {/* Decorative divider with gunungan ornament */}
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="h-px w-12 bg-[var(--color-gold)]" />
-          <Gunungan size={34} />
+          <Gunungan size={40} />
           <div className="h-px w-12 bg-[var(--color-gold)]" />
         </div>
 
