@@ -51,5 +51,7 @@ export async function POST(req: NextRequest) {
 
   const phone = formatPhoneForWA(guest.phone_number);
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-  return NextResponse.json({ url, guestName: guest.name, phone });
+  // `text` + `phone` let the client build a device-specific link (whatsapp:// on
+  // mobile, web.whatsapp.com on desktop) that skips the wa.me landing page.
+  return NextResponse.json({ url, text: message, guestName: guest.name, phone });
 }

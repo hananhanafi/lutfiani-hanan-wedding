@@ -64,9 +64,14 @@ export default function KirimPage({
     if (!waManual) return;
     const g = waManual.queue[waManual.index];
     if (!g) return;
-    // Open the tab within the click gesture so popup blockers allow it,
-    // then point it at the wa.me URL once we've built the message.
-    const win = window.open("about:blank", "_blank");
+    // Mobile → open the WhatsApp app directly via the whatsapp:// deep link
+    // (skips the wa.me "Continue to Chat" landing page). Desktop → web.whatsapp.com
+    // /send opens the chat directly when logged in. wa.me is the fallback.
+    const isMobile = /android|iphone|ipad|ipod|iemobile|opera mini|mobile/i.test(
+      typeof navigator !== "undefined" ? navigator.userAgent : ""
+    );
+    // Pre-open a tab within the click gesture (desktop only) so popup blockers allow it.
+    const win = isMobile ? null : window.open("about:blank", "_blank");
     try {
       const res = await fetch("/api/admin/send-whatsapp/wa-link", {
         method: "POST",
@@ -74,7 +79,18 @@ export default function KirimPage({
         body: JSON.stringify({ guestId: g.id, messageType }),
       });
       const data = await res.json();
-      if (res.ok && data.url) {
+      if (res.ok && data.phone && data.text != null) {
+        const enc = encodeURIComponent(data.text);
+        if (isMobile) {
+          // Same-tab navigation to the app scheme; the OS switches to WhatsApp
+          // and this admin page stays put underneath.
+          window.location.href = `whatsapp://send?phone=${data.phone}&text=${enc}`;
+        } else {
+          const url = `https://web.whatsapp.com/send?phone=${data.phone}&text=${enc}`;
+          if (win) win.location.href = url; else window.open(url, "_blank");
+        }
+      } else if (res.ok && data.url) {
+        // Fallback to the wa.me landing page
         if (win) win.location.href = data.url; else window.open(data.url, "_blank");
       } else {
         win?.close();
