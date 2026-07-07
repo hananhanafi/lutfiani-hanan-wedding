@@ -226,7 +226,9 @@ export default function KirimPage({
     g.whatsapp_status === "read";
 
   const allGuests = guests.filter((g) => g.phone_number?.trim());
-  const filtered = allGuests.filter((g) => {
+  // Scope = search + group filter (but NOT the sent/unsent tab). Tab counters
+  // are derived from this so they reflect the active group filter.
+  const scoped = allGuests.filter((g) => {
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
@@ -237,14 +239,17 @@ export default function KirimPage({
     const matchGroup =
       !groupFilter ||
       (groupFilter === "__none__" ? !g.group_id : g.group_id === groupFilter);
-    if (!matchGroup) return false;
+    return matchGroup;
+  });
+  const filtered = scoped.filter((g) => {
     if (tab === "unsent") return !isWaSent(g);
     if (tab === "sent") return isWaSent(g);
     return true;
   });
 
-  const unsentCount = allGuests.filter((g) => !isWaSent(g)).length;
-  const sentCount = allGuests.filter((g) => isWaSent(g)).length;
+  const allCount = scoped.length;
+  const unsentCount = scoped.filter((g) => !isWaSent(g)).length;
+  const sentCount = scoped.filter((g) => isWaSent(g)).length;
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
@@ -582,7 +587,7 @@ export default function KirimPage({
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
         {(
           [
-            ["all", `Semua (${allGuests.length})`],
+            ["all", `Semua (${allCount})`],
             ["unsent", `Belum (${unsentCount})`],
             ["sent", `Terkirim (${sentCount})`],
           ] as const
