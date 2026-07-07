@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
 
     try {
       let messageId: string;
+      let waSentAt: string | undefined;
 
       if (imageUrl) {
         // Send image with the invitation text as caption
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
         // Text-only message
         const result = await sendWhatsAppMessage({ to: phone, message, sessionId });
         messageId = result.messageId;
+        waSentAt = result.sentAt;
       }
 
       // Send QR code as second message
@@ -148,7 +150,7 @@ export async function POST(req: NextRequest) {
       }
 
       const senderNumber = senderLabel;
-      const sentAt = new Date().toISOString();
+      const sentAt = waSentAt ?? new Date().toISOString();
       const { error: dbError } = await supabaseAdmin
         .from("guests")
         .update({

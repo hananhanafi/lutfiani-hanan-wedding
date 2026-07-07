@@ -27,7 +27,7 @@ export function formatPhoneForWA(raw: string): string {
  * Send a WhatsApp message via self-hosted Baileys service.
  * Falls back to Fonnte if WA_SERVICE_URL is not configured.
  */
-export async function sendWhatsAppMessage({ to, message, sessionId }: SendMessageParams): Promise<{ messageId: string }> {
+export async function sendWhatsAppMessage({ to, message, sessionId }: SendMessageParams): Promise<{ messageId: string; sentAt?: string }> {
   const serviceUrl = process.env.WA_SERVICE_URL;
 
   if (serviceUrl) {
@@ -39,9 +39,24 @@ export async function sendWhatsAppMessage({ to, message, sessionId }: SendMessag
 }
 
 /**
+ * Parse Baileys' messageTimestamp (Unix seconds — a number, numeric string, or
+ * protobuf Long `{low, high}`) into an ISO string. Returns undefined if absent.
+ */
+function parseWaTimestamp(ts: unknown): string | undefined {
+  let secs: number | undefined;
+  if (typeof ts === "number") secs = ts;
+  else if (typeof ts === "string" && ts.trim() && !isNaN(Number(ts))) secs = Number(ts);
+  else if (ts && typeof ts === "object" && "low" in ts && typeof (ts as { low: unknown }).low === "number") {
+    secs = (ts as { low: number }).low;
+  }
+  if (!secs || secs <= 0) return undefined;
+  return new Date(secs * 1000).toISOString();
+}
+
+/**
  * Send via self-hosted Baileys WhatsApp service.
  */
-async function sendViaSelfHosted({ to, message, sessionId, serviceUrl }: SendMessageParams & { serviceUrl: string }): Promise<{ messageId: string }> {
+async function sendViaSelfHosted({ to, message, sessionId, serviceUrl }: SendMessageParams & { serviceUrl: string }): Promise<{ messageId: string; sentAt?: string }> {
   const apiKey = process.env.WA_SERVICE_API_KEY ?? "";
   const session = sessionId ?? "default";
   const url = `${serviceUrl.replace(/\/$/, "")}/sessions/${session}/send`;
@@ -61,7 +76,7 @@ async function sendViaSelfHosted({ to, message, sessionId, serviceUrl }: SendMes
     throw new Error(`WA Service error: ${data.error ?? JSON.stringify(data)}`);
   }
 
-  return { messageId: String(data.messageId ?? "sent") };
+  return { messageId: String(data.messageId ?? "sent"), sentAt: parseWaTimestamp(data.timestamp) };
 }
 
 /**
