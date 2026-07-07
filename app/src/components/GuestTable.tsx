@@ -1412,7 +1412,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
 
   const handleExportSelected = () => {
     const toExport = guests.filter((g) => selectedIds.has(g.id));
-    const headers = ["Nama", "VIP", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in", "Email Terkirim", "WA Terkirim"];
+    const headers = ["Nama", "VIP", "Email", "Telepon", "Hadir", "Plus Satu", "Grup", "Pihak", "Pesan", "Dikirim Pada", "Check-in", "Waktu Check-in", "Email Terkirim", "WA Terkirim", "WA Dikirim Pada"];
     const rows = toExport.map((g) => [
       g.name,
       g.is_vip ? "Ya" : "Tidak",
@@ -1428,6 +1428,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
       g.checked_in_at ?? "",
       g.email_sent ? "Ya" : "Tidak",
       g.whatsapp_status ?? "Belum",
+      g.whatsapp_sent_at ?? "",
     ]);
     const csv = [headers, ...rows].map((row) => row.map((v) => `"${String(v)}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -1510,7 +1511,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
           onSentAll={(results) => {
             setGuests((prev) => prev.map((g) => {
               const r = results.find((r) => r.guestId === g.id);
-              if (r?.success) return { ...g, whatsapp_status: "sent" as const, whatsapp_sender_number: r.senderNumber ?? null, whatsapp_sent_by: r.sentBy ?? null };
+              if (r?.success) return { ...g, whatsapp_status: "sent" as const, whatsapp_sender_number: r.senderNumber ?? null, whatsapp_sent_by: r.sentBy ?? null, whatsapp_sent_at: new Date().toISOString() };
               if (r && !r.success) return { ...g, whatsapp_status: "failed" as const };
               return g;
             }));
@@ -1778,6 +1779,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                 {g.whatsapp_status && g.whatsapp_status !== "failed" && <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">💬 WA Terkirim</span>}
                 {g.whatsapp_status === "failed" && <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs">💬 Gagal</span>}
                 {g.whatsapp_sender_number && <span className="text-[10px] text-gray-400 w-full">📱 {g.whatsapp_sender_number}</span>}
+                {g.whatsapp_sent_at && <span className="text-[10px] text-gray-400 w-full">🕐 Dikirim {formatDate(g.whatsapp_sent_at)}</span>}
               </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-gray-400">{formatDate(g.submitted_at)}</span>

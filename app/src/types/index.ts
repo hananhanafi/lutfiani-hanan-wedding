@@ -34,6 +34,7 @@ export interface Guest {
   whatsapp_message_id?: string;
   whatsapp_sent_by?: string | null;
   whatsapp_sender_number?: string | null;
+  whatsapp_sent_at?: string | null;
   is_vip: boolean;
   created_by?: string | null;
   rsvp_submitted_at?: string | null;

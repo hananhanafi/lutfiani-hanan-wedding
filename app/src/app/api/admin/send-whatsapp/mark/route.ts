@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabaseAdmin
     .from("guests")
-    .update({ whatsapp_status: "sent" })
+    .update({ whatsapp_status: "sent", whatsapp_sent_at: new Date().toISOString() })
     .eq("id", guestId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

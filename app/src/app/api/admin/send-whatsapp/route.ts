@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
       }
 
       const senderNumber = senderLabel;
+      const sentAt = new Date().toISOString();
       const { error: dbError } = await supabaseAdmin
         .from("guests")
         .update({
@@ -155,6 +156,7 @@ export async function POST(req: NextRequest) {
           whatsapp_message_id: messageId,
           whatsapp_sent_by: sentBy,
           whatsapp_sender_number: senderNumber,
+          whatsapp_sent_at: sentAt,
         })
         .eq("id", guest.id);
 
@@ -167,6 +169,7 @@ export async function POST(req: NextRequest) {
             whatsapp_status: "sent",
             whatsapp_message_id: messageId,
             whatsapp_sender_number: senderNumber,
+            whatsapp_sent_at: sentAt,
           })
           .eq("id", guest.id);
         if (retryError) {
