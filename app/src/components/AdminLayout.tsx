@@ -15,6 +15,7 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/whatsapp", label: "WhatsApp", icon: "💬", roles: ["admin", "sender"] },
   { href: "/admin/whatsapp-contacts", label: "Kontak WA", icon: "📇", roles: ["admin", "sender"] },
   { href: "/admin/kirim", label: "Kirim", icon: "📤", roles: ["admin", "sender"] },
+  { href: "/admin/test-invitation", label: "Coba Kirim", icon: "🧪", roles: ["admin"] },
   { href: "/admin/content", label: "Konten", icon: "✏️", roles: ["admin"] },
   { href: "/admin/wishes", label: "Harapan", icon: "💌", roles: ["admin"] },
   { href: "/admin/staff", label: "Staf", icon: "👤", roles: ["admin"] },
