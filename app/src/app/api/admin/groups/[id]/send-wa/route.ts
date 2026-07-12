@@ -39,11 +39,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .maybeSingle();
   if (!group?.token) return NextResponse.json({ error: "Grup tidak ditemukan." }, { status: 404 });
 
-  const { data: members } = await supabaseAdmin.from("guests").select("plus_one_name").eq("group_id", id);
-  const autoPax = (members ?? []).reduce((s, m) => s + 1 + (m.plus_one_name?.trim() ? 1 : 0), 0);
-  const expected = group.expected_pax ?? autoPax;
-
   const coupleName = process.env.NEXT_PUBLIC_COUPLE_NAME ?? "Kami";
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const invitationLink = `${appUrl}/?token=${group.token}`;
   const passUrl = buildPassUrl(group.token as string);
   const heart = "\u{1F90D}";
   const pray = "\u{1F64F}";
@@ -51,7 +49,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const message =
     `Assalamualaikum Warahmatullahi Wabarakatuh ${heart}\n\n` +
     `Tanpa mengurangi rasa hormat, perkenankan kami mengundang anggota grup *${group.name}* untuk hadir dalam acara pernikahan ${coupleName}.\n\n` +
-    `Berikut undangan grup beserta QR masuk (berlaku untuk ${expected} orang):\n${passUrl}\n\n` +
+    `Berikut link undangan kami, untuk info lengkap acara bisa dikunjungi di:\n${invitationLink}\n\n` +
+    `Beserta QR masuk grup:\n${passUrl}\n\n` +
     `Cukup tunjukkan satu QR ini saat tiba di venue ${pray}\n\n` +
     `Mohon maaf karena undangan ini kami sampaikan dalam bentuk pesan digital. Terima kasih atas perhatian, doa, dan kehadirannya.\n\n` +
     `Wassalamualaikum Warahmatullahi Wabarakatuh\n\nHormat Kami,\n${coupleName}`;
