@@ -36,16 +36,9 @@ export default async function PassPage({ searchParams }: Props) {
       .maybeSingle();
 
     if (group) {
-      const { data: members } = await supabaseAdmin
-        .from("guests")
-        .select("name, plus_one_name")
-        .eq("group_id", group.id)
-        .order("name", { ascending: true });
-      const autoPax = (members ?? []).reduce((s, m) => s + 1 + (m.plus_one_name?.trim() ? 1 : 0), 0);
-      const expected = group.expected_pax ?? autoPax;
       const url = buildPassUrl(token);
       const qrDataUrl = await generatePassQrDataUrl(url);
-      return <GroupPass name={group.name} expected={expected} qrDataUrl={qrDataUrl} />;
+      return <GroupPass name={group.name} qrDataUrl={qrDataUrl} />;
     }
 
     return <ErrorScreen message="QR code ini tidak valid." />;
@@ -111,11 +104,9 @@ export default async function PassPage({ searchParams }: Props) {
 
 function GroupPass({
   name,
-  expected,
   qrDataUrl,
 }: {
   name: string;
-  expected: number;
   qrDataUrl: string;
 }) {
   return (
@@ -123,8 +114,7 @@ function GroupPass({
       <div className="max-w-sm w-full text-center">
         <div className="text-5xl mb-4">👨‍👩‍👧‍👦</div>
         <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-1 font-[family-name:var(--font-lato)]">Undangan Grup</p>
-        <h1 className="text-3xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-2">{name}</h1>
-        <p className="text-[#9a7d5a] mb-6 font-[family-name:var(--font-lato)]">Untuk {expected} orang</p>
+        <h1 className="text-3xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-6">{name}</h1>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm mb-6">
           <p className="text-xs uppercase tracking-widest text-[var(--color-gold)] mb-3 font-[family-name:var(--font-lato)]">
