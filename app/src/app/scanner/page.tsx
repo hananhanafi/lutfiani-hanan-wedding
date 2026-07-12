@@ -40,6 +40,7 @@ export default function ScannerPage() {
   type PendingGroup = { token: string; name: string; expected_pax: number; arrived_pax: number; members: { name: string; plus_one_name?: string | null }[] };
   const [pendingGroup, setPendingGroup] = useState<PendingGroup | null>(null);
   const [groupPax, setGroupPax] = useState(1);
+  const [groupExpected, setGroupExpected] = useState(1);
   const [confirmingGroup, setConfirmingGroup] = useState(false);
 
   // Manual lookup state
@@ -133,6 +134,7 @@ export default function ScannerPage() {
     if (data.preview && data.type === "group") {
       // Group QR → pax confirmation modal
       setPendingGroup(data.group);
+      setGroupExpected(Math.max(1, data.group.expected_pax ?? 1));
       setGroupPax(Math.max(1, (data.group.expected_pax ?? 1) - (data.group.arrived_pax ?? 0)));
     } else if (data.preview) {
       // Individual guest confirmation modal
@@ -154,7 +156,7 @@ export default function ScannerPage() {
     const res = await fetch("/api/scanner", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: pendingGroup.token, pin, pax: groupPax }),
+      body: JSON.stringify({ token: pendingGroup.token, pin, pax: groupPax, expectedPax: groupExpected }),
     });
     const data = await res.json();
     setPendingGroup(null);
@@ -401,11 +403,36 @@ export default function ScannerPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border border-[#e8ddd0]">
             <div className="text-center mb-4">
               <div className="text-4xl mb-3">👨‍👩‍👧‍👦</div>
-              <h2 className="text-xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-1">{pendingGroup.name}</h2>
-              <p className="text-[#9a7d5a] text-sm font-[family-name:var(--font-lato)]">
-                Diharapkan {pendingGroup.expected_pax} orang
-                {pendingGroup.arrived_pax > 0 && <> • sudah hadir {pendingGroup.arrived_pax}</>}
-              </p>
+              <h2 className="text-xl font-[family-name:var(--font-wedding)] text-[#3a3028] mb-2">{pendingGroup.name}</h2>
+              <div className="flex items-center justify-center gap-2 text-[#9a7d5a] text-sm font-[family-name:var(--font-lato)]">
+                <span>Diharapkan</span>
+                <button
+                  type="button"
+                  onClick={() => setGroupExpected((n) => Math.max(1, n - 1))}
+                  className="w-7 h-7 rounded-full border border-[#e8ddd0] text-[#9a7d5a] leading-none hover:bg-[#fffbf5]"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={groupExpected}
+                  onChange={(e) => setGroupExpected(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-14 text-center font-semibold border border-[#e8ddd0] rounded-lg py-1 text-[#3a3028] focus:outline-none focus:border-[var(--color-gold)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setGroupExpected((n) => n + 1)}
+                  className="w-7 h-7 rounded-full border border-[#e8ddd0] text-[#9a7d5a] leading-none hover:bg-[#fffbf5]"
+                >
+                  +
+                </button>
+                <span>orang</span>
+              </div>
+              {pendingGroup.arrived_pax > 0 && (
+                <p className="text-[#9a7d5a] text-xs mt-1 font-[family-name:var(--font-lato)]">Sudah hadir {pendingGroup.arrived_pax}</p>
+              )}
             </div>
 
             {pendingGroup.members.length > 0 && (

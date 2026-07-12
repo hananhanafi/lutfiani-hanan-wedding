@@ -4,7 +4,7 @@ import { verifyScannerPin } from "@/lib/scannerAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, pin, preview, pax } = await req.json();
+    const { token, pin, preview, pax, expectedPax } = await req.json();
 
     // Validate scanner PIN
     if (!verifyScannerPin(pin)) {
@@ -79,9 +79,20 @@ export async function POST(req: NextRequest) {
       const now = new Date().toISOString();
       const newArrived = (group.arrived_pax ?? 0) + addPax;
 
+      // Optionally override the group's expected headcount from the scanner
+      const overrideExpected = Number.isFinite(Number(expectedPax)) && Number(expectedPax) > 0
+        ? Math.floor(Number(expectedPax))
+        : null;
+      const finalExpected = overrideExpected ?? expected;
+
       await supabaseAdmin
         .from("guest_groups")
-        .update({ arrived_pax: newArrived, last_arrived_at: now, first_arrived_at: group.first_arrived_at ?? now })
+        .update({
+          arrived_pax: newArrived,
+          last_arrived_at: now,
+          first_arrived_at: group.first_arrived_at ?? now,
+          ...(overrideExpected !== null ? { expected_pax: overrideExpected } : {}),
+        })
         .eq("id", group.id);
 
       await supabaseAdmin.from("group_checkin_events").insert({ group_id: group.id, pax: addPax });
@@ -95,7 +106,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         type: "group",
-        group: { name: group.name, arrived_pax: newArrived, expected_pax: expected },
+        group: { name: group.name, arrived_pax: newArrived, expected_pax: finalExpected },
       });
     }
 
