@@ -16,12 +16,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Look up token in guests first, then rsvp_submissions
-    let guest: { id: string; name: string; attending: boolean | null; plus_one_name: string | null; checked_in: boolean; checked_in_at: string | null; rsvp_submission_id?: string | null } | null = null;
+    let guest: { id: string; name: string; attending: boolean | null; plus_one_name: string | null; checked_in: boolean; checked_in_at: string | null; rsvp_submission_id?: string | null; allow_multi_checkin?: boolean } | null = null;
     let source: "guests" | "rsvp_submissions" = "guests";
 
     const { data: adminGuest } = await supabaseAdmin
       .from("guests")
-      .select("id, name, attending, plus_one_name, checked_in, checked_in_at, rsvp_submission_id")
+      .select("id, name, attending, plus_one_name, checked_in, checked_in_at, rsvp_submission_id, allow_multi_checkin")
       .eq("token", token)
       .maybeSingle();
 
@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (guest.checked_in) {
+    // Block re-check-in unless this guest's QR is allowed to be scanned repeatedly
+    if (guest.checked_in && !guest.allow_multi_checkin) {
       return NextResponse.json({
         warning: "already_checked_in",
         guest: {

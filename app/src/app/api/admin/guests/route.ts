@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, email, phone_number, attending, plus_one_name, group_name, group_id, side, message, is_vip } = body;
+  const { name, email, phone_number, attending, plus_one_name, group_name, group_id, side, message, is_vip, allow_multi_checkin } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       side: side?.trim() || null,
       message: message?.trim() || null,
       is_vip: is_vip === true,
+      allow_multi_checkin: allow_multi_checkin === true,
       token: uuidv4(),
       created_by: typeof token.staffId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.staffId) ? token.staffId : null,
     })

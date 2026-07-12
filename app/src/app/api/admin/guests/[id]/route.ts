@@ -23,7 +23,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { name, email, phone_number, attending, plus_one_name, group_name, group_id, side, message, checked_in, email_sent, whatsapp_status, is_vip } = body;
+  const { name, email, phone_number, attending, plus_one_name, group_name, group_id, side, message, checked_in, email_sent, whatsapp_status, is_vip, allow_multi_checkin } = body;
 
   const updateData: Record<string, unknown> = {};
   if (name !== undefined) updateData.name = name?.trim() || null;
@@ -46,6 +46,7 @@ export async function PATCH(
   if (email_sent !== undefined) updateData.email_sent = email_sent;
   if (whatsapp_status !== undefined) updateData.whatsapp_status = whatsapp_status;
   if (is_vip !== undefined) updateData.is_vip = is_vip === true;
+  if (allow_multi_checkin !== undefined) updateData.allow_multi_checkin = allow_multi_checkin === true;
 
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: "No fields to update." }, { status: 400 });

@@ -52,16 +52,18 @@ export async function PATCH(req: NextRequest) {
     }
 
     const table = source === "rsvp_submissions" ? "rsvp_submissions" : "guests";
+    // Only the guests table carries the multi-checkin flag.
+    const columns = table === "guests" ? "checked_in, name, plus_one_name, allow_multi_checkin" : "checked_in, name, plus_one_name";
 
     const { data: guest } = await supabaseAdmin
       .from(table)
-      .select("checked_in, name, plus_one_name")
+      .select(columns)
       .eq("id", guestId)
-      .single();
+      .single<{ checked_in: boolean; name: string; plus_one_name: string | null; allow_multi_checkin?: boolean }>();
 
     if (!guest) return NextResponse.json({ error: "Guest not found." }, { status: 404 });
 
-    if (guest.checked_in) {
+    if (guest.checked_in && !guest.allow_multi_checkin) {
       return NextResponse.json({ warning: "already_checked_in", guest });
     }
 

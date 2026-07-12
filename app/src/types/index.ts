@@ -36,6 +36,7 @@ export interface Guest {
   whatsapp_sender_number?: string | null;
   whatsapp_sent_at?: string | null;
   is_vip: boolean;
+  allow_multi_checkin?: boolean;
   created_by?: string | null;
   rsvp_submitted_at?: string | null;
   rsvp_submission_id?: string | null;

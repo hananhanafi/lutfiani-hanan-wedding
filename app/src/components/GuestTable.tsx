@@ -13,6 +13,7 @@ const EMPTY_FORM = {
   side: "" as "" | "bride" | "groom",
   message: "",
   is_vip: false,
+  allow_multi_checkin: false,
 };
 
 /** Dropdown sourced from the guest-group master data (/api/admin/groups). */
@@ -196,6 +197,20 @@ function AddGuestModal({ onClose, onAdded }: { onClose: () => void; onAdded: (gu
             </label>
           </div>
 
+          {/* Allow multiple check-ins */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.allow_multi_checkin}
+                onChange={(e) => setForm((prev) => ({ ...prev, allow_multi_checkin: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
+              />
+              <span className="text-sm font-medium text-gray-700">QR bisa dipindai berkali-kali</span>
+              <span className="text-xs text-gray-400">(tanpa batas check-in)</span>
+            </label>
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex items-center justify-end gap-3 pt-1">
@@ -231,6 +246,7 @@ export function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; on
     side: (guest.side ?? "") as "" | "bride" | "groom",
     message: guest.message ?? "",
     is_vip: guest.is_vip ?? false,
+    allow_multi_checkin: guest.allow_multi_checkin ?? false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -344,6 +360,20 @@ export function EditGuestModal({ guest, onClose, onUpdated }: { guest: Guest; on
               />
               <span className="text-sm font-medium text-gray-700">Tamu VIP</span>
               <span className="text-xs text-gray-400">(undangan khusus)</span>
+            </label>
+          </div>
+
+          {/* Allow multiple check-ins */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.allow_multi_checkin}
+                onChange={(e) => setForm((prev) => ({ ...prev, allow_multi_checkin: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-gold)]"
+              />
+              <span className="text-sm font-medium text-gray-700">QR bisa dipindai berkali-kali</span>
+              <span className="text-xs text-gray-400">(tanpa batas check-in)</span>
             </label>
           </div>
 
@@ -1765,6 +1795,7 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   </label>
                   <span className="font-medium text-gray-800">{g.name}</span>
                   {g.is_vip && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">⭐ VIP</span>}
+                  {g.allow_multi_checkin && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium whitespace-nowrap" title="QR bisa dipindai berkali-kali">♾️ Multi</span>}
                 </div>
                 {statusBadge(g.attending)}
               </div>
@@ -1833,11 +1864,11 @@ export default function GuestTable({ guests: initialGuests, coupleName = "Kami" 
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-800">{g.name}</td>
                   <td className="px-4 py-3">
-                    {g.is_vip ? (
-                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">⭐ VIP</span>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {g.is_vip && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">⭐ VIP</span>}
+                      {g.allow_multi_checkin && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium whitespace-nowrap" title="QR bisa dipindai berkali-kali">♾️ Multi</span>}
+                      {!g.is_vip && !g.allow_multi_checkin && <span className="text-gray-300">—</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-500">{g.email ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">{g.phone_number ?? "—"}</td>
